@@ -73,7 +73,8 @@ export function SpeedLines() {
     const uniforms = material.uniforms;
     const { maxSpeed, boostSpeed } = runtime.flight;
     const overSpeed = clamp01((runtime.ship.speed - maxSpeed) / (boostSpeed - maxSpeed));
-    const target = runtime.ship.boost.active ? 0.6 + overSpeed * 0.4 : overSpeed * 0.5;
+    // Radial streaks assume the camera looks along the flight path (not true on orbit).
+    const target = runtime.orbit.active ? 0 : runtime.ship.boost.active ? 0.6 + overSpeed * 0.4 : overSpeed * 0.5;
     uniforms.uIntensity.value = damp(uniforms.uIntensity.value, target, 5, delta);
     uniforms.uTime.value += delta;
     uniforms.uAspect.value = size.width / Math.max(1, size.height);

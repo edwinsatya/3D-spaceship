@@ -1,4 +1,4 @@
-import type { LocationId } from "@/game/data/planets";
+import type { BodyId, LocationId } from "@/game/data/planets";
 
 /** Discrete gameplay events (rare; safe to allocate payloads). */
 export interface GameEventMap {
@@ -13,6 +13,8 @@ export interface GameEventMap {
   boostDenied: Record<string, never>;
   warpStart: { target: LocationId };
   warpArrive: { location: LocationId };
+  orbitStart: { body: BodyId };
+  orbitEnd: Record<string, never>;
 }
 
 export type GameEventType = keyof GameEventMap;

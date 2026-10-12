@@ -24,16 +24,19 @@ import {
   updateFov,
   updateHangarCamera,
   updateMenuCamera,
+  updateOrbitCamera,
   updateResultCamera,
 } from "./cameraRig";
 import { resolveShipSphere, spheresOverlap } from "./collision";
 import { segmentCrossesDisc, type PickupSpec } from "./course";
 import { arrivalFor, buildEnvironment } from "./environment";
 import { EMPTY_PAYLOAD, gameEvents } from "./events";
-import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
+import { decayKnockback, getShipForward, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
+import type { BoostEvent } from "./boost";
+import { advanceOrbit, disengageOrbit, engageOrbit, orbitCandidate, orbitPose } from "./orbit";
 import { rebaseIfNeeded } from "./floatingOrigin";
 import { createHintState, updateHints } from "./hints";
-import { damp } from "./math";
+import { damp, dampFactor } from "./math";
 import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
 import type { MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
@@ -56,6 +59,11 @@ const _targetUniverse = new Vector3();
 const _ndc = new Vector3();
 const _toTarget = new Vector3();
 const _cameraForward = new Vector3();
+const _orbitForward = new Vector3();
+const _orbitPosition = new Vector3();
+const _orbitTangent = new Vector3();
+const _orbitUp = new Vector3();
+const _orbitQuaternion = new Quaternion();
 
 /** Nearest body's radial "up" for auto-level (keeps the horizon level in orbit). */
 function referenceUp(ship: ShipState): Vector3 {
@@ -110,6 +118,7 @@ export function beginWarp(target: LocationId): boolean {
   if (!startWarp(runtime.warp, target)) return false;
   // The cursor is still on the Warp button: don't steer towards it on arrival.
   runtime.input?.resetForRun();
+  endOrbit();
   if (game.phase === "map") game.transition("playing");
   gameEvents.emit("warpStart", { target });
   return true;
@@ -187,6 +196,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   runtime.targetOffscreenTime = 0;
   runtime.testFlightRemaining = mode === "testflight" ? HANGAR.testFlightDuration : 0;
   runtime.warp = createWarpState();
+  disengageOrbit(runtime.orbit);
+  runtime.pendingActions.clear();
 
   runtime.startThrottle = mode === "mission" ? FLIGHT.missionStartThrottle : FLIGHT.freeFlightStartThrottle;
   runtime.input?.setThrottle(runtime.startThrottle);
@@ -203,6 +214,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   tutorial.collisions = 0;
   tutorial.ringsPassed = 0;
   tutorial.timeSinceStart = 0;
+  tutorial.orbited = false;
+  tutorial.mapOpened = false;
   runtime.hints = createHintState(useProgressStore.getState().onboarding.completedHints);
 
   const camera = runtime.camera;
@@ -366,10 +379,76 @@ function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): vo
   tutorial.rollUsed ||= Math.abs(input.roll) > 0.5;
   tutorial.boostEnergy = runtime.ship.boost.energy;
   tutorial.targetOffscreenTime = runtime.targetOffscreenTime;
+  tutorial.orbitAvailable = runtime.prompts.orbit !== null;
 
   const update = updateHints(runtime.hints, tutorial, realDt);
   if (update.changed) useSessionStore.getState().setHint(runtime.hints.active);
   if (update.completed) useProgressStore.getState().completeHint(update.completed);
+}
+
+function endOrbit(): void {
+  if (!runtime.orbit.active) return;
+  disengageOrbit(runtime.orbit);
+  gameEvents.emit("orbitEnd", EMPTY_PAYLOAD);
+}
+
+/** Orbit / land requests queued by the input layer (keys or touch buttons). */
+function handleActions(controllable: boolean, mode: GameMode): void {
+  const actions = runtime.pendingActions;
+  if (actions.size === 0) return;
+  if (!controllable || !isExploring(mode)) {
+    actions.clear();
+    return;
+  }
+  if (actions.has("orbit")) {
+    if (runtime.orbit.active) endOrbit();
+    else {
+      const candidate = orbitCandidate(runtime.ship.position, runtime.environment.colliders, EXPLORATION.orbit);
+      if (candidate?.id) {
+        getShipForward(runtime.ship, _orbitForward);
+        engageOrbit(runtime.orbit, runtime.ship.position, _orbitForward, candidate, EXPLORATION.orbit);
+        runtime.tutorial.orbited = true;
+        gameEvents.emit("orbitStart", { body: candidate.id });
+      }
+    }
+  }
+  actions.clear();
+}
+
+/** Autopilot: ease onto the orbit path, face along it, belly to the planet. */
+function flyOrbit(control: ControlInput, dt: number): BoostEvent {
+  const orbit = runtime.orbit;
+  const ship = runtime.ship;
+  const config = EXPLORATION.orbit;
+  const steering = Math.max(Math.abs(control.pitch), Math.abs(control.yaw));
+  orbit.breakout = steering > config.breakoutInput ? orbit.breakout + dt : 0;
+  if (orbit.breakout > config.breakoutTime || control.boost) {
+    endOrbit();
+    return null;
+  }
+  advanceOrbit(orbit, dt, config);
+  orbitPose(orbit, _orbitPosition, _orbitTangent);
+  _orbitUp.subVectors(_orbitPosition, orbit.center).normalize();
+  ship.previousPosition.copy(ship.position);
+  const follow = orbit.blend < 1 ? dampFactor(1.8 + orbit.blend * 4, dt) : 1;
+  ship.position.lerp(_orbitPosition, follow);
+  orientationFromForwardUp(_orbitTangent, _orbitUp, _orbitQuaternion);
+  ship.quaternion.slerp(_orbitQuaternion, dampFactor(3, dt));
+  ship.speed = damp(ship.speed, orbit.speed, 2, dt);
+  ship.velocity.copy(_orbitTangent).multiplyScalar(ship.speed);
+  ship.angularVelocity.set(0, 0, 0);
+  ship.bank = damp(ship.bank, 0, 3, dt);
+  ship.visualPitch = damp(ship.visualPitch, 0, 3, dt);
+  return null;
+}
+
+function updatePrompts(mode: GameMode, controllable: boolean): void {
+  const prompts = runtime.prompts;
+  const orbit = runtime.orbit;
+  const available = controllable && isExploring(mode) && !orbit.active;
+  prompts.orbit = available
+    ? (orbitCandidate(runtime.ship.position, runtime.environment.colliders, EXPLORATION.orbit)?.id ?? null)
+    : null;
 }
 
 function stepFlight(
@@ -393,7 +472,11 @@ function stepFlight(
   const canMove = isExploring(mode) || canFly(mission);
   const control = controllable ? (input?.input ?? IDLE_INPUT) : AUTOPILOT_INPUT;
 
-  const boostEvent = updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) }, runtime.flight, runtime.boost);
+  handleActions(controllable, mode);
+  const orbiting = runtime.orbit.active;
+  const boostEvent = orbiting
+    ? flyOrbit(control, dt)
+    : updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) }, runtime.flight, runtime.boost);
   if (boostEvent === "started") {
     runtime.tutorial.boostUsed = true;
     gameEvents.emit("boostStart", EMPTY_PAYLOAD);
@@ -430,7 +513,9 @@ function stepFlight(
   const camera = runtime.camera;
   if (phase === "result") updateResultCamera(camera, ship, realDt);
   else if (cameraMode === "cockpit") updateCockpitCamera(camera, ship);
+  else if (runtime.orbit.active) updateOrbitCamera(camera, ship, runtime.orbit, realDt, runtime.clock);
   else updateChaseCamera(camera, ship, realDt);
+  updatePrompts(mode, controllable);
   applyIntroBlend(camera, realDt);
   updateFov(camera, ship, realDt);
 }

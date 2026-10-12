@@ -66,7 +66,10 @@ export function useInputSystem() {
       else if (action === "mute") useProgressStore.getState().toggleMuted();
       else if (action === "map") {
         if (game.phase === "map") game.closeMap();
-        else if (!isWarping(runtime.warp)) game.openMap();
+        else if (!isWarping(runtime.warp)) {
+          game.openMap();
+          runtime.tutorial.mapOpened = true;
+        }
       } else runtime.pendingActions.add(action);
     };
     const keyboard = new KeyboardMouseSource(window, onAction);

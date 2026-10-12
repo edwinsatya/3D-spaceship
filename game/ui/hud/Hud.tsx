@@ -11,6 +11,8 @@ import { BoostGlow, CollisionFlash, Countdown, HintBanner, Toasts, WarpLabel } f
 import { Reticle } from "./Reticle";
 import { TargetMarker } from "./TargetMarker";
 import { TopBar } from "./TopBar";
+import { ContextPrompts } from "./ContextPrompts";
+import { PlanetInfoCard } from "./PlanetInfoCard";
 import { TouchControls } from "./TouchControls";
 
 const SAFE_AREA = "pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))]";
@@ -80,6 +82,12 @@ export function Hud() {
       </div>
 
       {touch && <TouchControls />}
+      <ContextPrompts />
+      <div className={`pointer-events-none absolute inset-0 ${SAFE_AREA}`}>
+        <div className="relative h-full w-full">
+          <PlanetInfoCard />
+        </div>
+      </div>
       <HintBanner placement={touch ? "top" : "bottom"} />
     </motion.div>
   );

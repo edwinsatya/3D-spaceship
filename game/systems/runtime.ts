@@ -8,6 +8,7 @@ import { buildEnvironment } from "./environment";
 import { createShipState } from "./flight";
 import { createHintState, type HintContext, type HintState } from "./hints";
 import { createMissionState } from "./mission";
+import { createOrbitState } from "./orbit";
 import { createWarpState } from "./warp";
 
 export type TargetKind = "ring" | "body";
@@ -99,6 +100,9 @@ export const runtime = {
   warp: createWarpState(),
   /** Gameplay actions (orbit, land) queued by input, consumed by the simulation. */
   pendingActions: new Set<"orbit" | "land">(),
+  orbit: createOrbitState(),
+  /** What the contextual HUD prompts can offer this frame. */
+  prompts: { orbit: null as BodyId | null },
   /** Clock in (scaled) seconds since the page started simulating. */
   clock: 0,
   timeScale: 1,
@@ -136,6 +140,9 @@ export const runtime = {
     collisions: 0,
     targetOffscreenTime: 0,
     boostEnergy: 1,
+    orbitAvailable: false,
+    orbited: false,
+    mapOpened: false,
   } as HintContext,
   hints: createHintState() as HintState,
   startThrottle: 0,

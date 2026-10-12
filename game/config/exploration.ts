@@ -31,17 +31,18 @@ export const EXPLORATION = {
     /** Orbit prompt shows within this many radii of the surface centre. */
     range: 4,
     minRadius: 1.35,
-    maxRadius: 2.6,
+    maxRadius: 2.0,
     /** Orbit speed = radius × factor, clamped (u/s). */
     speedFactor: 0.07,
     minSpeed: 22,
-    maxSpeed: 75,
+    maxSpeed: 55,
     /** Seconds to blend from free flight into the orbit path. */
     blendIn: 2,
     /** Strong steering for this long breaks out of orbit (s). */
     breakoutTime: 0.35,
     breakoutInput: 0.6,
-    camera: { back: 16, up: 6, side: 7, sway: 0.18, swaySpeed: 0.05, fov: 56 },
+    /** Camera sits outside the orbit looking in: the ship crosses in front of the planet. */
+    camera: { out: 15, back: 7, side: 4, sway: 0.35, swaySpeed: 0.04, lookDepth: 40, response: 3, fov: 58 },
   },
 
   landing: {

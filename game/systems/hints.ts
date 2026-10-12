@@ -6,6 +6,8 @@ import type { TranslationKey } from "@/game/i18n/types";
  * disappear as soon as the player performs the action. Pure logic.
  */
 export type HintId =
+  | "orbit"
+  | "map"
   | "steer"
   | "throttle"
   | "ring"
@@ -34,6 +36,10 @@ export interface HintContext {
   collisions: number;
   targetOffscreenTime: number;
   boostEnergy: number;
+  /** A planet is in orbit range (free flight). */
+  orbitAvailable: boolean;
+  orbited: boolean;
+  mapOpened: boolean;
 }
 
 interface HintDefinition {
@@ -118,6 +124,24 @@ export const HINTS: readonly HintDefinition[] = [
     done: (c) => c.rollUsed,
     minShow: 1.2,
     maxShow: 7,
+  },
+  {
+    id: "orbit",
+    text: { desktop: "hints.orbitDesktop", touch: "hints.orbitTouch" },
+    modes: ["freeflight"],
+    trigger: (c) => c.orbitAvailable && c.timeSinceStart > 6,
+    done: (c) => c.orbited,
+    minShow: 1.5,
+    maxShow: 8,
+  },
+  {
+    id: "map",
+    text: { desktop: "hints.mapDesktop", touch: "hints.mapTouch" },
+    modes: ["freeflight"],
+    trigger: (c) => c.timeSinceStart > 40,
+    done: (c) => c.mapOpened,
+    minShow: 1.5,
+    maxShow: 8,
   },
   {
     id: "camera",

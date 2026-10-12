@@ -75,6 +75,38 @@ export function updateMenuCamera(camera: CameraRuntime, ship: ShipState, time: n
   camera.up.copy(_up);
 }
 
+const _orbitRadial = new Vector3();
+const _orbitTarget = new Vector3();
+
+/**
+ * Cinematic camera on orbit autopilot: outside the orbit, looking in, so the
+ * ship glides across the frame in front of the planet. The offset is smoothed
+ * relative to the ship, so fast orbits never leave the camera behind.
+ */
+export function updateOrbitCamera(
+  camera: CameraRuntime,
+  ship: ShipState,
+  orbit: { center: Vector3; normal: Vector3 },
+  dt: number,
+  time: number,
+): void {
+  const { out, back, side, sway, swaySpeed, lookDepth, response } = EXPLORATION.orbit.camera;
+  _orbitRadial.subVectors(ship.position, orbit.center).normalize();
+  _forward.copy(SHIP_FORWARD).applyQuaternion(ship.quaternion);
+  const swing = Math.sin(time * swaySpeed * Math.PI * 2) * sway;
+  _orbitTarget
+    .copy(_orbitRadial)
+    .multiplyScalar(out)
+    .addScaledVector(_forward, -back * (1 + swing))
+    .addScaledVector(orbit.normal, side);
+  camera.offset.lerp(_orbitTarget, dampFactor(response, dt));
+  camera.position.copy(ship.position).add(camera.offset);
+  camera.up.lerp(orbit.normal, dampFactor(2, dt)).normalize();
+  _look.copy(ship.position).addScaledVector(_orbitRadial, -lookDepth).addScaledVector(_forward, back);
+  lookAt(camera.position, _look, camera.up, _targetQuaternion);
+  camera.quaternion.slerp(_targetQuaternion, dampFactor(response, dt));
+}
+
 /** Fixed 3/4 top view of the hovering ship (it spins; the camera stays put). */
 export function updateHangarCamera(
   camera: CameraRuntime,
@@ -134,7 +166,9 @@ export function updateFov(camera: CameraRuntime, ship: ShipState, dt: number): v
   const target =
     warpPhase === "charge" || warpPhase === "tunnel"
       ? EXPLORATION.warp.chargeFov
-      : ship.boost.active
+      : runtime.orbit.active
+        ? EXPLORATION.orbit.camera.fov
+        : ship.boost.active
         ? CAMERA.boostFov
         : CAMERA.fov + speed01 * 3;
   camera.fov = damp(camera.fov, target, CAMERA.fovResponse, dt);

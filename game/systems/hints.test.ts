@@ -18,6 +18,9 @@ function context(overrides: Partial<HintContext> = {}): HintContext {
     collisions: 0,
     targetOffscreenTime: 0,
     boostEnergy: 1,
+    orbitAvailable: false,
+    orbited: false,
+    mapOpened: false,
     ...overrides,
   };
 }
@@ -49,7 +52,7 @@ describe("contextual hints", () => {
   });
 
   it("skips desktop-only hints on touch devices", () => {
-    const all = ["steer", "throttle", "ring", "boost", "energy", "followArrow", "collision", "camera"] as const;
+    const all = ["steer", "throttle", "ring", "boost", "energy", "followArrow", "collision", "camera", "orbit", "map"] as const;
     const state = createHintState(all);
     updateHints(state, context({ device: "touch", ringsPassed: 5 }), 0.1);
     expect(state.active).toBeNull();
