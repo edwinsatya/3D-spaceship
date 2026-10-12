@@ -13,10 +13,14 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
 import { runtime } from "@/game/systems/runtime";
+import { installThreeConsoleFilter } from "@/game/systems/threeConsole";
 import { useAutoPause, useBoot, useInputSystem } from "@/game/systems/useGameLifecycle";
 import { GameUI } from "@/game/ui/GameUI";
 import { useFeedback } from "@/game/ui/useFeedback";
 import { WebGLFallback } from "@/game/ui/WebGLFallback";
+
+// Before any Canvas exists: R3F creates its (deprecated) THREE.Clock on mount.
+installThreeConsoleFilter();
 
 /** Dev-only console handle for inspecting/tuning the running game. */
 function exposeDebugHandle() {
