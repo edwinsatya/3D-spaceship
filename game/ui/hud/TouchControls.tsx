@@ -10,8 +10,7 @@ import { runtime } from "@/game/systems/runtime";
 import { BoltIcon } from "../icons";
 import { useHudFrame } from "../useHudFrame";
 
-/** Resting position (px from the bottom-left corner) when not touched. */
-const JOYSTICK_REST = 40;
+const JOYSTICK_REST = TOUCH.joystickRest;
 
 /** Floating joystick: appears where the left thumb lands. */
 function Joystick() {

@@ -52,8 +52,6 @@ void main() {
 }
 `;
 
-const PARALLAX_FOLLOW = 0.85;
-
 function createGasGeometry(count: number) {
   const random = createRandom(303);
   const centers: number[] = [];
@@ -113,7 +111,7 @@ export function NebulaGas() {
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(() => {
-    mesh.current?.position.copy(runtime.camera.position).multiplyScalar(PARALLAX_FOLLOW).sub(runtime.origin);
+    mesh.current?.position.copy(runtime.camera.position).multiplyScalar(SKY.gas.follow).sub(runtime.origin);
   });
 
   return (

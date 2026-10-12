@@ -12,8 +12,6 @@ import { getHintText } from "@/game/systems/hints";
 import { runtime } from "@/game/systems/runtime";
 import { useHudFrame } from "../useHudFrame";
 
-const GO_VISIBLE_MS = 800;
-
 export function Countdown() {
   const t = useT();
   const value = useSessionStore((state) => state.countdown);
@@ -21,7 +19,7 @@ export function Countdown() {
 
   useEffect(() => {
     if (value !== 0) return;
-    const timer = setTimeout(() => setCountdown(null), GO_VISIBLE_MS);
+    const timer = setTimeout(() => setCountdown(null), HUD.goVisible);
     return () => clearTimeout(timer);
   }, [value, setCountdown]);
 

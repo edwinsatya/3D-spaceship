@@ -80,17 +80,19 @@ export function Asteroids({ asteroids }: { asteroids: AsteroidSpec[] }) {
   );
 
   useFrame(() => {
-    groups.forEach((bucket, variant) => {
+    for (let variant = 0; variant < groups.length; variant++) {
       const mesh = meshes.current[variant];
-      if (!mesh) return;
-      bucket.forEach((motion, index) => {
+      if (!mesh) continue;
+      const bucket = groups[variant];
+      for (let index = 0; index < bucket.length; index++) {
+        const motion = bucket[index];
         _rotation.setFromAxisAngle(motion.axis, motion.phase + runtime.clock * motion.speed);
         _scale.copy(motion.scale).multiplyScalar(motion.spec.radius);
         _matrix.compose(motion.spec.position, _rotation, _scale);
         mesh.setMatrixAt(index, _matrix);
-      });
+      }
       mesh.instanceMatrix.needsUpdate = true;
-    });
+    }
   });
 
   return (

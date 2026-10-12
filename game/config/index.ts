@@ -6,4 +6,5 @@ export * from "./flight";
 export * from "./hud";
 export * from "./mission";
 export * from "./quality";
+export * from "./visuals";
 export * from "./world";

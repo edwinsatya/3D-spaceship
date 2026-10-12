@@ -12,4 +12,10 @@ export const HUD = {
   collisionFlash: 380,
   /** Seconds between loading-screen facts. */
   factInterval: 4.5,
+  /** Loading screen stays this long after reaching 100% (ms). */
+  loadingSettle: 350,
+  /** "GO!" stays on screen this long (ms). */
+  goVisible: 800,
+  /** Result-screen time count-up (s). */
+  resultCountUp: 1.1,
 } as const;

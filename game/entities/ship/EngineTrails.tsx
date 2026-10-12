@@ -12,6 +12,7 @@ import {
   ShaderMaterial,
   Vector3,
 } from "three";
+import { VISUALS } from "@/game/config/visuals";
 import { TRAIL } from "@/game/config/world";
 import { damp, smoothstep } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
@@ -35,7 +36,6 @@ void main() {
 }
 `;
 
-const TELEPORT_DISTANCE = 60;
 const BANK_AXIS = new Vector3(0, 0, 1);
 
 interface Trail {
@@ -125,9 +125,10 @@ export function EngineTrails() {
     if (sample) sampleTimer.value = 0;
     _bank.setFromAxisAngle(BANK_AXIS, ship.bank);
 
-    for (const trail of trails) {
+    for (let t = 0; t < trails.length; t++) {
+      const trail = trails[t];
       _head.copy(trail.offset).applyQuaternion(_bank).applyQuaternion(ship.quaternion).add(ship.position);
-      if (readPoint(trail, 0, _a).distanceTo(_head) > TELEPORT_DISTANCE) resetTrail(trail, _head);
+      if (readPoint(trail, 0, _a).distanceTo(_head) > VISUALS.trail.teleportDistance) resetTrail(trail, _head);
       if (sample) {
         trail.points.copyWithin(3, 0, (count - 1) * 3);
         trail.points[0] = _head.x;

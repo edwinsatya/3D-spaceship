@@ -13,6 +13,7 @@ import {
   type Group,
   type Texture,
 } from "three";
+import { VISUALS } from "@/game/config/visuals";
 import { WORLD } from "@/game/config/world";
 import { EARTH } from "@/game/data/planets";
 import { OUTPUT_CHUNKS } from "@/game/scenes/shaders/common";
@@ -21,7 +22,8 @@ import { useAssetStore } from "@/game/stores/assetStore";
 import { runtime } from "@/game/systems/runtime";
 import { SUN_DIRECTION } from "./Sun";
 
-const LOD_DISTANCES = [0, 900, 2200];
+
+const EARTH_LOD = [...VISUALS.lod.earth];
 
 const SURFACE_VERTEX = /* glsl */ `
 varying vec2 vUv;
@@ -203,7 +205,7 @@ function EarthBody({ day, night }: { day: Texture; night: Texture }) {
   const { planetSegments } = useQualitySettings();
   const materials = useEarthMaterials(day, night);
   const surfaceLods = useSphereLods(EARTH.radius, planetSegments);
-  const cloudLods = useSphereLods(EARTH.radius * 1.012, planetSegments);
+  const cloudLods = useSphereLods(EARTH.radius * VISUALS.cloudScale, planetSegments);
   const glowGeometry = useMemo(() => new SphereGeometry(EARTH.radius * EARTH.atmosphere!.scale, 64, 32), []);
   const surface = useRef<Group>(null);
   const clouds = useRef<Group>(null);
@@ -234,14 +236,14 @@ function EarthBody({ day, night }: { day: Texture; night: Texture }) {
   return (
     <group rotation={[0, 0, MathUtils.degToRad(EARTH.axialTilt)]}>
       <group ref={surface}>
-        <Detailed distances={LOD_DISTANCES}>
+        <Detailed distances={EARTH_LOD}>
           {surfaceLods.map((geometry, index) => (
             <mesh key={index} geometry={geometry} material={materials.surface} />
           ))}
         </Detailed>
       </group>
       <group ref={clouds}>
-        <Detailed distances={LOD_DISTANCES}>
+        <Detailed distances={EARTH_LOD}>
           {cloudLods.map((geometry, index) => (
             <mesh key={index} geometry={geometry} material={materials.clouds} renderOrder={1} />
           ))}

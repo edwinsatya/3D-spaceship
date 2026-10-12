@@ -35,6 +35,8 @@ export const KEYBOARD_STEER = {
 export const TOUCH = {
   /** Joystick radius in CSS px. */
   joystickRadius: 64,
+  /** Joystick resting position (px from the bottom-left corner). */
+  joystickRest: 40,
   joystickDeadzone: 0.08,
   joystickCurve: 1.25,
   /** Haptic pulse lengths (ms). */

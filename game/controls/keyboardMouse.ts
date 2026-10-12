@@ -46,7 +46,7 @@ export class KeyboardMouseSource implements InputSource {
     target.addEventListener("keyup", this.handleKeyUp);
     target.addEventListener("blur", this.handleBlur);
     target.addEventListener("pointermove", this.handlePointerMove);
-    target.document.addEventListener("pointerleave", this.handlePointerLeave);
+    target.addEventListener("mouseout", this.handleMouseOut);
   }
 
   /** Whether any steering key is held (used by the hint system). */
@@ -96,7 +96,7 @@ export class KeyboardMouseSource implements InputSource {
     this.target.removeEventListener("keyup", this.handleKeyUp);
     this.target.removeEventListener("blur", this.handleBlur);
     this.target.removeEventListener("pointermove", this.handlePointerMove);
-    this.target.document.removeEventListener("pointerleave", this.handlePointerLeave);
+    this.target.removeEventListener("mouseout", this.handleMouseOut);
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
@@ -138,7 +138,8 @@ export class KeyboardMouseSource implements InputSource {
     }
   };
 
-  private handlePointerLeave = () => {
-    this.cursor.active = false;
+  /** `relatedTarget === null` means the pointer left the window: stop steering. */
+  private handleMouseOut = (event: MouseEvent) => {
+    if (event.relatedTarget === null) this.cursor.active = false;
   };
 }

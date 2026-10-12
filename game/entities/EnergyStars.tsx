@@ -11,13 +11,13 @@ import {
   Shape,
   type Group,
 } from "three";
+import { VISUALS } from "@/game/config/visuals";
 import { BILLBOARD_VERTEX } from "@/game/scenes/shaders/common";
 import type { PickupSpec } from "@/game/systems/course";
 import { clamp01 } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
 
-const COLLECT_ANIMATION = 0.45;
-const STAR_SIZE = 1.5;
+const { size: STAR_SIZE, haloSize, spinSpeed, bobAmplitude, collectAnimation, collectScale } = VISUALS.energyStar;
 
 const HALO_FRAGMENT = /* glsl */ `
 uniform float uOpacity;
@@ -74,7 +74,7 @@ export function EnergyStars({ pickups }: { pickups: PickupSpec[] }) {
       new ShaderMaterial({
         vertexShader: BILLBOARD_VERTEX,
         fragmentShader: HALO_FRAGMENT,
-        uniforms: { uSize: { value: 4.5 }, uOpacity: { value: 1 } },
+        uniforms: { uSize: { value: haloSize }, uOpacity: { value: 1 } },
         blending: AdditiveBlending,
         transparent: true,
         depthWrite: false,
@@ -96,21 +96,23 @@ export function EnergyStars({ pickups }: { pickups: PickupSpec[] }) {
 
   useFrame(() => {
     const { active, collectedAt } = runtime.pickups;
-    groups.current.forEach((group, index) => {
-      if (!group) return;
+    const list = groups.current;
+    for (let index = 0; index < list.length; index++) {
+      const group = list[index];
+      if (!group) continue;
       const spin = group.children[0];
-      if (spin) spin.rotation.y = runtime.clock * 2.2 + index;
+      if (spin) spin.rotation.y = runtime.clock * spinSpeed + index;
       group.position.copy(pickups[index].position);
-      group.position.y += Math.sin(runtime.clock * 2 + index * 1.7) * 0.4;
+      group.position.y += Math.sin(runtime.clock * 2 + index * 1.7) * bobAmplitude;
       if (active[index]) {
         group.visible = true;
         group.scale.setScalar(1);
-        return;
+        continue;
       }
-      const t = clamp01((runtime.clock - (collectedAt[index] ?? -Infinity)) / COLLECT_ANIMATION);
+      const t = clamp01((runtime.clock - (collectedAt[index] ?? -Infinity)) / collectAnimation);
       group.visible = t < 1;
-      group.scale.setScalar(1 + t * 1.8);
-    });
+      group.scale.setScalar(1 + t * collectScale);
+    }
   });
 
   return (

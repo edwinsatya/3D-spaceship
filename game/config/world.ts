@@ -27,7 +27,7 @@ export const SKY = {
   /** Near star layer: world-fixed, strongest parallax. */
   nearLayer: { count: 900, minRadius: 1600, maxRadius: 3200, size: 2.8 },
   /** Soft nebula gas billboards. */
-  gas: { count: 18, minRadius: 3000, maxRadius: 4200, minSize: 900, maxSize: 2200 },
+  gas: { count: 18, minRadius: 3000, maxRadius: 4200, minSize: 900, maxSize: 2200, follow: 0.85 },
   /** Sun billboard distance from camera (kept below camera far). */
   sunDistance: 7000,
   sunSize: 520,

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { audio } from "@/game/audio/audioManager";
+import { HUD } from "@/game/config/hud";
 import { PERFORMANCE } from "@/game/config/quality";
 import { detectInputDevice, supportsWebGL2 } from "@/game/controls/device";
 import { GamepadSource } from "@/game/controls/gamepad";
@@ -15,8 +16,6 @@ import { useProgressStore } from "@/game/stores/progressStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { runtime } from "./runtime";
 
-/** Minimum time the loading screen stays up after reaching 100% (s). */
-const LOADING_SETTLE_MS = 350;
 
 /** boot → loading: capability checks, device detection, audio synthesis. */
 export function useBoot() {
@@ -45,7 +44,7 @@ export function useBoot() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = useLoadingStore.subscribe((state) => {
       if (timer || overallProgress(state.progress) < 1) return;
-      timer = setTimeout(() => useGameStore.getState().transition("menu"), LOADING_SETTLE_MS);
+      timer = setTimeout(() => useGameStore.getState().transition("menu"), HUD.loadingSettle);
     });
     return () => {
       unsubscribe();

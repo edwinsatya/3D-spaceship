@@ -3,11 +3,13 @@
 import { Detailed } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
 import { MathUtils, SphereGeometry, Vector3 } from "three";
-import { MOON, EARTH } from "@/game/data/planets";
+import { VISUALS } from "@/game/config/visuals";
+import { EARTH, MOON } from "@/game/data/planets";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
 import { useAssetStore } from "@/game/stores/assetStore";
 
-const LOD_DISTANCES = [0, 700, 1800];
+
+const MOON_LOD = [...VISUALS.lod.moon];
 
 /** The Moon is tidally locked: its near side always faces Earth. */
 function faceEarthRotation(): [number, number, number] {
@@ -34,7 +36,7 @@ export function Moon() {
   if (!map) return null;
   return (
     <group position={MOON.position} rotation={rotation}>
-      <Detailed distances={LOD_DISTANCES}>
+      <Detailed distances={MOON_LOD}>
         {lods.map((geometry, index) => (
           <mesh key={index} geometry={geometry}>
             <meshStandardMaterial map={map} bumpMap={map} bumpScale={2.2} roughness={1} metalness={0} />

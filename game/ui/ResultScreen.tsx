@@ -3,6 +3,7 @@
 import { animate, motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { audio } from "@/game/audio/audioManager";
+import { HUD } from "@/game/config/hud";
 import { SPACE_FACTS } from "@/game/data/facts";
 import { MISSIONS } from "@/game/data/missions";
 import { useLocale, useT } from "@/game/i18n/useT";
@@ -12,7 +13,7 @@ import { formatTime, nextStarTarget } from "@/game/systems/scoring";
 import { HomeIcon, RestartIcon } from "./icons";
 import { GameButton, Panel, STAR_POP, StarRow } from "./primitives";
 
-const COUNT_UP_SECONDS = 1.1;
+const COUNT_UP_SECONDS = HUD.resultCountUp;
 
 /** Time counts up from zero for a bit of drama. */
 function AnimatedTime({ timeMs }: { timeMs: number }) {

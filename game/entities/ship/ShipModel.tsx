@@ -12,6 +12,7 @@ import {
   type Group,
 } from "three";
 import { FLIGHT } from "@/game/config/flight";
+import { VISUALS } from "@/game/config/visuals";
 import { TRAIL } from "@/game/config/world";
 import { clamp01, damp } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
@@ -54,7 +55,7 @@ void main() {
 }
 `;
 
-const GLOW_INTENSITY = 6;
+const { glowIntensity: GLOW_INTENSITY, flameIdle, flameThrottle, flameBoost, flameResponse } = VISUALS.ship;
 const BOOST_COLOR = new Color(TRAIL.boostColor);
 
 function useShipMaterials(colors: ShipColors) {
@@ -111,9 +112,11 @@ export function ShipModel({ colors = DEFAULT_SHIP_COLORS, cockpit = false }: { c
     const ship = runtime.ship;
     const speed01 = clamp01(ship.speed / FLIGHT.maxSpeed);
     const boosting = ship.boost.active;
-    flameLength.current = damp(flameLength.current, boosting ? 2.6 : 0.35 + speed01 * 1.2, 8, delta);
-    if (flames.current) {
-      for (const flame of flames.current.children) flame.scale.z = flameLength.current;
+    const flameTarget = boosting ? flameBoost : flameIdle + speed01 * flameThrottle;
+    flameLength.current = damp(flameLength.current, flameTarget, flameResponse, delta);
+    const flameMeshes = flames.current?.children;
+    if (flameMeshes) {
+      for (let i = 0; i < flameMeshes.length; i++) flameMeshes[i].scale.z = flameLength.current;
     }
     const uniforms = materials.flame.uniforms;
     uniforms.uTime.value += delta;

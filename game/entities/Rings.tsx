@@ -93,9 +93,10 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
     const pulse = 0.75 + 0.25 * Math.sin(runtime.clock * 6);
     portalMaterial.uniforms.uTime.value = runtime.clock;
 
-    materials.forEach((material, index) => {
+    for (let index = 0; index < materials.length; index++) {
+      const material = materials[index];
       const group = groups.current[index];
-      if (!group) return;
+      if (!group) continue;
       if (index < next) {
         const passedAt = runtime.ringPassedAt[index] ?? -1;
         const t = passedAt < 0 ? 1 : clamp01((runtime.clock - passedAt) / MISSION.ringPassFadeDuration);
@@ -103,7 +104,7 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
         group.scale.setScalar(1 + easeOutCubic(t) * MISSION.ringPassScaleBoost);
         material.color.copy(COLORS.passed);
         material.opacity = 1 - t;
-        return;
+        continue;
       }
       group.visible = true;
       group.scale.setScalar(1);
@@ -117,7 +118,7 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
         material.color.copy(COLORS.idle);
         material.opacity = 0.55;
       }
-    });
+    }
 
     const portalTarget = portalGroup.current;
     if (portalTarget) {
