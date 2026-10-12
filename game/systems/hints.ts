@@ -7,6 +7,7 @@ import type { TranslationKey } from "@/game/i18n/types";
  */
 export type HintId =
   | "orbit"
+  | "land"
   | "map"
   | "steer"
   | "throttle"
@@ -39,6 +40,9 @@ export interface HintContext {
   /** A planet is in orbit range (free flight). */
   orbitAvailable: boolean;
   orbited: boolean;
+  /** Close enough to the Moon or Mars to land. */
+  landAvailable: boolean;
+  landed: boolean;
   mapOpened: boolean;
 }
 
@@ -131,6 +135,15 @@ export const HINTS: readonly HintDefinition[] = [
     modes: ["freeflight"],
     trigger: (c) => c.orbitAvailable && c.timeSinceStart > 6,
     done: (c) => c.orbited,
+    minShow: 1.5,
+    maxShow: 8,
+  },
+  {
+    id: "land",
+    text: { desktop: "hints.landDesktop", touch: "hints.landTouch" },
+    modes: ["freeflight"],
+    trigger: (c) => c.landAvailable,
+    done: (c) => c.landed,
     minShow: 1.5,
     maxShow: 8,
   },

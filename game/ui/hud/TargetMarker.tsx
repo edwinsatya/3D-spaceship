@@ -9,6 +9,7 @@ import { distanceToKm, formatNumber } from "./format";
 const KIND_COLORS: Record<TargetKind, string> = {
   ring: "#ffd84d",
   body: "#7df9ff",
+  poi: "#9dffb0",
 };
 
 /**

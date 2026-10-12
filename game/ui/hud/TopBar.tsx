@@ -3,6 +3,8 @@
 import { motion } from "motion/react";
 import { useRef } from "react";
 import { BODIES } from "@/game/data/planets";
+import { SURFACES } from "@/game/data/surfaces";
+import { useProgressStore } from "@/game/stores/progressStore";
 import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
@@ -39,14 +41,25 @@ export function TopBar() {
   const totalRings = useSessionStore((state) => state.totalRings);
   const endTestFlight = useGameStore((state) => state.endTestFlight);
   const location = useGameStore((state) => state.location);
+  const surface = useGameStore((state) => state.surface);
   const locale = useLocale();
   const placeName = localize(BODIES[location].name, locale);
+  const surfaceText = () => {
+    if (!surface) return null;
+    const sites = SURFACES[surface].pointsOfInterest;
+    const seen = useProgressStore.getState().pointsOfInterest;
+    let visited = 0;
+    for (const site of sites) if (seen.includes(site.id)) visited++;
+    if (visited === sites.length) return t("hud.objectiveSurfaceDone");
+    return t("hud.objectiveSurface", { place: localize(SURFACES[surface].place, locale), visited, total: sites.length });
+  };
   const objectiveText = (returning: boolean) =>
-    returning
+    surfaceText() ??
+    (returning
       ? t("hud.objectiveReturn", { name: placeName })
       : location === "earth"
         ? t("hud.objectiveFree")
-        : t("hud.objectiveExplore", { name: placeName });
+        : t("hud.objectiveExplore", { name: placeName }));
   const timer = useRef<HTMLSpanElement>(null);
   const freeObjective = useRef<HTMLSpanElement>(null);
 

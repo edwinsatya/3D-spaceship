@@ -29,6 +29,8 @@ import { SpaceDust } from "./SpaceDust";
 import { SpeedLines } from "./SpeedLines";
 import { StarLayers } from "./StarLayers";
 import { WarpTunnel } from "./WarpTunnel";
+import { EarthInSky, MarsSky, SurfaceFog, SurfaceLight, SurfaceScene } from "./surface/SurfaceScene";
+import { SURFACES } from "@/game/data/surfaces";
 import { useQualitySettings } from "./useQualitySettings";
 
 /** Everything positioned in universe coordinates; shifted by the floating origin. */
@@ -77,7 +79,10 @@ export function SpaceScene() {
   const phase = useGameStore((state) => state.phase);
   const mode = useGameStore((state) => state.mode);
   const location = useGameStore((state) => state.location);
+  const surface = useGameStore((state) => state.surface);
   const { speedLines } = useQualitySettings();
+  const sky = surface ? SURFACES[surface].sky : null;
+  const spaceSky = sky?.type !== "atmosphere";
   const inRun = phase === "playing" || phase === "paused" || phase === "result";
   const showRings = phase === "menu" || (mode === "mission" && inRun);
   const loaded = phase !== "boot" && phase !== "loading";
@@ -85,13 +90,20 @@ export function SpaceScene() {
   return (
     <>
       <Preloader />
-      <SkyBackground />
-      <SunLight />
-      <Sun />
-      <StarLayers />
-      <NebulaGas />
+      {spaceSky && <SkyBackground />}
+      {surface ? <SurfaceLight surface={surface} /> : <SunLight />}
+      {surface && <SurfaceFog surface={surface} />}
+      {spaceSky && <Sun />}
+      {spaceSky && <StarLayers />}
+      {spaceSky && <NebulaGas />}
+      {sky?.type === "atmosphere" && <MarsSky zenith={sky.zenith} horizon={sky.horizon} sunHalo={sky.sunHalo} />}
+      {sky?.type === "space" && <EarthInSky direction={sky.earthDirection} />}
       <WorldRoot>
-        <LocationContent key={location} location={location} showRings={showRings} />
+        {/* Kept mounted (hidden) while landed so its baked textures survive the round trip. */}
+        <group visible={!surface}>
+          <LocationContent key={location} location={location} showRings={showRings} />
+        </group>
+        {surface && <SurfaceScene key={surface} surface={surface} />}
       </WorldRoot>
       <Ship />
       <SpaceDust />

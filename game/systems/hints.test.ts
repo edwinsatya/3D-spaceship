@@ -20,6 +20,8 @@ function context(overrides: Partial<HintContext> = {}): HintContext {
     boostEnergy: 1,
     orbitAvailable: false,
     orbited: false,
+    landAvailable: false,
+    landed: false,
     mapOpened: false,
     ...overrides,
   };

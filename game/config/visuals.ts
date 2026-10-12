@@ -30,4 +30,15 @@ export const VISUALS = {
     /** A jump larger than this (u) between frames is a teleport: reset the trail. */
     teleportDistance: 60,
   },
+  surface: {
+    /** Landing-site ground mesh: side length (u); segments come from the quality tier. */
+    size: 3400,
+    /** Scale of the procedural props (lander, rover, helicopter). */
+    propScale: 1.6,
+    beacon: { height: 90, radius: 1.3, visitedOpacity: 0.25 },
+    /** Earth in the lunar sky: distance from the camera (u) and radius (~7° wide; really ~2°). */
+    earthInSky: { distance: 6000, radius: 380 },
+    /** Mars sky dome radius (kept inside camera.far). */
+    skyRadius: 8000,
+  },
 } as const;

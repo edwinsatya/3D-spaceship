@@ -11,6 +11,8 @@ export interface QualitySettings {
   dustCount: "low" | "medium" | "high";
   /** Earth/Moon sphere segments for the closest LOD level. */
   planetSegments: number;
+  /** Landing-site ground mesh segments per side. */
+  terrainSegments: number;
   trails: boolean;
   speedLines: boolean;
 }
@@ -23,6 +25,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     starsScale: 1,
     dustCount: "high",
     planetSegments: 160,
+    terrainSegments: 280,
     trails: true,
     speedLines: true,
   },
@@ -33,6 +36,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     starsScale: 0.75,
     dustCount: "medium",
     planetSegments: 96,
+    terrainSegments: 200,
     trails: true,
     speedLines: true,
   },
@@ -43,6 +47,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     starsScale: 0.5,
     dustCount: "low",
     planetSegments: 64,
+    terrainSegments: 140,
     trails: false,
     speedLines: false,
   },

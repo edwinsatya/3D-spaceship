@@ -3,8 +3,10 @@ import { COLLISION } from "@/game/config/flight";
 import { EXPLORATION } from "@/game/config/exploration";
 import { BODIES, type BodyId, type CelestialBody, type LocationId } from "@/game/data/planets";
 import { LOCATION_BODIES, sunDirectionFor, sunlightFor } from "@/game/data/solarSystem";
+import { SURFACES, type SurfaceId } from "@/game/data/surfaces";
 import { toVector, type PickupSpec } from "./course";
 import { createRandom } from "./random";
+import type { Terrain } from "./terrain";
 
 export interface BodyCollider {
   id: BodyId | null;
@@ -17,6 +19,8 @@ export interface BodyCollider {
 
 export interface Environment {
   location: LocationId;
+  /** Set while on a landing site (the location stays the space scene you came from). */
+  surface: SurfaceId | null;
   primary: CelestialBody;
   bodies: readonly CelestialBody[];
   colliders: BodyCollider[];
@@ -96,6 +100,7 @@ export function buildEnvironment(location: LocationId): Environment {
   const sunlight = sunlightFor(location);
   return {
     location,
+    surface: null,
     primary,
     bodies,
     colliders,
@@ -103,6 +108,32 @@ export function buildEnvironment(location: LocationId): Environment {
     sunSize: sunlight.size,
     sunIntensity: sunlight.intensity,
     pickups: locationPickups(location),
+  };
+}
+
+/** Collision radius of the props standing at each point of interest. */
+const POI_PROP_RADIUS = 6;
+
+/** Landing-site environment: flat "up", its own sun, props to bump into. */
+export function buildSurfaceEnvironment(location: LocationId, surface: SurfaceId, terrain: Terrain): Environment {
+  const definition = SURFACES[surface];
+  return {
+    location,
+    surface,
+    primary: BODIES[surface],
+    bodies: [],
+    colliders: terrain.pointsOfInterest
+      .filter((_, index) => definition.pointsOfInterest[index].kind !== "crater" && definition.pointsOfInterest[index].kind !== "delta")
+      .map((poi) => ({
+        id: null,
+        center: poi.position.clone().add(new Vector3(0, 3, 0)),
+        radius: POI_PROP_RADIUS,
+        surfaceRadius: POI_PROP_RADIUS,
+      })),
+    sunDirection: toVector(definition.sunDirection).normalize(),
+    sunSize: surface === "mars" ? 0.66 : 1,
+    sunIntensity: definition.sunIntensity / 2.5,
+    pickups: terrain.pickups,
   };
 }
 

@@ -8,7 +8,7 @@ import { MISSION } from "@/game/config/mission";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
 import { MISSIONS } from "@/game/data/missions";
-import type { LocationId } from "@/game/data/planets";
+import { BODIES, type LocationId } from "@/game/data/planets";
 import { SHIPS_BY_ID } from "@/game/data/ships";
 import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
@@ -28,23 +28,32 @@ import {
   updateResultCamera,
 } from "./cameraRig";
 import { resolveShipSphere, spheresOverlap } from "./collision";
-import { segmentCrossesDisc, type PickupSpec } from "./course";
+import { segmentCrossesDisc } from "./course";
 import { arrivalFor, buildEnvironment } from "./environment";
 import { EMPTY_PAYLOAD, gameEvents } from "./events";
-import { decayKnockback, getShipForward, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
-import type { BoostEvent } from "./boost";
-import { advanceOrbit, disengageOrbit, engageOrbit, orbitCandidate, orbitPose } from "./orbit";
+import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
+import { disengageOrbit, orbitCandidate } from "./orbit";
+import { endOrbit, flyOrbit, toggleOrbit } from "./orbitControl";
+import { currentPickups, resetPickups } from "./pickups";
+import { createLandingState } from "./landing";
+import {
+  applyTerrain,
+  handlePointsOfInterest,
+  landingCandidate,
+  nextPointOfInterest,
+  requestLanding,
+  stepLandingFlow,
+} from "./landingFlow";
 import { rebaseIfNeeded } from "./floatingOrigin";
 import { findDiscovery } from "./discovery";
 import { createHintState, updateHints } from "./hints";
-import { damp, dampFactor } from "./math";
+import { damp } from "./math";
 import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
 import type { MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
 import { rateTime } from "./scoring";
 import { createWarpState, isWarping, startWarp, tickWarp } from "./warp";
 import { boostConfigFor, flightConfigFor, resolveShipId } from "./shipConfig";
-
 
 const AUTOPILOT_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0.35, boost: false };
 const IDLE_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0, boost: false };
@@ -60,14 +69,10 @@ const _targetUniverse = new Vector3();
 const _ndc = new Vector3();
 const _toTarget = new Vector3();
 const _cameraForward = new Vector3();
-const _orbitForward = new Vector3();
-const _orbitPosition = new Vector3();
-const _orbitTangent = new Vector3();
-const _orbitUp = new Vector3();
-const _orbitQuaternion = new Quaternion();
 
 /** Nearest body's radial "up" for auto-level (keeps the horizon level in orbit). */
 function referenceUp(ship: ShipState): Vector3 {
+  if (runtime.environment.surface) return _referenceUp.set(0, 1, 0);
   let best = Infinity;
   const colliders = runtime.environment.colliders;
   for (let i = 0; i < colliders.length; i++) {
@@ -91,20 +96,9 @@ export function applySelectedShip(): void {
 
 const isExploring = (mode: GameMode) => mode !== "mission";
 
-/** Energy stars of the current location (Earth reuses the mission's stars). */
-function currentPickups(layout: MissionLayout): readonly PickupSpec[] {
-  return runtime.environment.location === "earth" ? layout.energyStars : runtime.environment.pickups;
-}
-
-function resetPickups(pickups: readonly PickupSpec[]): void {
-  runtime.pickups.active = pickups.map(() => true);
-  runtime.pickups.respawnIn = pickups.map(() => 0);
-  runtime.pickups.collectedAt = pickups.map(() => -Infinity);
-}
-
 /** Swaps bodies, colliders and lighting (materials share runtime.sun.direction). */
 export function applyLocation(location: LocationId): void {
-  if (runtime.environment.location === location) return;
+  if (runtime.environment.location === location && !runtime.environment.surface) return;
   const environment = buildEnvironment(location);
   runtime.environment = environment;
   runtime.sun.direction.copy(environment.sunDirection);
@@ -136,6 +130,12 @@ function stepWarp(dt: number): void {
 
 /** Arrive at a location (after a warp): new scene, ship at the arrival point. */
 export function enterLocation(location: LocationId, layout: MissionLayout): void {
+  // Warps never start on a surface; this only guards against a stray location change.
+  if (runtime.environment.surface) {
+    runtime.landing = createLandingState();
+    runtime.terrain = null;
+    useGameStore.getState().setSurface(null);
+  }
   applyLocation(location);
   const arrival = arrivalFor(location);
   const ship = runtime.ship;
@@ -153,6 +153,8 @@ export function enterLocation(location: LocationId, layout: MissionLayout): void
 /** Ship hovering at the spawn point for the title screen and hangar. */
 export function placeShipForMenu(layout: MissionLayout): void {
   applySelectedShip();
+  runtime.landing = createLandingState();
+  runtime.terrain = null;
   const spawn = layout.course.spawn;
   resetShip(runtime.ship, spawn.position, spawn.forward, spawn.up);
   runtime.origin.copy(spawn.position);
@@ -199,6 +201,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   runtime.warp = createWarpState();
   disengageOrbit(runtime.orbit);
   runtime.pendingActions.clear();
+  runtime.landing = createLandingState();
+  runtime.terrain = null;
 
   runtime.startThrottle = mode === "mission" ? FLIGHT.missionStartThrottle : FLIGHT.freeFlightStartThrottle;
   runtime.input?.setThrottle(runtime.startThrottle);
@@ -216,6 +220,7 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   tutorial.ringsPassed = 0;
   tutorial.timeSinceStart = 0;
   tutorial.orbited = false;
+  tutorial.landed = false;
   tutorial.mapOpened = false;
   runtime.hints = createHintState(useProgressStore.getState().onboarding.completedHints);
   runtime.discovered = new Set(useProgressStore.getState().discovered);
@@ -284,7 +289,7 @@ function onCollision(strength: number): void {
 function handleCollisions(layout: MissionLayout, dt: number): void {
   const ship = runtime.ship;
   runtime.collisionCooldown = Math.max(0, runtime.collisionCooldown - dt);
-  const asteroids = runtime.environment.location === "earth" ? layout.asteroids : [];
+  const asteroids = runtime.environment.location === "earth" && !runtime.environment.surface ? layout.asteroids : [];
   let impact = 0;
   for (let i = 0; i < asteroids.length; i++) {
     const radius = asteroids[i].radius * COLLISION.asteroidRadiusScale;
@@ -382,71 +387,29 @@ function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): vo
   tutorial.boostEnergy = runtime.ship.boost.energy;
   tutorial.targetOffscreenTime = runtime.targetOffscreenTime;
   tutorial.orbitAvailable = runtime.prompts.orbit !== null;
+  const land = runtime.prompts.land;
+  tutorial.landAvailable = land !== null && BODIES[land].landing.landable;
+  tutorial.landed ||= runtime.landing.phase !== "idle";
 
   const update = updateHints(runtime.hints, tutorial, realDt);
   if (update.changed) useSessionStore.getState().setHint(runtime.hints.active);
   if (update.completed) useProgressStore.getState().completeHint(update.completed);
 }
 
-function endOrbit(): void {
-  if (!runtime.orbit.active) return;
-  disengageOrbit(runtime.orbit);
-  gameEvents.emit("orbitEnd", EMPTY_PAYLOAD);
-}
-
 /** Orbit / land requests queued by the input layer (keys or touch buttons). */
 function handleActions(controllable: boolean, mode: GameMode): void {
   const actions = runtime.pendingActions;
   if (actions.size === 0) return;
-  if (!controllable || !isExploring(mode)) {
-    actions.clear();
-    return;
-  }
-  if (actions.has("orbit")) {
-    if (runtime.orbit.active) endOrbit();
-    else {
-      const candidate = orbitCandidate(runtime.ship.position, runtime.environment.colliders, EXPLORATION.orbit);
-      if (candidate?.id) {
-        getShipForward(runtime.ship, _orbitForward);
-        engageOrbit(runtime.orbit, runtime.ship.position, _orbitForward, candidate, EXPLORATION.orbit);
-        runtime.tutorial.orbited = true;
-        gameEvents.emit("orbitStart", { body: candidate.id });
-      }
-    }
+  if (controllable && isExploring(mode)) {
+    if (actions.has("orbit") && !runtime.environment.surface) toggleOrbit();
+    if (actions.has("land")) requestLanding();
   }
   actions.clear();
 }
 
-/** Autopilot: ease onto the orbit path, face along it, belly to the planet. */
-function flyOrbit(control: ControlInput, dt: number): BoostEvent {
-  const orbit = runtime.orbit;
-  const ship = runtime.ship;
-  const config = EXPLORATION.orbit;
-  const steering = Math.max(Math.abs(control.pitch), Math.abs(control.yaw));
-  orbit.breakout = steering > config.breakoutInput ? orbit.breakout + dt : 0;
-  if (orbit.breakout > config.breakoutTime || control.boost) {
-    endOrbit();
-    return null;
-  }
-  advanceOrbit(orbit, dt, config);
-  orbitPose(orbit, _orbitPosition, _orbitTangent);
-  _orbitUp.subVectors(_orbitPosition, orbit.center).normalize();
-  ship.previousPosition.copy(ship.position);
-  const follow = orbit.blend < 1 ? dampFactor(1.8 + orbit.blend * 4, dt) : 1;
-  ship.position.lerp(_orbitPosition, follow);
-  orientationFromForwardUp(_orbitTangent, _orbitUp, _orbitQuaternion);
-  ship.quaternion.slerp(_orbitQuaternion, dampFactor(3, dt));
-  ship.speed = damp(ship.speed, orbit.speed, 2, dt);
-  ship.velocity.copy(_orbitTangent).multiplyScalar(ship.speed);
-  ship.angularVelocity.set(0, 0, 0);
-  ship.bank = damp(ship.bank, 0, 3, dt);
-  ship.visualPitch = damp(ship.visualPitch, 0, 3, dt);
-  return null;
-}
-
 /** First visit to a body (free flight only): persist, then celebrate. */
 function handleDiscovery(mode: GameMode): void {
-  if (mode !== "freeflight" || runtime.warp.phase === "tunnel") return;
+  if (mode !== "freeflight" || runtime.warp.phase === "tunnel" || runtime.environment.surface) return;
   const found = findDiscovery(
     runtime.ship.position,
     runtime.environment.colliders,
@@ -461,10 +424,13 @@ function handleDiscovery(mode: GameMode): void {
 function updatePrompts(mode: GameMode, controllable: boolean): void {
   const prompts = runtime.prompts;
   const orbit = runtime.orbit;
-  const available = controllable && isExploring(mode) && !orbit.active;
-  prompts.orbit = available
-    ? (orbitCandidate(runtime.ship.position, runtime.environment.colliders, EXPLORATION.orbit)?.id ?? null)
-    : null;
+  const inSpace = !runtime.environment.surface;
+  const available = controllable && isExploring(mode) && inSpace;
+  const colliders = runtime.environment.colliders;
+  prompts.orbit =
+    available && !orbit.active ? (orbitCandidate(runtime.ship.position, colliders, EXPLORATION.orbit)?.id ?? null) : null;
+  prompts.land = available ? (landingCandidate(runtime.ship.position, colliders)?.id ?? null) : null;
+  prompts.takeOff = controllable && runtime.landing.phase === "surface";
 }
 
 function stepFlight(
@@ -481,7 +447,8 @@ function stepFlight(
   const finished = mission.status === "finished";
   const warping = isWarping(runtime.warp);
   if (warping && phase === "playing") stepWarp(realDt);
-  const controllable = phase === "playing" && !finished && !warping;
+  const scripted = phase === "playing" && stepLandingFlow(realDt, layout, applySelectedShip);
+  const controllable = phase === "playing" && !finished && !warping && !scripted;
   input?.update(realDt, controllable);
 
   if (phase === "playing" && mode === "mission") handleMissionClock(dt);
@@ -490,9 +457,15 @@ function stepFlight(
 
   handleActions(controllable, mode);
   const orbiting = runtime.orbit.active;
-  const boostEvent = orbiting
-    ? flyOrbit(control, dt)
-    : updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) }, runtime.flight, runtime.boost);
+  const boostEvent = scripted
+    ? null
+    : orbiting
+      ? flyOrbit(control, dt)
+      : updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) }, runtime.flight, runtime.boost);
+  if (!scripted) {
+    const bump = applyTerrain(ship, dt);
+    if (bump > 0.25 && runtime.collisionCooldown <= 0) onCollision(bump * 0.6);
+  }
   if (boostEvent === "started") {
     runtime.tutorial.boostUsed = true;
     gameEvents.emit("boostStart", EMPTY_PAYLOAD);
@@ -511,7 +484,8 @@ function stepFlight(
     ship.speed = damp(ship.speed, runtime.flight.maxSpeed * 0.6, 1.5, dt);
   }
 
-  if (warpPhase !== "tunnel") handleCollisions(layout, dt);
+  if (warpPhase !== "tunnel" && !scripted) handleCollisions(layout, dt);
+  if (phase === "playing") handlePointsOfInterest();
   handlePickups(layout, mode, dt);
   if (phase === "playing") handleDiscovery(mode);
   if (mode === "mission") handleRings(layout);
@@ -552,6 +526,15 @@ function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: Pe
     }
     _targetUniverse.copy(ring.position);
     target.kind = "ring";
+    target.bodyId = null;
+    target.returning = false;
+  } else if (runtime.environment.surface) {
+    if (!nextPointOfInterest(_targetUniverse)) {
+      target.visible = false;
+      runtime.targetOffscreenTime = 0;
+      return;
+    }
+    target.kind = "poi";
     target.bodyId = null;
     target.returning = false;
   } else {

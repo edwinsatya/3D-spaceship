@@ -90,6 +90,20 @@ export const OrbitIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const LandIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3v11m-4-4 4 4 4-4" />
+    <path d="M4 20h16" />
+  </Icon>
+);
+
+export const TakeOffIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 16V5m-4 4 4-4 4 4" />
+    <path d="M4 20h16" />
+  </Icon>
+);
+
 export const HangarIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 20V9l9-5 9 5v11" />

@@ -18,6 +18,12 @@ export const HUD = {
   goVisible: 800,
   /** "Planet discovered!" banner duration (ms). */
   discoveryDuration: 3600,
+  /** "Landed on…" banner duration (ms). */
+  landedDuration: 3800,
+  /** "Can't land" card stays this long unless dismissed (ms). */
+  refusedDuration: 9000,
+  /** Point-of-interest fact card duration (ms). */
+  pointOfInterestDuration: 9000,
   /** Result-screen time count-up (s). */
   resultCountUp: 1.1,
 } as const;

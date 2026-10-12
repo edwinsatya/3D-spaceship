@@ -26,6 +26,13 @@ export function useGameAudio() {
       gameEvents.on("missionComplete", () => audio.play("fanfare")),
       gameEvents.on("warpStart", () => audio.play("warp")),
       gameEvents.on("discovered", () => audio.play("discovery")),
+      gameEvents.on("landingStart", () => audio.play("warp", { rate: 0.55, volume: 0.8 })),
+      gameEvents.on("takeOffStart", () => audio.play("warp", { rate: 0.75, volume: 0.8 })),
+      gameEvents.on("landingRefused", () => audio.play("denied")),
+      gameEvents.on("landed", ({ first }) => audio.play(first ? "discovery" : "go")),
+      gameEvents.on("pointOfInterest", ({ first }) => {
+        if (first) audio.play("ring", { rate: 1.2 });
+      }),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, []);

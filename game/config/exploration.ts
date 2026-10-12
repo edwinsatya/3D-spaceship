@@ -51,5 +51,23 @@ export const EXPLORATION = {
     descent: 3.2,
     fade: 0.7,
     ascent: 2.6,
+    descentSpeed: 70,
+    ascentSpeed: 75,
+    /** Closest approach during the descent animation (× radius). */
+    descentFloor: 1.12,
+    /** After take-off you reappear this far from the body's centre (× radius). */
+    exitDistance: 1.7,
+  },
+
+  surface: {
+    /** Hover flight is slower and lower than open space. */
+    speedScale: 0.7,
+    clearance: 2.4,
+    ceiling: 240,
+    /** Soft wall: pushed back towards the centre beyond this radius (u). */
+    boundary: 620,
+    spawnAltitude: 26,
+    entrySpeed: 18,
+    bounce: 0.55,
   },
 } as const;

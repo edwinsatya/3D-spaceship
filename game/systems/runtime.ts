@@ -8,10 +8,12 @@ import { buildEnvironment } from "./environment";
 import { createShipState } from "./flight";
 import { createHintState, type HintContext, type HintState } from "./hints";
 import { createMissionState } from "./mission";
+import { createLandingState } from "./landing";
 import { createOrbitState } from "./orbit";
+import type { Terrain } from "./terrain";
 import { createWarpState } from "./warp";
 
-export type TargetKind = "ring" | "body";
+export type TargetKind = "ring" | "body" | "poi";
 
 export interface TargetIndicator {
   visible: boolean;
@@ -101,10 +103,19 @@ export const runtime = {
   /** Gameplay actions (orbit, land) queued by input, consumed by the simulation. */
   pendingActions: new Set<"orbit" | "land">(),
   orbit: createOrbitState(),
+  landing: createLandingState(),
+  /** Heightfield of the landing site while on a surface. */
+  terrain: null as Terrain | null,
   /** Mirror of the persisted discoveries for the per-frame check. */
   discovered: new Set<BodyId>(),
   /** What the contextual HUD prompts can offer this frame. */
-  prompts: { orbit: null as BodyId | null },
+  prompts: {
+    orbit: null as BodyId | null,
+    land: null as BodyId | null,
+    takeOff: false,
+    /** Point of interest you are standing at (for its fact card). */
+    pointOfInterest: null as string | null,
+  },
   /** Clock in (scaled) seconds since the page started simulating. */
   clock: 0,
   timeScale: 1,
@@ -144,6 +155,8 @@ export const runtime = {
     boostEnergy: 1,
     orbitAvailable: false,
     orbited: false,
+    landAvailable: false,
+    landed: false,
     mapOpened: false,
   } as HintContext,
   hints: createHintState() as HintState,

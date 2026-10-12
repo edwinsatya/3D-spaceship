@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { InputDevice } from "@/game/controls/types";
 import type { MissionId } from "@/game/data/missions";
 import type { LocationId } from "@/game/data/planets";
+import type { SurfaceId } from "@/game/data/surfaces";
 import { canTransition, type GamePhase } from "@/game/systems/stateMachine";
 
 export type GameMode = "mission" | "freeflight" | "testflight";
@@ -17,6 +18,8 @@ interface GameStore {
   device: InputDevice;
   /** Which planet scene is loaded (missions, menu and hangar are at Earth). */
   location: LocationId;
+  /** Landing site currently loaded instead of the space scene (Moon or Mars). */
+  surface: SurfaceId | null;
   cameraMode: CameraMode;
   webgl: WebGLStatus;
 
@@ -32,6 +35,7 @@ interface GameStore {
   toMenu: () => void;
   toggleCamera: () => void;
   setLocation: (location: LocationId) => void;
+  setSurface: (surface: SurfaceId | null) => void;
   openMap: () => void;
   closeMap: () => void;
   openHangar: () => void;
@@ -47,6 +51,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   runId: 0,
   device: "desktop",
   location: "earth",
+  surface: null,
   cameraMode: "chase",
   webgl: "unknown",
 
@@ -63,12 +68,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   startRun: (mode) => {
     const { phase, runId } = get();
     if (!canTransition(phase, "playing")) return;
-    set({ phase: "playing", mode, runId: runId + 1, cameraMode: "chase", location: "earth" });
+    set({ phase: "playing", mode, runId: runId + 1, cameraMode: "chase", location: "earth", surface: null });
   },
   restart: () => {
     const { phase, runId } = get();
     if (!canTransition(phase, "playing")) return;
-    set({ phase: "playing", runId: runId + 1, location: "earth" });
+    set({ phase: "playing", runId: runId + 1, location: "earth", surface: null });
   },
   pause: () => {
     if (get().phase === "playing") set({ phase: "paused" });
@@ -85,7 +90,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     get().transition("result");
   },
   toMenu: () => {
-    if (get().transition("menu")) set({ location: "earth" });
+    if (get().transition("menu")) set({ location: "earth", surface: null });
   },
   toggleCamera: () => {
     const { phase, cameraMode } = get();
@@ -95,9 +100,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   setLocation: (location) => {
     if (get().location !== location) set({ location });
   },
+  setSurface: (surface) => {
+    if (get().surface !== surface) set({ surface });
+  },
   openMap: () => {
-    const { phase, mode } = get();
-    if (phase === "playing" && mode === "freeflight") set({ phase: "map" });
+    const { phase, mode, surface } = get();
+    if (phase === "playing" && mode === "freeflight" && !surface) set({ phase: "map" });
   },
   closeMap: () => {
     if (get().phase === "map") set({ phase: "playing" });
@@ -110,6 +118,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
   endTestFlight: () => {
     const { phase, mode } = get();
-    if (mode === "testflight" && (phase === "playing" || phase === "paused")) set({ phase: "hangar", location: "earth" });
+    if (mode === "testflight" && (phase === "playing" || phase === "paused")) set({ phase: "hangar", location: "earth", surface: null });
   },
 }));

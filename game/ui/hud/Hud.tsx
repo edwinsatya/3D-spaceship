@@ -14,6 +14,7 @@ import { TopBar } from "./TopBar";
 import { ContextPrompts } from "./ContextPrompts";
 import { DiscoveryBanner } from "./DiscoveryBanner";
 import { PlanetInfoCard } from "./PlanetInfoCard";
+import { LandingBanner, LandingOverlay, LandingRefusedCard, PointOfInterestCard } from "./LandingUI";
 import { TouchControls } from "./TouchControls";
 
 const SAFE_AREA = "pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))]";
@@ -26,6 +27,7 @@ export function Hud() {
   const pause = useGameStore((state) => state.pause);
   const toggleCamera = useGameStore((state) => state.toggleCamera);
   const openMap = useGameStore((state) => state.openMap);
+  const onSurface = useGameStore((state) => state.surface !== null);
   const touch = device === "touch";
 
   return (
@@ -44,6 +46,7 @@ export function Hud() {
       {mode === "mission" && <Countdown />}
       <WarpLabel />
       <DiscoveryBanner />
+      <LandingBanner />
 
       <div className={`absolute inset-0 ${SAFE_AREA}`}>
         <div className="relative h-full w-full">
@@ -51,7 +54,7 @@ export function Hud() {
             <TopBar />
           </div>
           <div className="absolute top-0 right-0 flex gap-2">
-            {mode === "freeflight" && (
+            {mode === "freeflight" && !onSurface && (
               <IconButton label={t("a11y.map")} onClick={openMap}>
                 <MapIcon />
               </IconButton>
@@ -88,9 +91,12 @@ export function Hud() {
       <div className={`pointer-events-none absolute inset-0 ${SAFE_AREA}`}>
         <div className="relative h-full w-full">
           <PlanetInfoCard />
+          <PointOfInterestCard />
         </div>
       </div>
+      <LandingRefusedCard />
       <HintBanner placement={touch ? "top" : "bottom"} />
+      <LandingOverlay />
     </motion.div>
   );
 }

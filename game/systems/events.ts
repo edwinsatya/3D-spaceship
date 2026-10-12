@@ -1,4 +1,5 @@
 import type { BodyId, LocationId } from "@/game/data/planets";
+import type { SurfaceId } from "@/game/data/surfaces";
 
 /** Discrete gameplay events (rare; safe to allocate payloads). */
 export interface GameEventMap {
@@ -16,6 +17,11 @@ export interface GameEventMap {
   orbitStart: { body: BodyId };
   orbitEnd: Record<string, never>;
   discovered: { body: BodyId };
+  landingStart: { body: SurfaceId };
+  landingRefused: { body: BodyId };
+  landed: { body: SurfaceId; first: boolean };
+  takeOffStart: Record<string, never>;
+  pointOfInterest: { id: string; first: boolean };
 }
 
 export type GameEventType = keyof GameEventMap;
