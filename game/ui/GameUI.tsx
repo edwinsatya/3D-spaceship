@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useGameStore } from "@/game/stores/gameStore";
 import { HangarScreen } from "./hangar/HangarScreen";
+import { SolarSystemMap } from "./map/SolarSystemMap";
 import { Hud } from "./hud/Hud";
 import { LoadingScreen } from "./LoadingScreen";
 import { OrientationGuard } from "./OrientationGuard";
@@ -26,8 +27,9 @@ export function GameUI() {
         )}
         {phase === "menu" && <TitleMenu key="menu" />}
         {phase === "hangar" && <HangarScreen key="hangar" />}
-        {(phase === "playing" || phase === "paused") && <Hud key={`hud-${runId}`} />}
+        {(phase === "playing" || phase === "paused" || phase === "map") && <Hud key={`hud-${runId}`} />}
         {phase === "paused" && <PauseMenu key="pause" />}
+        {phase === "map" && <SolarSystemMap key="map" />}
         {phase === "result" && <ResultScreen key={`result-${runId}`} />}
       </AnimatePresence>
       <OrientationGuard />

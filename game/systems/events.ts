@@ -1,3 +1,5 @@
+import type { LocationId } from "@/game/data/planets";
+
 /** Discrete gameplay events (rare; safe to allocate payloads). */
 export interface GameEventMap {
   countdown: { value: number };
@@ -9,6 +11,8 @@ export interface GameEventMap {
   boostStart: Record<string, never>;
   boostEnd: Record<string, never>;
   boostDenied: Record<string, never>;
+  warpStart: { target: LocationId };
+  warpArrive: { location: LocationId };
 }
 
 export type GameEventType = keyof GameEventMap;

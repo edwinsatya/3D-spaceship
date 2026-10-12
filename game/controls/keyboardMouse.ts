@@ -11,6 +11,9 @@ const EDGE_ACTIONS: Partial<Record<KeyAction, ControlAction>> = {
   toggleCamera: "toggleCamera",
   pause: "pause",
   mute: "mute",
+  map: "map",
+  orbit: "orbit",
+  land: "land",
 };
 
 /** Normalized cursor position relative to screen center, y up. Shared with the HUD reticle. */
@@ -117,7 +120,7 @@ export class KeyboardMouseSource implements InputSource {
     if (!action) return;
     if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select")) return;
     // Keep Space/arrows from scrolling or activating focused buttons.
-    if (event.code === "Space" || event.code.startsWith("Arrow")) event.preventDefault();
+    if (event.code === "Space" || event.code === "Tab" || event.code.startsWith("Arrow")) event.preventDefault();
     if (event.repeat) return;
     this.held.add(action);
     const edge = EDGE_ACTIONS[action];

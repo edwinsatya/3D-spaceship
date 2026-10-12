@@ -3,11 +3,11 @@
 import { motion } from "motion/react";
 import { useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
-import { CameraIcon, PauseIcon } from "../icons";
+import { CameraIcon, MapIcon, PauseIcon } from "../icons";
 import { MuteButton } from "../MuteButton";
 import { IconButton } from "../primitives";
 import { BoostGauge, SpeedGauge } from "./Gauges";
-import { BoostGlow, CollisionFlash, Countdown, HintBanner, Toasts } from "./Overlays";
+import { BoostGlow, CollisionFlash, Countdown, HintBanner, Toasts, WarpLabel } from "./Overlays";
 import { Reticle } from "./Reticle";
 import { TargetMarker } from "./TargetMarker";
 import { TopBar } from "./TopBar";
@@ -22,6 +22,7 @@ export function Hud() {
   const playing = useGameStore((state) => state.phase === "playing");
   const pause = useGameStore((state) => state.pause);
   const toggleCamera = useGameStore((state) => state.toggleCamera);
+  const openMap = useGameStore((state) => state.openMap);
   const touch = device === "touch";
 
   return (
@@ -38,6 +39,7 @@ export function Hud() {
       <Reticle showCursor={!touch && playing} />
       <Toasts />
       {mode === "mission" && <Countdown />}
+      <WarpLabel />
 
       <div className={`absolute inset-0 ${SAFE_AREA}`}>
         <div className="relative h-full w-full">
@@ -45,6 +47,11 @@ export function Hud() {
             <TopBar />
           </div>
           <div className="absolute top-0 right-0 flex gap-2">
+            {mode === "freeflight" && (
+              <IconButton label={t("a11y.map")} onClick={openMap}>
+                <MapIcon />
+              </IconButton>
+            )}
             {touch && (
               <IconButton label={t("a11y.camera")} onClick={toggleCamera}>
                 <CameraIcon />

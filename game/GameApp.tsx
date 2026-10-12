@@ -12,6 +12,7 @@ import { useAssetStore } from "@/game/stores/assetStore";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
+import { DEBUG_HANDLE_ENABLED } from "@/game/systems/debug";
 import { runtime } from "@/game/systems/runtime";
 import { installThreeConsoleFilter } from "@/game/systems/threeConsole";
 import { useAutoPause, useBoot, useInputSystem } from "@/game/systems/useGameLifecycle";
@@ -24,7 +25,7 @@ installThreeConsoleFilter();
 
 /** Dev-only console handle for inspecting/tuning the running game. */
 function exposeDebugHandle() {
-  if (process.env.NODE_ENV === "production") return;
+  if (!DEBUG_HANDLE_ENABLED) return;
   Object.assign(window, {
     __game: { runtime, config: { CAMERA, FLIGHT, WORLD }, useGameStore, useSessionStore, useQualityStore },
   });

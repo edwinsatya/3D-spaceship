@@ -1,9 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HUD } from "@/game/config/hud";
-import { useT } from "@/game/i18n/useT";
+import { BODIES, type LocationId } from "@/game/data/planets";
+import { localize } from "@/game/i18n";
+import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useSessionStore, type Toast, type ToastKind } from "@/game/stores/sessionStore";
 import { damp } from "@/game/systems/math";
@@ -110,6 +112,38 @@ export function Toasts() {
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} />
         ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** "Warping to Jupiter…" while the tunnel runs. */
+export function WarpLabel() {
+  const t = useT();
+  const locale = useLocale();
+  const [target, setTarget] = useState<LocationId | null>(null);
+  useEffect(() => {
+    const offStart = gameEvents.on("warpStart", ({ target: next }) => setTarget(next));
+    const offArrive = gameEvents.on("warpArrive", () => setTarget(null));
+    return () => {
+      offStart();
+      offArrive();
+    };
+  }, []);
+  return (
+    <div className="absolute inset-x-0 top-[38%] flex justify-center">
+      <AnimatePresence>
+        {target && (
+          <motion.p
+            initial={{ opacity: 0, scale: 0.9, letterSpacing: "0.1em" }}
+            animate={{ opacity: 1, scale: 1, letterSpacing: "0.3em" }}
+            exit={{ opacity: 0, scale: 1.2 }}
+            transition={{ duration: 0.8 }}
+            className="hud-text font-display text-2xl font-black uppercase sm:text-3xl"
+          >
+            {t("hud.warping", { name: localize(BODIES[target].name, locale) })}
+          </motion.p>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -98,6 +98,15 @@ export const HangarIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const MapIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+    <ellipse cx="12" cy="12" rx="9.5" ry="4.5" />
+    <circle cx="19" cy="9.6" r="1.4" fill="currentColor" />
+    <ellipse cx="12" cy="12" rx="5.5" ry="2.6" strokeOpacity="0.6" />
+  </Icon>
+);
+
 export const StarIcon = ({ filled = true, ...props }: IconProps & { filled?: boolean }) => (
   <Icon {...props} strokeWidth={1.6}>
     <path

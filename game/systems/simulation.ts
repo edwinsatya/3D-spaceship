@@ -38,6 +38,7 @@ import { canFly, createMissionState, passRing, startCountdown, tickMission } fro
 import type { MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
 import { rateTime } from "./scoring";
+import { createWarpState, isWarping, startWarp, tickWarp } from "./warp";
 import { boostConfigFor, flightConfigFor, resolveShipId } from "./shipConfig";
 
 
@@ -102,6 +103,27 @@ export function applyLocation(location: LocationId): void {
   runtime.sun.intensity = environment.sunIntensity;
 }
 
+/** Starts a warp from the map. Returns false if not allowed right now. */
+export function beginWarp(target: LocationId): boolean {
+  const game = useGameStore.getState();
+  if (game.mode !== "freeflight" || game.location === target) return false;
+  if (!startWarp(runtime.warp, target)) return false;
+  // The cursor is still on the Warp button: don't steer towards it on arrival.
+  runtime.input?.resetForRun();
+  if (game.phase === "map") game.transition("playing");
+  gameEvents.emit("warpStart", { target });
+  return true;
+}
+
+function stepWarp(dt: number): void {
+  const warp = runtime.warp;
+  const target = warp.target;
+  const event = tickWarp(warp, dt, EXPLORATION.warp);
+  // The store change runs enterLocation (GameLoop subscription) synchronously.
+  if (event === "switch" && target) useGameStore.getState().setLocation(target);
+  if (event === "done") gameEvents.emit("warpArrive", { location: runtime.environment.location });
+}
+
 /** Arrive at a location (after a warp): new scene, ship at the arrival point. */
 export function enterLocation(location: LocationId, layout: MissionLayout): void {
   applyLocation(location);
@@ -164,6 +186,7 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   runtime.collisionCooldown = 0;
   runtime.targetOffscreenTime = 0;
   runtime.testFlightRemaining = mode === "testflight" ? HANGAR.testFlightDuration : 0;
+  runtime.warp = createWarpState();
 
   runtime.startThrottle = mode === "mission" ? FLIGHT.missionStartThrottle : FLIGHT.freeFlightStartThrottle;
   runtime.input?.setThrottle(runtime.startThrottle);
@@ -361,7 +384,9 @@ function stepFlight(
   const mission = runtime.mission;
   const input = runtime.input;
   const finished = mission.status === "finished";
-  const controllable = phase === "playing" && !finished;
+  const warping = isWarping(runtime.warp);
+  if (warping && phase === "playing") stepWarp(realDt);
+  const controllable = phase === "playing" && !finished && !warping;
   input?.update(realDt, controllable);
 
   if (phase === "playing" && mode === "mission") handleMissionClock(dt);
@@ -379,7 +404,15 @@ function stepFlight(
   }
   decayKnockback(ship, COLLISION.knockbackDecay, dt);
 
-  handleCollisions(layout, dt);
+  const warpPhase = runtime.warp.phase;
+  if (warpPhase === "charge" || warpPhase === "tunnel") {
+    ship.speed = damp(ship.speed, runtime.flight.boostSpeed * EXPLORATION.warp.speedMultiplier, 2.5, dt);
+    if (warpPhase === "tunnel") addTrauma(runtime.camera, 0.4 * dt);
+  } else if (warpPhase === "arrive") {
+    ship.speed = damp(ship.speed, runtime.flight.maxSpeed * 0.6, 1.5, dt);
+  }
+
+  if (warpPhase !== "tunnel") handleCollisions(layout, dt);
   handlePickups(layout, mode, dt);
   if (mode === "mission") handleRings(layout);
   if (isExploring(mode) && phase === "playing") runtime.freeFlightTime += dt;
@@ -464,7 +497,7 @@ function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: Pe
 /** One simulation frame. Allocation-free; called from GameLoop's useFrame. */
 export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera, delta: number): void {
   const { phase, mode, cameraMode } = useGameStore.getState();
-  if (phase === "boot" || phase === "loading" || phase === "paused") {
+  if (phase === "boot" || phase === "loading" || phase === "paused" || phase === "map") {
     if (phase !== "paused") writeTransforms(camera, 0);
     return;
   }

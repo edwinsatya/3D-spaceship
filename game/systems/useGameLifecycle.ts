@@ -15,6 +15,7 @@ import { overallProgress, useLoadingStore } from "@/game/stores/loadingStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { runtime } from "./runtime";
+import { isWarping } from "./warp";
 
 
 /** boot → loading: capability checks, device detection, audio synthesis. */
@@ -58,9 +59,15 @@ export function useInputSystem() {
   useEffect(() => {
     const onAction = (action: ControlAction) => {
       const game = useGameStore.getState();
-      if (action === "pause") game.togglePause();
-      else if (action === "toggleCamera") game.toggleCamera();
+      if (action === "pause") {
+        if (game.phase === "map") game.closeMap();
+        else game.togglePause();
+      } else if (action === "toggleCamera") game.toggleCamera();
       else if (action === "mute") useProgressStore.getState().toggleMuted();
+      else if (action === "map") {
+        if (game.phase === "map") game.closeMap();
+        else if (!isWarping(runtime.warp)) game.openMap();
+      } else runtime.pendingActions.add(action);
     };
     const keyboard = new KeyboardMouseSource(window, onAction);
     const manager = new InputManager([keyboard, new TouchSource(), new GamepadSource()]);

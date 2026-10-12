@@ -8,6 +8,7 @@ import { buildEnvironment } from "./environment";
 import { createShipState } from "./flight";
 import { createHintState, type HintContext, type HintState } from "./hints";
 import { createMissionState } from "./mission";
+import { createWarpState } from "./warp";
 
 export type TargetKind = "ring" | "body";
 
@@ -95,6 +96,9 @@ export const runtime = {
     orbitAngle: 0,
   } satisfies CameraRuntime,
   mission: createMissionState(0),
+  warp: createWarpState(),
+  /** Gameplay actions (orbit, land) queued by input, consumed by the simulation. */
+  pendingActions: new Set<"orbit" | "land">(),
   /** Clock in (scaled) seconds since the page started simulating. */
   clock: 0,
   timeScale: 1,

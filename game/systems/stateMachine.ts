@@ -1,8 +1,9 @@
-export type GamePhase = "boot" | "loading" | "menu" | "hangar" | "playing" | "paused" | "result";
+export type GamePhase = "boot" | "loading" | "menu" | "hangar" | "playing" | "paused" | "map" | "result";
 
 /**
  * boot → loading → menu → playing ⇄ paused → result
  * menu ⇄ hangar → playing (test flight) → hangar
+ * playing ⇄ map (Solar System map; the world is frozen while it is open)
  * plus the obvious exits back to the menu and restarts.
  */
 const TRANSITIONS: Record<GamePhase, readonly GamePhase[]> = {
@@ -10,7 +11,8 @@ const TRANSITIONS: Record<GamePhase, readonly GamePhase[]> = {
   loading: ["menu"],
   menu: ["playing", "hangar"],
   hangar: ["menu", "playing"],
-  playing: ["paused", "result", "menu", "playing", "hangar"],
+  playing: ["paused", "result", "menu", "playing", "hangar", "map"],
+  map: ["playing"],
   paused: ["playing", "menu", "hangar"],
   result: ["playing", "menu"],
 };

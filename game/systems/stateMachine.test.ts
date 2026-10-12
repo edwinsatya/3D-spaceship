@@ -32,6 +32,13 @@ describe("game state machine", () => {
     expect(canTransition("result", "hangar")).toBe(false);
   });
 
+  it("opens and closes the map only from flight", () => {
+    expect(canTransition("playing", "map")).toBe(true);
+    expect(canTransition("map", "playing")).toBe(true);
+    expect(canTransition("menu", "map")).toBe(false);
+    expect(canTransition("map", "result")).toBe(false);
+  });
+
   it("rejects skipping loading", () => {
     expect(canTransition("boot", "menu")).toBe(false);
     expect(nextPhase("boot", "playing")).toBe("boot");

@@ -32,6 +32,8 @@ interface GameStore {
   toMenu: () => void;
   toggleCamera: () => void;
   setLocation: (location: LocationId) => void;
+  openMap: () => void;
+  closeMap: () => void;
   openHangar: () => void;
   closeHangar: () => void;
   /** Ends a test flight (timer or button) and returns to the hangar. */
@@ -92,6 +94,13 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
   setLocation: (location) => {
     if (get().location !== location) set({ location });
+  },
+  openMap: () => {
+    const { phase, mode } = get();
+    if (phase === "playing" && mode === "freeflight") set({ phase: "map" });
+  },
+  closeMap: () => {
+    if (get().phase === "map") set({ phase: "playing" });
   },
   openHangar: () => {
     if (get().phase === "menu") set({ phase: "hangar" });

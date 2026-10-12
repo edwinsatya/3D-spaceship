@@ -2,7 +2,9 @@
 
 import { motion } from "motion/react";
 import { useRef } from "react";
-import { useT } from "@/game/i18n/useT";
+import { BODIES } from "@/game/data/planets";
+import { localize } from "@/game/i18n";
+import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
 import { runtime } from "@/game/systems/runtime";
@@ -36,13 +38,22 @@ export function TopBar() {
   const ringsPassed = useSessionStore((state) => state.ringsPassed);
   const totalRings = useSessionStore((state) => state.totalRings);
   const endTestFlight = useGameStore((state) => state.endTestFlight);
+  const location = useGameStore((state) => state.location);
+  const locale = useLocale();
+  const placeName = localize(BODIES[location].name, locale);
+  const objectiveText = (returning: boolean) =>
+    returning
+      ? t("hud.objectiveReturn", { name: placeName })
+      : location === "earth"
+        ? t("hud.objectiveFree")
+        : t("hud.objectiveExplore", { name: placeName });
   const timer = useRef<HTMLSpanElement>(null);
   const freeObjective = useRef<HTMLSpanElement>(null);
 
   useHudFrame(() => {
     if (mode === "mission") setText(timer.current, formatTime(runtime.mission.elapsedMs));
     else if (mode === "testflight") setText(timer.current, formatTime(runtime.testFlightRemaining * 1000).slice(0, -3));
-    else setText(freeObjective.current, t(runtime.target.returning ? "hud.objectiveReturn" : "hud.objectiveFree"));
+    else setText(freeObjective.current, objectiveText(runtime.target.returning));
   });
 
   if (mode === "testflight") {
@@ -85,8 +96,11 @@ export function TopBar() {
             </span>
           </>
         ) : (
-          <span ref={freeObjective} className="font-display text-xs font-bold tracking-widest sm:text-sm">
-            {t("hud.objectiveFree")}
+          <span
+            ref={freeObjective}
+            className="block max-w-[44vw] truncate font-display text-xs font-bold tracking-widest sm:text-sm short:text-[11px]"
+          >
+            {objectiveText(false)}
           </span>
         )}
       </div>

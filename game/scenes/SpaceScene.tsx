@@ -17,6 +17,7 @@ import { buildEnvironment } from "@/game/systems/environment";
 import { useGameStore } from "@/game/stores/gameStore";
 import { GameLoop } from "@/game/systems/GameLoop";
 import { getMissionLayout } from "@/game/systems/missionLayout";
+import { DEBUG_HANDLE_ENABLED } from "@/game/systems/debug";
 import { runtime } from "@/game/systems/runtime";
 import { DebugBridge } from "./DebugBridge";
 import { Effects } from "./Effects";
@@ -27,6 +28,7 @@ import { SkyBackground } from "./SkyBackground";
 import { SpaceDust } from "./SpaceDust";
 import { SpeedLines } from "./SpeedLines";
 import { StarLayers } from "./StarLayers";
+import { WarpTunnel } from "./WarpTunnel";
 import { useQualitySettings } from "./useQualitySettings";
 
 /** Everything positioned in universe coordinates; shifted by the floating origin. */
@@ -94,10 +96,11 @@ export function SpaceScene() {
       <Ship />
       <SpaceDust />
       {speedLines && <SpeedLines />}
+      <WarpTunnel />
       <GameLoop />
       {loaded && <QualityManager />}
       <Effects />
-      {process.env.NODE_ENV !== "production" && <DebugBridge />}
+      {DEBUG_HANDLE_ENABLED && <DebugBridge />}
     </>
   );
 }

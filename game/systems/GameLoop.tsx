@@ -38,6 +38,10 @@ export function GameLoop() {
           enterLocation(state.location, layout);
         }
         if (state.phase === previous.phase) return;
+        // Back from a menu overlay: the cursor sits on its button, re-arm mouse steering.
+        if (state.phase === "playing" && (previous.phase === "paused" || previous.phase === "map")) {
+          runtime.input?.resetForRun();
+        }
         const showroom = (phase: string) => phase === "menu" || phase === "hangar";
         // Menu ⇄ hangar: glide between the two framings; from a run: reset to the spawn.
         if (showroom(state.phase) && showroom(previous.phase)) beginIntroBlend(runtime.camera);

@@ -1,5 +1,6 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
 import { CAMERA } from "@/game/config/camera";
+import { EXPLORATION } from "@/game/config/exploration";
 import { HANGAR } from "@/game/config/hangar";
 import { SHIP_FORWARD, SHIP_RIGHT, SHIP_UP, type ShipState } from "./flight";
 import { clamp01, damp, dampFactor, easeInOutCubic } from "./math";
@@ -129,7 +130,13 @@ export function applyIntroBlend(camera: CameraRuntime, dt: number): void {
 
 export function updateFov(camera: CameraRuntime, ship: ShipState, dt: number): void {
   const speed01 = clamp01(ship.speed / runtime.flight.maxSpeed);
-  const target = ship.boost.active ? CAMERA.boostFov : CAMERA.fov + speed01 * 3;
+  const warpPhase = runtime.warp.phase;
+  const target =
+    warpPhase === "charge" || warpPhase === "tunnel"
+      ? EXPLORATION.warp.chargeFov
+      : ship.boost.active
+        ? CAMERA.boostFov
+        : CAMERA.fov + speed01 * 3;
   camera.fov = damp(camera.fov, target, CAMERA.fovResponse, dt);
 }
 

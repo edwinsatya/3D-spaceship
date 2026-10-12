@@ -24,6 +24,7 @@ export function useGameAudio() {
       gameEvents.on("countdown", () => audio.play("countdown")),
       gameEvents.on("go", () => audio.play("go")),
       gameEvents.on("missionComplete", () => audio.play("fanfare")),
+      gameEvents.on("warpStart", () => audio.play("warp")),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, []);
@@ -43,6 +44,10 @@ export function useGameAudio() {
         } else if (state.phase === "playing" && previous.phase === "paused") {
           audio.setEngineMuted(false);
           audio.setMusicDucked(false);
+        } else if (state.phase === "map") {
+          audio.setEngineMuted(true);
+        } else if (state.phase === "playing" && previous.phase === "map") {
+          audio.setEngineMuted(false);
         } else if (state.phase === "menu" || state.phase === "hangar") {
           audio.stopEngine();
           audio.setMusicDucked(false);

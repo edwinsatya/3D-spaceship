@@ -12,7 +12,7 @@ export interface ControlInput {
 }
 
 /** Discrete, edge-triggered actions handled outside the frame loop. */
-export type ControlAction = "toggleCamera" | "pause" | "mute";
+export type ControlAction = "toggleCamera" | "pause" | "mute" | "map" | "orbit" | "land";
 
 export type InputDevice = "desktop" | "touch";
 

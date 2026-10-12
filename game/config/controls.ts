@@ -12,6 +12,9 @@ export const KEY_BINDINGS = {
   toggleCamera: ["KeyC"],
   pause: ["Escape", "KeyP"],
   mute: ["KeyM"],
+  map: ["Tab"],
+  orbit: ["KeyF"],
+  land: ["KeyL"],
 } as const;
 
 export type KeyAction = keyof typeof KEY_BINDINGS;

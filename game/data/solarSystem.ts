@@ -16,7 +16,7 @@ const EARTH_ANGLE = Math.atan2(-WORLD.sunDirection[2], -WORLD.sunDirection[0]);
 
 export const MAP_LAYOUT: Record<LocationId, MapPlacement> = {
   sun: { orbitRadius: 0, angle: 0 },
-  mercury: { orbitRadius: 0.14, angle: 2.2 },
+  mercury: { orbitRadius: 0.14, angle: 0.3 },
   venus: { orbitRadius: 0.22, angle: 3.7 },
   earth: { orbitRadius: 0.31, angle: EARTH_ANGLE },
   mars: { orbitRadius: 0.41, angle: 1.05 },

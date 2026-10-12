@@ -25,6 +25,9 @@ export type SoundId =
   | "denied"
   | "fanfare"
   | "star"
+  | "warp"
+  | "discovery"
+  | "rumble"
   | "music";
 
 export interface SynthesizedSound {
@@ -204,6 +207,56 @@ function fanfare(): SynthesizedSound {
   return { samples: fadeEdges(normalize(out, 0.7), sr), sampleRate: sr };
 }
 
+/** Hyperspace jump: rising filtered noise, a pitch sweep and a shimmering tail. */
+function warp(): SynthesizedSound {
+  const sr = SFX_RATE;
+  const out = seconds(3.8, sr);
+  const noise = noiseSource(61);
+  const filter = new StateVariableFilter();
+  let phase = 0;
+  for (let i = 0; i < out.length; i++) {
+    const t = i / sr;
+    const rise = Math.min(1, t / 2.2);
+    filter.process(noise(), 180 * Math.pow(22, rise), 0.55, sr);
+    const sweep = 70 + 520 * rise * rise;
+    phase += sweep / sr;
+    const envelope = Math.min(1, t / 0.4) * (t < 2.6 ? 1 : Math.exp(-(t - 2.6) * 3.2));
+    const shimmer = t > 1.8 ? Math.sin(TAU * 2637 * t) * 0.12 * Math.sin(TAU * 9 * t) * Math.exp(-(t - 1.8) * 1.4) : 0;
+    out[i] = (filter.band * 1.3 + Math.sin(TAU * phase) * 0.35) * envelope + shimmer;
+  }
+  return { samples: fadeEdges(normalize(out, 0.8), sr), sampleRate: sr };
+}
+
+/** "Planet discovered!": a bright major-9 bell arpeggio with sparkle. */
+function discovery(): SynthesizedSound {
+  const notes = [523.25, 659.25, 783.99, 987.77, 1174.66].map((f, i) => ({ f, at: i * 0.09 }));
+  const bellSound = bell(notes, 2.4, 1.6);
+  const noise = noiseSource(73);
+  const samples = bellSound.samples;
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / bellSound.sampleRate;
+    samples[i] += noise() * 0.05 * Math.exp(-t * 2.5) * (0.5 + 0.5 * Math.sin(TAU * 13 * t));
+  }
+  return { samples: normalize(samples, 0.75), sampleRate: bellSound.sampleRate };
+}
+
+/** Atmospheric entry rumble: low noise with crackles. */
+function rumble(): SynthesizedSound {
+  const sr = SFX_RATE;
+  const out = seconds(3.2, sr);
+  const noise = noiseSource(83);
+  const a = onePoleCoefficient(220, sr);
+  let lp = 0;
+  for (let i = 0; i < out.length; i++) {
+    const t = i / sr;
+    lp += a * (noise() - lp);
+    const crackle = noise() > 0.998 ? noise() * 0.8 : 0;
+    const envelope = Math.min(1, t / 0.5) * (t < 2.5 ? 1 : Math.exp(-(t - 2.5) * 4));
+    out[i] = Math.tanh((lp * 3 + crackle) * 1.5) * envelope;
+  }
+  return { samples: fadeEdges(normalize(out, 0.85), sr), sampleRate: sr };
+}
+
 /** Ambient space pad (32 s seamless loop): four lush chords + sparse echoing plucks. */
 function music(): SynthesizedSound {
   const sr = MUSIC_RATE;
@@ -299,5 +352,8 @@ export const SOUND_BUILDERS: Record<SoundId, () => SynthesizedSound> = {
   denied,
   fanfare,
   star: () => bell([{ f: 1568, at: 0 }], 0.6, 6),
+  warp,
+  discovery,
+  rumble,
   music,
 };
