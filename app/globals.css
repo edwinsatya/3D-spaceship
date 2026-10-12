@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-space: #02030a;
+  --color-hud: #7df9ff;
+  --color-hud-dim: #3aa7b8;
+  --color-boost: #ffb347;
+  --color-danger: #ff5a6e;
+  --color-star: #ffd84d;
+  --font-sans: var(--font-exo), system-ui, sans-serif;
+  --font-display: var(--font-orbitron), var(--font-exo), system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-space);
+  color: #fff;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.hud-text {
+  text-shadow:
+    0 0 6px rgb(125 249 255 / 0.55),
+    0 1px 2px rgb(0 0 0 / 0.8);
+}
+
+.hud-panel {
+  background: linear-gradient(135deg, rgb(10 30 48 / 0.72), rgb(4 10 22 / 0.6));
+  border: 1px solid rgb(125 249 255 / 0.28);
+  box-shadow:
+    0 0 18px rgb(125 249 255 / 0.12),
+    inset 0 0 12px rgb(125 249 255 / 0.06);
+  backdrop-filter: blur(6px);
+}
