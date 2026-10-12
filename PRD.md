@@ -7,7 +7,7 @@ Kamu adalah senior web game developer & game designer, ahli Three.js/React Three
 Game web 3D eksplorasi luar angkasa yang langsung jalan di browser (desktop & HP/mobile) tanpa install. Pemain menerbangkan pesawat, menjelajahi tata surya, menyelesaikan misi, dan mengoleksi pengetahuan tentang planet.
 
 - Target pemain: casual, semua umur (8+), sesi 5–15 menit.
-- Bahasa UI: Indonesia (siapkan struktur i18n untuk English).
+- Bahasa UI: English (default). Struktur i18n di `game/i18n`; terjemahan Bahasa Indonesia sudah lengkap dan nanti bisa dipilih lewat pengaturan bahasa (Fase 4). Judul UI English saat ini: "Space Explorer 3D".
 - Core loop: Terbang → Temukan → Selesaikan misi → Dapat bintang → Buka pesawat/warna baru → Terbang lagi.
 - Gaya visual: stylized-sinematik — pesawat low-poly bersih dengan warna cerah & glow mesin, planet semi-realistis, UI futuristik yang tetap mudah dibaca.
 - Pilar desain:
@@ -98,7 +98,7 @@ Selesai jika: ada minimal 6 misi, sistem unlock berjalan, dan progres tersinkron
    - Kualitas Tampilan: preset Rendah/Sedang/Tinggi/Auto (bloom, bayangan, partikel, resolusi) + FPS counter.
    - Panduan Kontrol: referensi lengkap per perangkat, remap tombol, sensitivitas, invert Y, gamepad, kemudi gyro di HP (opsional).
 2. Aksesibilitas: mode kurangi gerakan (ikut prefers-reduced-motion: matikan shake & FOV kick), HUD ramah buta warna, ukuran teks.
-3. Polish & rilis: bahasa English, PWA, analytics event (mulai main, tutorial selesai, misi selesai, durasi sesi), halaman kredit aset, OG image untuk share.
+3. Polish & rilis: pemilih bahasa (English/Indonesia) di Pengaturan, PWA, analytics event (mulai main, tutorial selesai, misi selesai, durasi sesi), halaman kredit aset, OG image untuk share.
 
 Selesai jika: semua pengaturan tersimpan dan langsung berlaku tanpa reload.
 
