@@ -1,11 +1,9 @@
 import type { Localized } from "@/game/i18n/types";
-import { EARTH, MOON, SUN } from "./planets";
+import { BODIES, BODY_ORDER } from "./planets";
 
 /** Short, accurate facts used for loading tips and the result screen. */
 export const SPACE_FACTS: readonly Localized[] = [
-  SUN.facts.funFact,
-  EARTH.facts.funFact,
-  MOON.facts.funFact,
+  ...BODY_ORDER.map((id) => BODIES[id].facts.funFact),
   {
     id: "Bulan menjauh dari Bumi sekitar 3,8 cm setiap tahun.",
     en: "The Moon drifts about 3.8 cm farther from Earth every year.",
