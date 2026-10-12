@@ -428,9 +428,9 @@ export const URANUS: CelestialBody = {
   rings: {
     color: "#8e9aa3",
     bands: [
-      { from: 1.64, to: 1.66, opacity: 0.35 },
-      { from: 1.75, to: 1.77, opacity: 0.3 },
-      { from: 1.98, to: 2.02, opacity: 0.45 },
+      { from: 1.64, to: 1.66, opacity: 0.12 },
+      { from: 1.75, to: 1.77, opacity: 0.1 },
+      { from: 1.98, to: 2.02, opacity: 0.18 },
     ],
   },
   moonlets: [
@@ -473,8 +473,8 @@ export const NEPTUNE: CelestialBody = {
   rings: {
     color: "#7c8494",
     bands: [
-      { from: 2.13, to: 2.15, opacity: 0.18 },
-      { from: 2.52, to: 2.55, opacity: 0.25 },
+      { from: 2.13, to: 2.15, opacity: 0.07 },
+      { from: 2.52, to: 2.55, opacity: 0.1 },
     ],
   },
   moonlets: [

@@ -63,4 +63,9 @@ export const PERFORMANCE = {
   touchStartTier: "medium" as QualityTier,
   /** Procedural texture bake sizes (width; height = width / 2). */
   bakeWidth: { desktop: 2048, touch: 1024 } as const,
+  /** Per-planet surface bakes; giants fill the screen so they get more texels. */
+  surfaceBakeWidth: { desktop: 1024, touch: 512 } as const,
+  giantBakeWidth: { desktop: 2048, touch: 1024 } as const,
+  /** Bodies at least this large (u) count as giants. */
+  giantRadius: 380,
 } as const;

@@ -5,6 +5,8 @@ import { useMemo, useRef } from "react";
 import { AdditiveBlending, Vector3, type Mesh, type ShaderMaterial } from "three";
 import { SKY, WORLD } from "@/game/config/world";
 import { BILLBOARD_VERTEX } from "@/game/scenes/shaders/common";
+import { useGameStore } from "@/game/stores/gameStore";
+import { buildEnvironment } from "@/game/systems/environment";
 import { runtime } from "@/game/systems/runtime";
 
 const SUN_FRAGMENT = /* glsl */ `
@@ -26,23 +28,27 @@ void main() {
 }
 `;
 
-export const SUN_DIRECTION = new Vector3(...WORLD.sunDirection).normalize();
-
 const _position = new Vector3();
 
-/** Billboard sun kept at a fixed distance from the camera, i.e. "at infinity". */
+/**
+ * Billboard sun kept at a fixed distance from the camera, i.e. "at infinity".
+ * Direction and apparent size follow the current location (smaller at Neptune).
+ */
 export function Sun() {
   const mesh = useRef<Mesh>(null);
   const material = useRef<ShaderMaterial>(null);
+  const atTheSun = useGameStore((state) => state.location === "sun");
   const uniforms = useMemo(() => ({ uSize: { value: SKY.sunSize * 2.4 }, uTime: { value: 0 } }), []);
 
   useFrame(({ camera }, delta) => {
     if (!mesh.current || !material.current) return;
-    _position.copy(camera.position).addScaledVector(SUN_DIRECTION, SKY.sunDistance);
+    _position.copy(camera.position).addScaledVector(runtime.sun.direction, SKY.sunDistance);
     mesh.current.position.copy(_position);
+    material.current.uniforms.uSize.value = SKY.sunSize * 2.4 * runtime.sun.size;
     material.current.uniforms.uTime.value += delta * runtime.timeScale;
   });
 
+  if (atTheSun) return null;
   return (
     <mesh ref={mesh} frustumCulled={false} renderOrder={-5}>
       <planeGeometry args={[2, 2]} />
@@ -60,11 +66,20 @@ export function Sun() {
   );
 }
 
+/** Directional sunlight for the current location (the Sun itself uses a point light). */
 export function SunLight() {
-  const position = useMemo(() => SUN_DIRECTION.clone().multiplyScalar(100), []);
+  const location = useGameStore((state) => state.location);
+  const environment = useMemo(() => buildEnvironment(location), [location]);
+  const position = useMemo(() => environment.sunDirection.clone().multiplyScalar(100), [environment]);
   return (
     <>
-      <directionalLight position={position} intensity={WORLD.sunLightIntensity} color="#fff3e2" />
+      {location !== "sun" && (
+        <directionalLight
+          position={position}
+          intensity={WORLD.sunLightIntensity * environment.sunIntensity}
+          color="#fff3e2"
+        />
+      )}
       <ambientLight intensity={WORLD.ambientIntensity} color={WORLD.ambientColor} />
     </>
   );

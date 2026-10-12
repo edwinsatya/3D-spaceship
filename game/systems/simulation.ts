@@ -2,12 +2,13 @@ import { Quaternion, Vector3, type PerspectiveCamera } from "three";
 import { audio } from "@/game/audio/audioManager";
 import { CAMERA } from "@/game/config/camera";
 import { COLLISION, FLIGHT } from "@/game/config/flight";
+import { EXPLORATION } from "@/game/config/exploration";
 import { HANGAR } from "@/game/config/hangar";
 import { MISSION } from "@/game/config/mission";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
 import { MISSIONS } from "@/game/data/missions";
-import { EARTH, MOON, SOLID_BODIES } from "@/game/data/planets";
+import type { LocationId } from "@/game/data/planets";
 import { SHIPS_BY_ID } from "@/game/data/ships";
 import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
@@ -26,7 +27,8 @@ import {
   updateResultCamera,
 } from "./cameraRig";
 import { resolveShipSphere, spheresOverlap } from "./collision";
-import { segmentCrossesDisc, toVector } from "./course";
+import { segmentCrossesDisc, type PickupSpec } from "./course";
+import { arrivalFor, buildEnvironment } from "./environment";
 import { EMPTY_PAYLOAD, gameEvents } from "./events";
 import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
 import { rebaseIfNeeded } from "./floatingOrigin";
@@ -38,13 +40,6 @@ import { runtime } from "./runtime";
 import { rateTime } from "./scoring";
 import { boostConfigFor, flightConfigFor, resolveShipId } from "./shipConfig";
 
-const PLANET_COLLIDERS = SOLID_BODIES.map((body) => ({
-  center: toVector(body.position),
-  radius: body.radius * (body.atmosphere?.scale ?? 1) + COLLISION.planetMargin,
-  surfaceRadius: body.radius,
-}));
-const EARTH_CENTER = toVector(EARTH.position);
-const MOON_CENTER = toVector(MOON.position);
 
 const AUTOPILOT_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0.35, boost: false };
 const IDLE_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0, boost: false };
@@ -61,11 +56,12 @@ const _ndc = new Vector3();
 const _toTarget = new Vector3();
 const _cameraForward = new Vector3();
 
-/** Nearest planet's radial "up" for auto-level (keeps the horizon level in orbit). */
+/** Nearest body's radial "up" for auto-level (keeps the horizon level in orbit). */
 function referenceUp(ship: ShipState): Vector3 {
   let best = Infinity;
-  for (let i = 0; i < PLANET_COLLIDERS.length; i++) {
-    const collider = PLANET_COLLIDERS[i];
+  const colliders = runtime.environment.colliders;
+  for (let i = 0; i < colliders.length; i++) {
+    const collider = colliders[i];
     const altitude = ship.position.distanceTo(collider.center) - collider.surfaceRadius;
     if (altitude < best) {
       best = altitude;
@@ -85,6 +81,43 @@ export function applySelectedShip(): void {
 
 const isExploring = (mode: GameMode) => mode !== "mission";
 
+/** Energy stars of the current location (Earth reuses the mission's stars). */
+function currentPickups(layout: MissionLayout): readonly PickupSpec[] {
+  return runtime.environment.location === "earth" ? layout.energyStars : runtime.environment.pickups;
+}
+
+function resetPickups(pickups: readonly PickupSpec[]): void {
+  runtime.pickups.active = pickups.map(() => true);
+  runtime.pickups.respawnIn = pickups.map(() => 0);
+  runtime.pickups.collectedAt = pickups.map(() => -Infinity);
+}
+
+/** Swaps bodies, colliders and lighting (materials share runtime.sun.direction). */
+export function applyLocation(location: LocationId): void {
+  if (runtime.environment.location === location) return;
+  const environment = buildEnvironment(location);
+  runtime.environment = environment;
+  runtime.sun.direction.copy(environment.sunDirection);
+  runtime.sun.size = environment.sunSize;
+  runtime.sun.intensity = environment.sunIntensity;
+}
+
+/** Arrive at a location (after a warp): new scene, ship at the arrival point. */
+export function enterLocation(location: LocationId, layout: MissionLayout): void {
+  applyLocation(location);
+  const arrival = arrivalFor(location);
+  const ship = runtime.ship;
+  ship.position.copy(arrival.position);
+  ship.previousPosition.copy(arrival.position);
+  orientationFromForwardUp(arrival.forward, arrival.up, ship.quaternion);
+  ship.knockback.set(0, 0, 0);
+  ship.angularVelocity.set(0, 0, 0);
+  runtime.origin.copy(arrival.position);
+  resetPickups(currentPickups(layout));
+  runtime.camera.intro = 1;
+  updateChaseCamera(runtime.camera, ship, 0, true);
+}
+
 /** Ship hovering at the spawn point for the title screen and hangar. */
 export function placeShipForMenu(layout: MissionLayout): void {
   applySelectedShip();
@@ -93,9 +126,8 @@ export function placeShipForMenu(layout: MissionLayout): void {
   runtime.origin.copy(spawn.position);
   runtime.mission = createMissionState(0);
   runtime.ringPassedAt = layout.course.rings.map(() => -1);
-  runtime.pickups.active = layout.energyStars.map(() => true);
-  runtime.pickups.respawnIn = layout.energyStars.map(() => 0);
-  runtime.pickups.collectedAt = layout.energyStars.map(() => -Infinity);
+  applyLocation("earth");
+  resetPickups(layout.energyStars);
   runtime.finishTimer = 0;
   runtime.timeScale = 1;
   runtime.camera.intro = 1;
@@ -124,9 +156,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   }
 
   runtime.ringPassedAt = layout.course.rings.map(() => -1);
-  runtime.pickups.active = layout.energyStars.map(() => true);
-  runtime.pickups.respawnIn = layout.energyStars.map(() => 0);
-  runtime.pickups.collectedAt = layout.energyStars.map(() => -Infinity);
+  applyLocation("earth");
+  resetPickups(layout.energyStars);
   runtime.timeScale = 1;
   runtime.finishTimer = 0;
   runtime.freeFlightTime = 0;
@@ -215,15 +246,16 @@ function onCollision(strength: number): void {
 function handleCollisions(layout: MissionLayout, dt: number): void {
   const ship = runtime.ship;
   runtime.collisionCooldown = Math.max(0, runtime.collisionCooldown - dt);
-  const asteroids = layout.asteroids;
+  const asteroids = runtime.environment.location === "earth" ? layout.asteroids : [];
   let impact = 0;
   for (let i = 0; i < asteroids.length; i++) {
     const radius = asteroids[i].radius * COLLISION.asteroidRadiusScale;
     const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, asteroids[i].position, radius, COLLISION, runtime.flight.maxSpeed);
     impact = Math.max(impact, hit);
   }
-  for (let i = 0; i < PLANET_COLLIDERS.length; i++) {
-    const planet = PLANET_COLLIDERS[i];
+  const colliders = runtime.environment.colliders;
+  for (let i = 0; i < colliders.length; i++) {
+    const planet = colliders[i];
     const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, planet.center, planet.radius, COLLISION, runtime.flight.maxSpeed);
     impact = Math.max(impact, hit);
   }
@@ -233,7 +265,7 @@ function handleCollisions(layout: MissionLayout, dt: number): void {
 function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void {
   const ship = runtime.ship;
   const { active, respawnIn, collectedAt } = runtime.pickups;
-  const pickups = layout.energyStars;
+  const pickups = currentPickups(layout);
   let nearest = Infinity;
   for (let index = 0; index < pickups.length; index++) {
     if (!active[index]) {
@@ -385,14 +417,25 @@ function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: Pe
     }
     _targetUniverse.copy(ring.position);
     target.kind = "ring";
-  } else if (ship.position.distanceTo(EARTH_CENTER) > WORLD.freeFlightReturnDistance) {
-    _targetUniverse.copy(EARTH_CENTER);
-    surface = EARTH.radius;
-    target.kind = "earth";
+    target.bodyId = null;
+    target.returning = false;
   } else {
-    _targetUniverse.copy(MOON_CENTER);
-    surface = MOON.radius;
-    target.kind = "moon";
+    const environment = runtime.environment;
+    const primary = environment.colliders[0];
+    const far = ship.position.distanceTo(primary.center) > primary.surfaceRadius * EXPLORATION.returnDistance;
+    const secondary = environment.location === "earth" ? environment.colliders[1] : null;
+    const goal = far || !secondary ? primary : secondary;
+    if (!far && !secondary) {
+      target.visible = false;
+      target.returning = false;
+      runtime.targetOffscreenTime = 0;
+      return;
+    }
+    _targetUniverse.copy(goal.center);
+    surface = goal.surfaceRadius;
+    target.kind = "body";
+    target.bodyId = goal.id;
+    target.returning = far;
   }
 
   target.visible = true;

@@ -12,7 +12,8 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useLoadingStore } from "@/game/stores/loadingStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { loadTexture } from "@/game/systems/assetLoader";
-import { bakeDetail, bakeEarthDay, bakeEarthNight, bakeMoon } from "./procedural/planetBakes";
+import { ensureSurface } from "@/game/entities/planet/textures";
+import { bakeDetail, bakeEarthDay, bakeEarthNight } from "./procedural/planetBakes";
 import { bakeSky } from "./procedural/skyBake";
 
 /** Next animation frame, with a timeout fallback for throttled background tabs. */
@@ -98,10 +99,7 @@ export function Preloader() {
       });
       setProgress("planets", 0.8);
       await nextFrame();
-      await provide(gl, "moon", MOON.textures?.color, SRGBColorSpace, () => {
-        const target = bakeMoon(gl, MOON.seed, size);
-        return { texture: target.texture, dispose: () => target.dispose() };
-      });
+      await ensureSurface(gl, MOON);
       await provide(gl, "detail", undefined, NoColorSpace, () => {
         const target = bakeDetail(gl, VISUALS.detail.size, anisotropy);
         return { texture: target.texture, dispose: () => target.dispose() };

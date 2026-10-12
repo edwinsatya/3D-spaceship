@@ -11,7 +11,7 @@ export const EXPLORATION = {
   /** Arrival point after a warp, in planet radii from its centre. */
   arrivalDistance: 2.7,
   /** Arrival at the Sun is further out (it is huge and very bright). */
-  sunArrivalDistance: 2.4,
+  sunArrivalDistance: 3.1,
   /** Free flight: guide the player back beyond this many radii. */
   returnDistance: 9,
   /** First visit counts once the ship is within this many radii. */

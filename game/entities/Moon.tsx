@@ -6,7 +6,7 @@ import { MathUtils, SphereGeometry, Vector3 } from "three";
 import { VISUALS } from "@/game/config/visuals";
 import { EARTH, MOON } from "@/game/data/planets";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
-import { useAssetStore } from "@/game/stores/assetStore";
+import { useBodyTextures } from "./planet/textures";
 
 
 const MOON_LOD = [...VISUALS.lod.moon];
@@ -19,7 +19,7 @@ function faceEarthRotation(): [number, number, number] {
 }
 
 export function Moon() {
-  const map = useAssetStore((state) => state.textures.moon);
+  const { surface: map } = useBodyTextures(MOON);
   const { planetSegments } = useQualitySettings();
   const lods = useMemo(
     () => [

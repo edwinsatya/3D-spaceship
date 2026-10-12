@@ -4,8 +4,6 @@ import { Detailed } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import {
-  AdditiveBlending,
-  BackSide,
   Color,
   MathUtils,
   ShaderMaterial,
@@ -20,7 +18,7 @@ import { OUTPUT_CHUNKS } from "@/game/scenes/shaders/common";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
 import { useAssetStore } from "@/game/stores/assetStore";
 import { runtime } from "@/game/systems/runtime";
-import { SUN_DIRECTION } from "./Sun";
+import { createAtmosphereMaterial } from "./planet/Atmosphere";
 
 const EARTH_LOD = [...VISUALS.lod.earth];
 
@@ -109,49 +107,6 @@ void main() {
 }
 `;
 
-const ATMOSPHERE_VERTEX = /* glsl */ `
-varying vec3 vWorldPosition;
-varying vec3 vCenter;
-void main() {
-  vec4 world = modelMatrix * vec4(position, 1.0);
-  vWorldPosition = world.xyz;
-  vCenter = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-  gl_Position = projectionMatrix * viewMatrix * world;
-}
-`;
-
-/**
- * Limb glow from the view ray's closest approach to the planet centre:
- * correct from orbit-skimming altitude to far away (a normal-based rim
- * shader blows out when the camera is close to the shell).
- */
-const ATMOSPHERE_FRAGMENT = /* glsl */ `
-uniform vec3 uSunDirection;
-uniform vec3 uAtmoDay;
-uniform vec3 uAtmoTwilight;
-uniform float uIntensity;
-uniform float uPlanetRadius;
-uniform float uAtmosphereRadius;
-varying vec3 vWorldPosition;
-varying vec3 vCenter;
-void main() {
-  vec3 center = vCenter;
-  vec3 rayDirection = normalize(vWorldPosition - cameraPosition);
-  vec3 toCenter = center - cameraPosition;
-  float along = dot(toCenter, rayDirection);
-  vec3 closest = cameraPosition + rayDirection * along;
-  float distanceToCenter = length(closest - center);
-  float height = clamp((uAtmosphereRadius - distanceToCenter) / (uAtmosphereRadius - uPlanetRadius), 0.0, 1.0);
-  float density = height * height * (3.0 - 2.0 * height);
-  vec3 normal = normalize(closest - center);
-  float NdotL = dot(normal, normalize(uSunDirection));
-  vec3 color = mix(uAtmoTwilight, uAtmoDay, smoothstep(-0.05, 0.35, NdotL));
-  float lit = smoothstep(-0.3, 0.15, NdotL);
-  gl_FragColor = vec4(color * density * lit * uIntensity, 1.0);
-  ${OUTPUT_CHUNKS}
-}
-`;
-
 function linearColor(hex: string) {
   return new Color(hex);
 }
@@ -160,7 +115,7 @@ function useEarthMaterials(day: Texture, night: Texture, detail: Texture) {
   const atmosphere = EARTH.atmosphere!;
   return useMemo(() => {
     const shared = {
-      uSunDirection: { value: SUN_DIRECTION },
+      uSunDirection: { value: runtime.sun.direction },
       uAtmoDay: { value: linearColor(atmosphere.dayColor) },
       uAtmoTwilight: { value: linearColor(atmosphere.twilightColor) },
     };
@@ -185,20 +140,7 @@ function useEarthMaterials(day: Texture, night: Texture, detail: Texture) {
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -4,
     });
-    const glow = new ShaderMaterial({
-      vertexShader: ATMOSPHERE_VERTEX,
-      fragmentShader: ATMOSPHERE_FRAGMENT,
-      uniforms: {
-        ...shared,
-        uIntensity: { value: atmosphere.intensity },
-        uPlanetRadius: { value: EARTH.radius },
-        uAtmosphereRadius: { value: EARTH.radius * atmosphere.scale },
-      },
-      side: BackSide,
-      blending: AdditiveBlending,
-      transparent: true,
-      depthWrite: false,
-    });
+    const glow = createAtmosphereMaterial(atmosphere, EARTH.radius);
     return { surface, clouds, glow };
   }, [day, night, detail, atmosphere]);
 }

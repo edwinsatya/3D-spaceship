@@ -42,7 +42,7 @@ export function TopBar() {
   useHudFrame(() => {
     if (mode === "mission") setText(timer.current, formatTime(runtime.mission.elapsedMs));
     else if (mode === "testflight") setText(timer.current, formatTime(runtime.testFlightRemaining * 1000).slice(0, -3));
-    else setText(freeObjective.current, t(runtime.target.kind === "earth" ? "hud.objectiveReturn" : "hud.objectiveFree"));
+    else setText(freeObjective.current, t(runtime.target.returning ? "hud.objectiveReturn" : "hud.objectiveFree"));
   });
 
   if (mode === "testflight") {

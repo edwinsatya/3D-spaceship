@@ -8,8 +8,7 @@ import { distanceToKm, formatNumber } from "./format";
 
 const KIND_COLORS: Record<TargetKind, string> = {
   ring: "#ffd84d",
-  moon: "#7df9ff",
-  earth: "#7df9ff",
+  body: "#7df9ff",
 };
 
 /**

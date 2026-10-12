@@ -8,7 +8,7 @@ import { useProgressStore } from "@/game/stores/progressStore";
 import { beginIntroBlend } from "./cameraRig";
 import { getMissionLayout } from "./missionLayout";
 import { notifyHud, runtime } from "./runtime";
-import { applySelectedShip, beginRun, placeShipForMenu, stepSimulation } from "./simulation";
+import { applySelectedShip, beginRun, enterLocation, placeShipForMenu, stepSimulation } from "./simulation";
 
 /** Runs before everything else each frame (priority -1); the composer renders last. */
 const SIMULATION_PRIORITY = -1;
@@ -32,6 +32,10 @@ export function GameLoop() {
         if (state.runId !== previous.runId) {
           beginRun(state.mode, layout, previous.phase === "menu" || previous.phase === "hangar");
           return;
+        }
+        // Mid-run location change (warp arrival or a debug jump).
+        if (state.location !== previous.location && (state.phase === "playing" || state.phase === "paused")) {
+          enterLocation(state.location, layout);
         }
         if (state.phase === previous.phase) return;
         const showroom = (phase: string) => phase === "menu" || phase === "hangar";

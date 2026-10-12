@@ -103,39 +103,6 @@ void main() {
 }
 `;
 
-const MOON_FRAGMENT = /* glsl */ `
-${HEADER}
-float craters(vec3 p, float scale, float density) {
-  vec3 cell = floor(p * scale);
-  vec3 local = fract(p * scale);
-  float height = 0.0;
-  for (int z = -1; z <= 1; z++)
-  for (int y = -1; y <= 1; y++)
-  for (int x = -1; x <= 1; x++) {
-    vec3 offset = vec3(float(x), float(y), float(z));
-    vec3 h = hash33(cell + offset + uSeed);
-    if (h.z > density) continue;
-    vec3 center = offset + 0.15 + h * 0.7 - local;
-    float radius = 0.22 + 0.25 * hash13(cell + offset + 7.31);
-    float d = length(center) / radius;
-    float bowl = 1.0 - smoothstep(0.0, 0.95, d);
-    float rim = smoothstep(0.7, 0.98, d) * (1.0 - smoothstep(0.98, 1.3, d));
-    height += rim * 0.7 - bowl * 0.45;
-  }
-  return height;
-}
-
-void main() {
-  vec3 dir = equirectDirection(vUv);
-  float maria = smoothstep(0.05, 0.28, fbm3(dir * 1.25 + uSeed, 4));
-  float height = craters(dir, 5.0, 0.42) + craters(dir, 13.0, 0.4) * 0.6 + craters(dir, 31.0, 0.36) * 0.35;
-  float grain = fbm3(dir * 24.0, 3);
-  float albedo = mix(0.58, 0.27, maria) * (0.92 + grain * 0.16) + height * 0.11;
-  vec3 tint = mix(vec3(1.0, 0.97, 0.93), vec3(0.93, 0.95, 1.0), maria);
-  fragColor = vec4(srgbToLinear(clamp(albedo * tint, 0.0, 1.0)), 1.0);
-}
-`;
-
 /** Tileable fbm (R, G at two scales) that sharpens planets up close. */
 const DETAIL_FRAGMENT = /* glsl */ `
 precision highp float;
@@ -209,17 +176,6 @@ export function bakeEarthNight(renderer: WebGLRenderer, seed: number, size: Plan
     fragmentShader: EARTH_NIGHT_FRAGMENT,
     uniforms: { uSeed: { value: seed } },
     colorSpace: NoColorSpace,
-    anisotropy: size.anisotropy,
-  });
-}
-
-export function bakeMoon(renderer: WebGLRenderer, seed: number, size: PlanetBakeSize): WebGLRenderTarget {
-  return bakeEquirect(renderer, {
-    width: size.width / 2,
-    height: size.width / 4,
-    fragmentShader: MOON_FRAGMENT,
-    uniforms: { uSeed: { value: seed } },
-    colorSpace: SRGBColorSpace,
     anisotropy: size.anisotropy,
   });
 }
