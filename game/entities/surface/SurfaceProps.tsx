@@ -1,7 +1,8 @@
 "use client";
 
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, type ReactNode } from "react";
 import {
   AdditiveBlending,
   CanvasTexture,
@@ -11,6 +12,7 @@ import {
   ShaderMaterial,
   SRGBColorSpace,
 } from "three";
+import { ASSET_PATHS, SURFACE_PROP_ASSETS } from "@/game/config/assets";
 import { VISUALS } from "@/game/config/visuals";
 import type { PointOfInterestKind } from "@/game/data/surfaces";
 import { useProgressStore } from "@/game/stores/progressStore";
@@ -280,18 +282,45 @@ function Beacon({ id }: { id: string }) {
   );
 }
 
+function GLTFProp({ url, scale }: { url: string; scale: number }) {
+  const gltf = useGLTF(url, ASSET_PATHS.dracoDecoder, true);
+  const scene = useMemo(() => gltf.scene.clone(), [gltf.scene]);
+  return <primitive object={scene} scale={scale} />;
+}
+
+/** Uses the GLB from SURFACE_PROP_ASSETS when one is configured, else the procedural model. */
+function WithModel({ slot, children }: { slot: keyof typeof SURFACE_PROP_ASSETS; children: ReactNode }) {
+  const { url, scale } = SURFACE_PROP_ASSETS[slot];
+  if (!url) return children;
+  return (
+    <Suspense fallback={children}>
+      <GLTFProp url={url} scale={scale} />
+    </Suspense>
+  );
+}
+
 export function PointOfInterestProp({ id, kind, accent }: { id: string; kind: PointOfInterestKind; accent: string }) {
   const scale = VISUALS.surface.propScale;
   const beaconOffset: [number, number, number] = kind === "crater" || kind === "delta" ? [0, 0, 0] : [-7, 0, -5];
   return (
     <group>
       <group scale={scale}>
-        {kind === "lander" && <ApolloLander />}
-        {kind === "rover" && <Rover />}
+        {kind === "lander" && (
+          <WithModel slot="lander">
+            <ApolloLander />
+          </WithModel>
+        )}
+        {kind === "rover" && (
+          <WithModel slot="rover">
+            <Rover />
+          </WithModel>
+        )}
         {kind === "helicopter" && (
           // The real one is only 49 cm tall: shown bigger so you can spot it.
           <group scale={2}>
-            <Helicopter />
+            <WithModel slot="helicopter">
+              <Helicopter />
+            </WithModel>
           </group>
         )}
         {kind === "earthrise" && <Lookout />}
