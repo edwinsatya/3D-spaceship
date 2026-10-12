@@ -12,6 +12,7 @@ import { Reticle } from "./Reticle";
 import { TargetMarker } from "./TargetMarker";
 import { TopBar } from "./TopBar";
 import { ContextPrompts } from "./ContextPrompts";
+import { DiscoveryBanner } from "./DiscoveryBanner";
 import { PlanetInfoCard } from "./PlanetInfoCard";
 import { TouchControls } from "./TouchControls";
 
@@ -42,6 +43,7 @@ export function Hud() {
       <Toasts />
       {mode === "mission" && <Countdown />}
       <WarpLabel />
+      <DiscoveryBanner />
 
       <div className={`absolute inset-0 ${SAFE_AREA}`}>
         <div className="relative h-full w-full">

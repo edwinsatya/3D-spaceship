@@ -25,6 +25,7 @@ export function useGameAudio() {
       gameEvents.on("go", () => audio.play("go")),
       gameEvents.on("missionComplete", () => audio.play("fanfare")),
       gameEvents.on("warpStart", () => audio.play("warp")),
+      gameEvents.on("discovered", () => audio.play("discovery")),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, []);

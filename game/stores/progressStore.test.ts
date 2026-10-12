@@ -46,7 +46,16 @@ describe("migrateProgress", () => {
       settings: { muted: false, locale: "en" },
       onboarding: { completedHints: [] },
       ships: { selected: "comet", paint: {} },
+      discovered: [],
+      landed: [],
+      pointsOfInterest: [],
     });
+  });
+
+  it("drops unknown body ids from older or tampered saves", () => {
+    const migrated = migrateProgress({ discovered: ["mars", "pluto", "earth"], landed: ["vulcan"] }, 2);
+    expect(migrated.discovered).toEqual(["mars", "earth"]);
+    expect(migrated.landed).toEqual([]);
   });
 });
 

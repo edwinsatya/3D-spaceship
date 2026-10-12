@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { MissionId } from "@/game/data/missions";
+import { isBodyId, type BodyId } from "@/game/data/planets";
 import { DEFAULT_SHIP, type ShipCustomization, type ShipId } from "@/game/data/ships";
 import { DEFAULT_LOCALE, type Locale } from "@/game/i18n/types";
 import type { HintId } from "@/game/systems/hints";
@@ -29,6 +30,11 @@ interface ProgressData {
   settings: { muted: boolean; locale: Locale };
   onboarding: { completedHints: HintId[] };
   ships: ShipProgress;
+  /** Encyclopedia: bodies visited at least once (free flight). */
+  discovered: BodyId[];
+  /** Surfaces you have landed on and points of interest visited there. */
+  landed: BodyId[];
+  pointsOfInterest: string[];
 }
 
 interface ProgressStore extends ProgressData {
@@ -38,6 +44,10 @@ interface ProgressStore extends ProgressData {
   completeHint: (id: HintId) => void;
   selectShip: (id: ShipId) => void;
   setPaint: (id: ShipId, paint: ShipCustomization) => void;
+  /** Returns true when this is a new discovery. */
+  discover: (id: BodyId) => boolean;
+  markLanded: (id: BodyId) => boolean;
+  visitPointOfInterest: (id: string) => boolean;
 }
 
 export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
@@ -75,6 +85,9 @@ export const useProgressStore = create<ProgressStore>()(
       settings: { muted: false, locale: DEFAULT_LOCALE },
       onboarding: { completedHints: [] },
       ships: { selected: DEFAULT_SHIP, paint: {} },
+      discovered: [],
+      landed: [],
+      pointsOfInterest: [],
 
       recordMissionResult: (id, timeMs, stars) => {
         const { progress, outcome } = mergeMissionResult(get().missions[id], timeMs, stars);
@@ -92,6 +105,21 @@ export const useProgressStore = create<ProgressStore>()(
       selectShip: (id) => set((state) => ({ ships: { ...state.ships, selected: id } })),
       setPaint: (id, paint) =>
         set((state) => ({ ships: { ...state.ships, paint: { ...state.ships.paint, [id]: paint } } })),
+      discover: (id) => {
+        if (get().discovered.includes(id)) return false;
+        set((state) => ({ discovered: [...state.discovered, id] }));
+        return true;
+      },
+      markLanded: (id) => {
+        if (get().landed.includes(id)) return false;
+        set((state) => ({ landed: [...state.landed, id] }));
+        return true;
+      },
+      visitPointOfInterest: (id) => {
+        if (get().pointsOfInterest.includes(id)) return false;
+        set((state) => ({ pointsOfInterest: [...state.pointsOfInterest, id] }));
+        return true;
+      },
     }),
     {
       name: PROGRESS_STORAGE_KEY,
@@ -103,6 +131,9 @@ export const useProgressStore = create<ProgressStore>()(
         settings: state.settings,
         onboarding: state.onboarding,
         ships: state.ships,
+        discovered: state.discovered,
+        landed: state.landed,
+        pointsOfInterest: state.pointsOfInterest,
       }),
     },
   ),
@@ -119,6 +150,9 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
     onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
     // Added in Phase 2 without a version bump: absent in older saves.
     ships: { selected: data.ships?.selected ?? DEFAULT_SHIP, paint: data.ships?.paint ?? {} },
+    discovered: (data.discovered ?? []).filter(isBodyId),
+    landed: (data.landed ?? []).filter(isBodyId),
+    pointsOfInterest: (data.pointsOfInterest ?? []).filter((id) => typeof id === "string"),
   };
 }
 

@@ -5,7 +5,8 @@ import { useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { ControlsReference } from "./ControlsReference";
-import { HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon } from "./icons";
+import { useUiStore } from "@/game/stores/uiStore";
+import { BookIcon, HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon } from "./icons";
 import { GameButton, Panel } from "./primitives";
 
 export function PauseMenu() {
@@ -18,6 +19,7 @@ export function PauseMenu() {
   const endTestFlight = useGameStore((state) => state.endTestFlight);
   const muted = useProgressStore((state) => state.settings.muted);
   const toggleMuted = useProgressStore((state) => state.toggleMuted);
+  const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
 
   return (
     <motion.div
@@ -47,6 +49,9 @@ export function PauseMenu() {
               {t("pause.restart")}
             </GameButton>
           )}
+          <GameButton variant="secondary" icon={<BookIcon />} onClick={() => openEncyclopedia()}>
+            {t("pause.encyclopedia")}
+          </GameButton>
           <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
             {t("pause.sound")}: {muted ? t("pause.off") : t("pause.on")}
           </GameButton>

@@ -101,6 +101,8 @@ export const runtime = {
   /** Gameplay actions (orbit, land) queued by input, consumed by the simulation. */
   pendingActions: new Set<"orbit" | "land">(),
   orbit: createOrbitState(),
+  /** Mirror of the persisted discoveries for the per-frame check. */
+  discovered: new Set<BodyId>(),
   /** What the contextual HUD prompts can offer this frame. */
   prompts: { orbit: null as BodyId | null },
   /** Clock in (scaled) seconds since the page started simulating. */

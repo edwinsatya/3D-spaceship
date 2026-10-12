@@ -8,7 +8,8 @@ import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore, type GameMode } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { formatTime } from "@/game/systems/scoring";
-import { HangarIcon, OrbitIcon, RocketIcon } from "./icons";
+import { useUiStore } from "@/game/stores/uiStore";
+import { BookIcon, HangarIcon, OrbitIcon, RocketIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
 import { GameButton, Panel, StarRow } from "./primitives";
 
@@ -35,6 +36,7 @@ export function TitleMenu() {
   const device = useGameStore((state) => state.device);
   const progress = useProgressStore((state) => state.missions[ORBIT_RINGS.id]);
   const openHangar = useGameStore((state) => state.openHangar);
+  const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
 
   return (
     <motion.div
@@ -74,7 +76,7 @@ export function TitleMenu() {
             {t("menu.bestTime")}: {progress?.bestTimeMs != null ? formatTime(progress.bestTimeMs) : t("menu.noBestTime")}
           </p>
         </Panel>
-        <div className="grid grid-cols-2 gap-3 short:grid-cols-3 short:gap-2">
+        <div className="grid grid-cols-2 gap-3 short:gap-2">
           <GameButton
             icon={<RocketIcon />}
             onClick={() => startGame("mission")}
@@ -88,6 +90,14 @@ export function TitleMenu() {
           </GameButton>
           <GameButton variant="secondary" icon={<HangarIcon />} onClick={openHangar}>
             {t("menu.hangar")}
+          </GameButton>
+          <GameButton
+            variant="secondary"
+            icon={<BookIcon />}
+            onClick={() => openEncyclopedia()}
+            className="col-span-2 short:col-span-1"
+          >
+            {t("menu.encyclopedia")}
           </GameButton>
         </div>
         <p className="text-xs text-white/60 short:hidden">

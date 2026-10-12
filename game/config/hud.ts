@@ -16,6 +16,8 @@ export const HUD = {
   loadingSettle: 350,
   /** "GO!" stays on screen this long (ms). */
   goVisible: 800,
+  /** "Planet discovered!" banner duration (ms). */
+  discoveryDuration: 3600,
   /** Result-screen time count-up (s). */
   resultCountUp: 1.1,
 } as const;

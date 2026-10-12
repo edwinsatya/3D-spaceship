@@ -98,6 +98,14 @@ export const HangarIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const BookIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+    <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5z" />
+    <circle cx="12" cy="10" r="2.6" />
+  </Icon>
+);
+
 export const MapIcon = (props: IconProps) => (
   <Icon {...props}>
     <circle cx="12" cy="12" r="2.4" fill="currentColor" />

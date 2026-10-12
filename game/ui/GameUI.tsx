@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useGameStore } from "@/game/stores/gameStore";
+import { useUiStore } from "@/game/stores/uiStore";
+import { Encyclopedia } from "./encyclopedia/Encyclopedia";
 import { HangarScreen } from "./hangar/HangarScreen";
 import { SolarSystemMap } from "./map/SolarSystemMap";
 import { Hud } from "./hud/Hud";
@@ -15,6 +17,7 @@ import { TitleMenu } from "./TitleMenu";
 export function GameUI() {
   const phase = useGameStore((state) => state.phase);
   const runId = useGameStore((state) => state.runId);
+  const encyclopediaOpen = useUiStore((state) => state.encyclopedia.open);
   const loading = phase === "boot" || phase === "loading";
 
   return (
@@ -31,6 +34,7 @@ export function GameUI() {
         {phase === "paused" && <PauseMenu key="pause" />}
         {phase === "map" && <SolarSystemMap key="map" />}
         {phase === "result" && <ResultScreen key={`result-${runId}`} />}
+        {encyclopediaOpen && <Encyclopedia key="encyclopedia" />}
       </AnimatePresence>
       <OrientationGuard />
     </div>

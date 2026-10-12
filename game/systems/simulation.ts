@@ -35,6 +35,7 @@ import { decayKnockback, getShipForward, orientationFromForwardUp, resetShip, up
 import type { BoostEvent } from "./boost";
 import { advanceOrbit, disengageOrbit, engageOrbit, orbitCandidate, orbitPose } from "./orbit";
 import { rebaseIfNeeded } from "./floatingOrigin";
+import { findDiscovery } from "./discovery";
 import { createHintState, updateHints } from "./hints";
 import { damp, dampFactor } from "./math";
 import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
@@ -217,6 +218,7 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   tutorial.orbited = false;
   tutorial.mapOpened = false;
   runtime.hints = createHintState(useProgressStore.getState().onboarding.completedHints);
+  runtime.discovered = new Set(useProgressStore.getState().discovered);
 
   const camera = runtime.camera;
   camera.trauma = 0;
@@ -442,6 +444,20 @@ function flyOrbit(control: ControlInput, dt: number): BoostEvent {
   return null;
 }
 
+/** First visit to a body (free flight only): persist, then celebrate. */
+function handleDiscovery(mode: GameMode): void {
+  if (mode !== "freeflight" || runtime.warp.phase === "tunnel") return;
+  const found = findDiscovery(
+    runtime.ship.position,
+    runtime.environment.colliders,
+    runtime.discovered,
+    EXPLORATION.discoveryDistance,
+  );
+  if (!found) return;
+  runtime.discovered.add(found);
+  if (useProgressStore.getState().discover(found)) gameEvents.emit("discovered", { body: found });
+}
+
 function updatePrompts(mode: GameMode, controllable: boolean): void {
   const prompts = runtime.prompts;
   const orbit = runtime.orbit;
@@ -497,6 +513,7 @@ function stepFlight(
 
   if (warpPhase !== "tunnel") handleCollisions(layout, dt);
   handlePickups(layout, mode, dt);
+  if (phase === "playing") handleDiscovery(mode);
   if (mode === "mission") handleRings(layout);
   if (isExploring(mode) && phase === "playing") runtime.freeFlightTime += dt;
   if (mode === "testflight" && phase === "playing") {

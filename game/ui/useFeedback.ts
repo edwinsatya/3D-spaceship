@@ -31,6 +31,7 @@ export function useFeedback() {
         vibrate("collision");
       }),
       gameEvents.on("boostStart", () => vibrate("boost")),
+      gameEvents.on("discovered", () => vibrate("ring")),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, []);

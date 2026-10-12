@@ -15,6 +15,7 @@ export interface GameEventMap {
   warpArrive: { location: LocationId };
   orbitStart: { body: BodyId };
   orbitEnd: Record<string, never>;
+  discovered: { body: BodyId };
 }
 
 export type GameEventType = keyof GameEventMap;
