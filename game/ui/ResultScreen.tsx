@@ -69,11 +69,11 @@ export function ResultScreen() {
       aria-labelledby="result-title"
     >
       <motion.div initial={{ y: 30, scale: 0.94 }} animate={{ y: 0, scale: 1 }} className="w-full max-w-md">
-        <Panel className="flex flex-col items-center gap-4 px-6 py-7 text-center">
-          <h2 id="result-title" className="hud-text font-display text-3xl font-black tracking-[0.12em] sm:text-4xl">
+        <Panel className="flex flex-col items-center gap-4 px-6 py-7 text-center short:gap-2 short:py-4">
+          <h2 id="result-title" className="hud-text font-display text-3xl font-black tracking-[0.12em] sm:text-4xl short:text-2xl">
             {t("result.title")}
           </h2>
-          <StarRow count={result.stars} size="text-6xl" animate label={t("a11y.stars", { count: result.stars })} />
+          <StarRow count={result.stars} size="text-6xl short:text-4xl" animate label={t("a11y.stars", { count: result.stars })} />
           <div className="flex w-full justify-center gap-8">
             <div>
               <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">{t("result.time")}</p>
@@ -101,7 +101,7 @@ export function ResultScreen() {
               ? t("result.nextStar", { time: formatTime(next.timeMs), stars: next.stars })
               : t("result.maxStars")}
           </p>
-          <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-left">
+          <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-left short:hidden">
             <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-star">
               {t("result.didYouKnow")}
             </p>

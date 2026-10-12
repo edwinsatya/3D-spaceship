@@ -56,6 +56,8 @@ export interface EquirectBakeOptions {
   colorSpace: ColorSpace;
   mipmaps?: boolean;
   anisotropy?: number;
+  /** Tile vertically too (detail textures); equirect maps clamp at the poles. */
+  repeat?: boolean;
 }
 
 /**
@@ -72,7 +74,7 @@ export function bakeEquirect(renderer: WebGLRenderer, options: EquirectBakeOptio
     minFilter: mipmaps ? LinearMipmapLinearFilter : LinearFilter,
     magFilter: LinearFilter,
     wrapS: RepeatWrapping,
-    wrapT: ClampToEdgeWrapping,
+    wrapT: options.repeat ? RepeatWrapping : ClampToEdgeWrapping,
     depthBuffer: false,
     anisotropy: options.anisotropy ?? 1,
   });

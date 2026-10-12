@@ -34,8 +34,8 @@ export function PauseMenu() {
         exit={{ scale: 0.95, opacity: 0 }}
         className="flex w-full max-w-3xl flex-col gap-4 sm:flex-row"
       >
-        <Panel className="flex flex-1 flex-col gap-3 p-6">
-          <h2 id="pause-title" className="hud-text font-display text-3xl font-black tracking-[0.2em]">
+        <Panel className="flex flex-1 flex-col gap-3 p-6 short:gap-2 short:p-4">
+          <h2 id="pause-title" className="hud-text font-display text-3xl font-black tracking-[0.2em] short:text-2xl">
             {t("pause.title")}
           </h2>
           <GameButton icon={<PlayIcon />} onClick={resume} autoFocus>
@@ -53,7 +53,7 @@ export function PauseMenu() {
             {t("pause.menu")}
           </GameButton>
         </Panel>
-        <Panel className="flex-1 p-6">
+        <Panel className="flex-1 p-6 short:p-4">
           <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-hud">
             {t("controls.title")}
           </h3>

@@ -4,6 +4,7 @@ import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 import { NoColorSpace, SRGBColorSpace, type WebGLRenderer } from "three";
 import { PERFORMANCE } from "@/game/config/quality";
+import { VISUALS } from "@/game/config/visuals";
 import { SKY } from "@/game/config/world";
 import { EARTH, MOON } from "@/game/data/planets";
 import { useAssetStore, type TextureSlot } from "@/game/stores/assetStore";
@@ -11,7 +12,7 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useLoadingStore } from "@/game/stores/loadingStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { loadTexture } from "@/game/systems/assetLoader";
-import { bakeEarthDay, bakeEarthNight, bakeMoon } from "./procedural/planetBakes";
+import { bakeDetail, bakeEarthDay, bakeEarthNight, bakeMoon } from "./procedural/planetBakes";
 import { bakeSky } from "./procedural/skyBake";
 
 /** Next animation frame, with a timeout fallback for throttled background tabs. */
@@ -99,6 +100,10 @@ export function Preloader() {
       await nextFrame();
       await provide(gl, "moon", MOON.textures?.color, SRGBColorSpace, () => {
         const target = bakeMoon(gl, MOON.seed, size);
+        return { texture: target.texture, dispose: () => target.dispose() };
+      });
+      await provide(gl, "detail", undefined, NoColorSpace, () => {
+        const target = bakeDetail(gl, VISUALS.detail.size, anisotropy);
         return { texture: target.texture, dispose: () => target.dispose() };
       });
       complete("planets");

@@ -7,6 +7,8 @@ export const VISUALS = {
   },
   /** Cloud shell radius as a multiple of the planet radius. */
   cloudScale: 1.012,
+  /** Tileable detail texture: size (px) and repeats across the Earth's UV (u, v). */
+  detail: { size: 256, earthRepeat: [160, 80] as const, cloudRepeat: [110, 55] as const },
   ship: {
     /** Emissive multiplier for nozzle discs (drives bloom). */
     glowIntensity: 6,

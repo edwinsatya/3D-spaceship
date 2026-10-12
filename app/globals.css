@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Phones in landscape: very little height to work with. */
+@custom-variant short (@media (max-height: 520px));
+
 @theme inline {
   --color-space: #02030a;
   --color-hud: #7df9ff;

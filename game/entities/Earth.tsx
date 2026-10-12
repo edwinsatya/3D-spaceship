@@ -22,7 +22,6 @@ import { useAssetStore } from "@/game/stores/assetStore";
 import { runtime } from "@/game/systems/runtime";
 import { SUN_DIRECTION } from "./Sun";
 
-
 const EARTH_LOD = [...VISUALS.lod.earth];
 
 const SURFACE_VERTEX = /* glsl */ `
@@ -38,7 +37,11 @@ void main() {
 }
 `;
 
+const DETAIL_REPEAT = VISUALS.detail.earthRepeat;
+const CLOUD_DETAIL_REPEAT = VISUALS.detail.cloudRepeat;
+
 const SURFACE_FRAGMENT = /* glsl */ `
+uniform sampler2D uDetailMap;
 uniform sampler2D uDayMap;
 uniform sampler2D uNightMap;
 uniform vec3 uSunDirection;
@@ -57,7 +60,8 @@ void main() {
   float day = smoothstep(-0.14, 0.24, NdotL);
 
   vec4 dayTex = texture2D(uDayMap, vUv);
-  vec3 albedo = dayTex.rgb;
+  vec2 detail = texture2D(uDetailMap, vUv * vec2(${DETAIL_REPEAT[0].toFixed(1)}, ${DETAIL_REPEAT[1].toFixed(1)})).rg;
+  vec3 albedo = dayTex.rgb * (0.86 + 0.28 * detail.r);
   float ocean = dayTex.a;
   vec4 nightTex = texture2D(uNightMap, vUv);
   float cloudShadow = texture2D(uNightMap, vUv + vec2(uCloudOffset, 0.0)).g;
@@ -69,6 +73,7 @@ void main() {
   vec3 H = normalize(L + V);
   float NdotH = max(dot(N, H), 0.0);
   float spec = (pow(NdotH, 70.0) * 1.6 + pow(NdotH, 8.0) * 0.08) * ocean * smoothstep(0.0, 0.2, NdotL);
+  spec *= 0.6 + 0.8 * detail.g;
   color += sunColor * spec;
 
   float city = nightTex.r * (1.0 - day) * (1.0 - nightTex.g * 0.6);
@@ -85,6 +90,7 @@ void main() {
 `;
 
 const CLOUD_FRAGMENT = /* glsl */ `
+uniform sampler2D uDetailMap;
 uniform sampler2D uNightMap;
 uniform vec3 uSunDirection;
 varying vec2 vUv;
@@ -93,7 +99,8 @@ varying vec3 vWorldPosition;
 void main() {
   vec3 N = normalize(vNormalW);
   float NdotL = dot(N, normalize(uSunDirection));
-  float cloud = texture2D(uNightMap, vUv).g;
+  float detail = texture2D(uDetailMap, vUv * vec2(${CLOUD_DETAIL_REPEAT[0].toFixed(1)}, ${CLOUD_DETAIL_REPEAT[1].toFixed(1)})).r;
+  float cloud = clamp(texture2D(uNightMap, vUv).g * (0.65 + 0.7 * detail) - 0.04, 0.0, 1.0);
   float light = smoothstep(-0.18, 0.5, NdotL);
   vec3 color = mix(vec3(0.02, 0.025, 0.04), vec3(1.0, 0.98, 0.95) * 1.15, light);
   color = mix(color, vec3(1.0, 0.62, 0.4), smoothstep(0.25, 0.0, abs(NdotL - 0.02)) * 0.35);
@@ -149,7 +156,7 @@ function linearColor(hex: string) {
   return new Color(hex);
 }
 
-function useEarthMaterials(day: Texture, night: Texture) {
+function useEarthMaterials(day: Texture, night: Texture, detail: Texture) {
   const atmosphere = EARTH.atmosphere!;
   return useMemo(() => {
     const shared = {
@@ -160,12 +167,18 @@ function useEarthMaterials(day: Texture, night: Texture) {
     const surface = new ShaderMaterial({
       vertexShader: SURFACE_VERTEX,
       fragmentShader: SURFACE_FRAGMENT,
-      uniforms: { ...shared, uDayMap: { value: day }, uNightMap: { value: night }, uCloudOffset: { value: 0 } },
+      uniforms: {
+        ...shared,
+        uDayMap: { value: day },
+        uNightMap: { value: night },
+        uDetailMap: { value: detail },
+        uCloudOffset: { value: 0 },
+      },
     });
     const clouds = new ShaderMaterial({
       vertexShader: SURFACE_VERTEX,
       fragmentShader: CLOUD_FRAGMENT,
-      uniforms: { uSunDirection: shared.uSunDirection, uNightMap: { value: night } },
+      uniforms: { uSunDirection: shared.uSunDirection, uNightMap: { value: night }, uDetailMap: { value: detail } },
       transparent: true,
       depthWrite: false,
       polygonOffset: true,
@@ -187,7 +200,7 @@ function useEarthMaterials(day: Texture, night: Texture) {
       depthWrite: false,
     });
     return { surface, clouds, glow };
-  }, [day, night, atmosphere]);
+  }, [day, night, detail, atmosphere]);
 }
 
 function useSphereLods(radius: number, segments: number) {
@@ -201,9 +214,9 @@ function useSphereLods(radius: number, segments: number) {
   );
 }
 
-function EarthBody({ day, night }: { day: Texture; night: Texture }) {
+function EarthBody({ day, night, detail }: { day: Texture; night: Texture; detail: Texture }) {
   const { planetSegments } = useQualitySettings();
-  const materials = useEarthMaterials(day, night);
+  const materials = useEarthMaterials(day, night, detail);
   const surfaceLods = useSphereLods(EARTH.radius, planetSegments);
   const cloudLods = useSphereLods(EARTH.radius * VISUALS.cloudScale, planetSegments);
   const glowGeometry = useMemo(() => new SphereGeometry(EARTH.radius * EARTH.atmosphere!.scale, 64, 32), []);
@@ -258,10 +271,11 @@ function EarthBody({ day, night }: { day: Texture; night: Texture }) {
 export function Earth() {
   const day = useAssetStore((state) => state.textures.earthDay);
   const night = useAssetStore((state) => state.textures.earthNight);
-  if (!day || !night) return null;
+  const detail = useAssetStore((state) => state.textures.detail);
+  if (!day || !night || !detail) return null;
   return (
     <group position={EARTH.position}>
-      <EarthBody day={day} night={night} />
+      <EarthBody day={day} night={night} detail={detail} />
     </group>
   );
 }

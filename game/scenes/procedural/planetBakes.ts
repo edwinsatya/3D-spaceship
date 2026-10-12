@@ -136,6 +136,56 @@ void main() {
 }
 `;
 
+/** Tileable fbm (R, G at two scales) that sharpens planets up close. */
+const DETAIL_FRAGMENT = /* glsl */ `
+precision highp float;
+in vec2 vUv;
+out vec4 fragColor;
+
+float hash2(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float tileNoise(vec2 p, float period) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hash2(mod(i, period));
+  float b = hash2(mod(i + vec2(1.0, 0.0), period));
+  float c = hash2(mod(i + vec2(0.0, 1.0), period));
+  float d = hash2(mod(i + vec2(1.0, 1.0), period));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float tileFbm(vec2 uv, float period) {
+  float sum = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 5; i++) {
+    sum += amplitude * tileNoise(uv * period, period);
+    period *= 2.0;
+    amplitude *= 0.5;
+  }
+  return sum / 0.97;
+}
+
+void main() {
+  fragColor = vec4(tileFbm(vUv, 4.0), tileFbm(vUv + 0.37, 8.0), 0.0, 1.0);
+}
+`;
+
+export function bakeDetail(renderer: WebGLRenderer, size: number, anisotropy: number): WebGLRenderTarget {
+  return bakeEquirect(renderer, {
+    width: size,
+    height: size,
+    fragmentShader: DETAIL_FRAGMENT,
+    colorSpace: NoColorSpace,
+    anisotropy,
+    repeat: true,
+  });
+}
+
 export interface PlanetBakeSize {
   width: number;
   anisotropy: number;

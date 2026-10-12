@@ -1,7 +1,7 @@
 import type { Texture } from "three";
 import { create } from "zustand";
 
-export type TextureSlot = "sky" | "earthDay" | "earthNight" | "moon";
+export type TextureSlot = "sky" | "earthDay" | "earthNight" | "moon" | "detail";
 
 interface AssetStore {
   textures: Partial<Record<TextureSlot, Texture>>;

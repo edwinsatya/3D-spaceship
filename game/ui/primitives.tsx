@@ -24,7 +24,7 @@ export function GameButton({ variant = "primary", icon, className = "", children
   return (
     <button
       type="button"
-      className={`pointer-events-auto flex min-h-12 items-center justify-center gap-2 rounded-2xl px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.12em] transition-[background,border-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:text-base ${VARIANTS[variant]} ${className}`}
+      className={`pointer-events-auto flex min-h-12 items-center justify-center gap-2 rounded-2xl px-6 py-3 short:min-h-10 short:px-4 short:py-2 font-display text-sm font-bold uppercase tracking-[0.12em] transition-[background,border-color,transform] duration-150 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:text-base ${VARIANTS[variant]} ${className}`}
       onClick={(event) => {
         audio.play("click");
         onClick?.(event);
