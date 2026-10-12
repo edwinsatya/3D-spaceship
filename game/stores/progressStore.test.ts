@@ -45,6 +45,7 @@ describe("migrateProgress", () => {
       missions: {},
       settings: { muted: false, locale: "en" },
       onboarding: { completedHints: [] },
+      ships: { selected: "comet", paint: {} },
     });
   });
 });

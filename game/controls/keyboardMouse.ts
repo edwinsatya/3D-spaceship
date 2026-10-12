@@ -33,6 +33,8 @@ export class KeyboardMouseSource implements InputSource {
   private arrowPitch = 0;
   private arrowYaw = 0;
   private mouseSuspended = false;
+  private mouseArmed = true;
+  private armTravel = 0;
   private suspendX = 0;
   private suspendY = 0;
   private lastClientX = 0;
@@ -75,7 +77,7 @@ export class KeyboardMouseSource implements InputSource {
       out.pitch = this.arrowPitch;
       out.yaw = this.arrowYaw;
       out.active = true;
-    } else if (this.cursor.active && !this.mouseSuspended) {
+    } else if (this.cursor.active && !this.mouseSuspended && this.mouseArmed) {
       out.pitch = shapeAxis(this.cursor.y, MOUSE.deadzone, MOUSE.curve);
       out.yaw = shapeAxis(this.cursor.x, MOUSE.deadzone, MOUSE.curve);
       out.active = true;
@@ -89,6 +91,17 @@ export class KeyboardMouseSource implements InputSource {
     out.throttleDelta = throttleUp - throttleDown;
     out.boost = this.held.has("boost");
     if (out.roll !== 0 || out.throttleDelta !== 0 || out.boost) out.active = true;
+  }
+
+  /**
+   * The cursor is usually still on the button that started the run (bottom of
+   * the screen): wait for a real mouse movement before steering with it.
+   */
+  resetForRun(): void {
+    this.mouseArmed = false;
+    this.armTravel = 0;
+    this.arrowPitch = 0;
+    this.arrowYaw = 0;
   }
 
   dispose(): void {
@@ -130,6 +143,11 @@ export class KeyboardMouseSource implements InputSource {
     this.cursor.x = clamp((event.clientX - width / 2) / reach, -1, 1);
     this.cursor.y = clamp(-(event.clientY - height / 2) / reach, -1, 1);
     this.cursor.active = true;
+    if (!this.mouseArmed) {
+      this.armTravel += Math.hypot(event.clientX - this.lastClientX, event.clientY - this.lastClientY);
+      const nearCentre = Math.hypot(this.cursor.x, this.cursor.y) < MOUSE.armRadius;
+      if (nearCentre || this.armTravel > MOUSE.armDistancePx) this.mouseArmed = true;
+    }
     this.lastClientX = event.clientX;
     this.lastClientY = event.clientY;
     if (this.mouseSuspended) {

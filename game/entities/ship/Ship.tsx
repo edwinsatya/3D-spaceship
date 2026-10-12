@@ -6,6 +6,7 @@ import { Suspense, useCallback, useRef } from "react";
 import type { Group } from "three";
 import { ASSET_PATHS, SHIP_ASSETS } from "@/game/config/assets";
 import { useGameStore } from "@/game/stores/gameStore";
+import { useSelectedShip } from "@/game/stores/useShip";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
 import { runtime } from "@/game/systems/runtime";
 import { EngineTrails } from "./EngineTrails";
@@ -23,6 +24,7 @@ function GLTFShip({ url }: { url: string }) {
 export function Ship() {
   const visual = useRef<Group>(null);
   const cockpit = useGameStore((state) => state.cameraMode === "cockpit" && state.phase === "playing");
+  const { ship, paint } = useSelectedShip();
   const { trails } = useQualitySettings();
   const registerRoot = useCallback((group: Group | null) => {
     runtime.refs.ship = group;
@@ -33,21 +35,22 @@ export function Ship() {
     visual.current.rotation.set(runtime.ship.visualPitch, 0, runtime.ship.bank);
   });
 
+  const model = <ShipModel design={ship.design} paint={paint} cockpit={cockpit} />;
   return (
     <>
       <group ref={registerRoot}>
         <group ref={visual}>
           {SHIP_ASSETS.modelUrl ? (
-            <Suspense fallback={<ShipModel cockpit={cockpit} />}>
+            <Suspense fallback={model}>
               <GLTFShip url={SHIP_ASSETS.modelUrl} />
             </Suspense>
           ) : (
-            <ShipModel cockpit={cockpit} />
+            model
           )}
         </group>
         {cockpit && <CockpitFrame />}
       </group>
-      {trails && <EngineTrails />}
+      {trails && <EngineTrails nozzles={ship.design.engines.nozzles} color={paint.trail} />}
     </>
   );
 }

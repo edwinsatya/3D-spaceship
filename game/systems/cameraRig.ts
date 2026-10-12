@@ -1,9 +1,9 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
 import { CAMERA } from "@/game/config/camera";
-import { FLIGHT } from "@/game/config/flight";
+import { HANGAR } from "@/game/config/hangar";
 import { SHIP_FORWARD, SHIP_RIGHT, SHIP_UP, type ShipState } from "./flight";
 import { clamp01, damp, dampFactor, easeInOutCubic } from "./math";
-import type { CameraRuntime } from "./runtime";
+import { runtime, type CameraRuntime } from "./runtime";
 
 const _offset = new Vector3();
 const _forward = new Vector3();
@@ -23,7 +23,8 @@ function lookAt(position: Vector3, target: Vector3, up: Vector3, out: Quaternion
 
 /** Third-person camera with rotational lag and a boost pull-back. */
 export function updateChaseCamera(camera: CameraRuntime, ship: ShipState, dt: number, snap = false): void {
-  const boost01 = clamp01((ship.speed - FLIGHT.maxSpeed) / (FLIGHT.boostSpeed - FLIGHT.maxSpeed));
+  const { maxSpeed, boostSpeed } = runtime.flight;
+  const boost01 = clamp01((ship.speed - maxSpeed) / (boostSpeed - maxSpeed));
   const [ox, oy, oz] = CAMERA.chaseOffset;
   _offset.set(ox, oy, oz + CAMERA.chaseBoostPullback * boost01).applyQuaternion(ship.quaternion);
   _up.copy(SHIP_UP).applyQuaternion(ship.quaternion);
@@ -45,7 +46,7 @@ export function updateChaseCamera(camera: CameraRuntime, ship: ShipState, dt: nu
 
 /** First-person view locked to the ship, including its visual bank. */
 export function updateCockpitCamera(camera: CameraRuntime, ship: ShipState): void {
-  const [ox, oy, oz] = CAMERA.cockpitOffset;
+  const [ox, oy, oz] = runtime.shipDesign.cockpit;
   _offset.set(ox, oy, oz).applyQuaternion(ship.quaternion);
   camera.position.copy(ship.position).add(_offset);
   _quat.setFromAxisAngle(_bankAxis, ship.bank * 0.5);
@@ -71,6 +72,25 @@ export function updateMenuCamera(camera: CameraRuntime, ship: ShipState, time: n
   lookAt(camera.position, _look, _up, camera.quaternion);
   camera.offset.copy(_offset);
   camera.up.copy(_up);
+}
+
+/** Fixed 3/4 top view of the hovering ship (it spins; the camera stays put). */
+export function updateHangarCamera(
+  camera: CameraRuntime,
+  spawn: { position: Vector3; forward: Vector3; up: Vector3 },
+): void {
+  const { distance, height, angle, lookDrop } = HANGAR.camera;
+  _right.crossVectors(spawn.forward, spawn.up).normalize();
+  _offset
+    .copy(spawn.forward)
+    .multiplyScalar(Math.cos(angle) * distance)
+    .addScaledVector(_right, Math.sin(angle) * distance)
+    .addScaledVector(spawn.up, height);
+  camera.position.copy(spawn.position).add(_offset);
+  _look.copy(spawn.position).addScaledVector(spawn.up, -lookDrop);
+  lookAt(camera.position, _look, spawn.up, camera.quaternion);
+  camera.offset.copy(_offset);
+  camera.up.copy(spawn.up);
 }
 
 /** Slow orbit around the ship while the result screen is shown. */
@@ -108,7 +128,7 @@ export function applyIntroBlend(camera: CameraRuntime, dt: number): void {
 }
 
 export function updateFov(camera: CameraRuntime, ship: ShipState, dt: number): void {
-  const speed01 = clamp01(ship.speed / FLIGHT.maxSpeed);
+  const speed01 = clamp01(ship.speed / runtime.flight.maxSpeed);
   const target = ship.boost.active ? CAMERA.boostFov : CAMERA.fov + speed01 * 3;
   camera.fov = damp(camera.fov, target, CAMERA.fovResponse, dt);
 }

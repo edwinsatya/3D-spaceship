@@ -70,6 +70,9 @@ export const COLLISION = {
   asteroidRadiusScale: 0.85,
 } as const;
 
-export type FlightConfig = typeof FLIGHT;
-export type BoostConfig = typeof BOOST;
+type Numeric<T> = { -readonly [K in keyof T]: number };
+
+/** Same keys as the constants but plain numbers, so ships can derive their own. */
+export type FlightConfig = Numeric<typeof FLIGHT>;
+export type BoostConfig = Numeric<typeof BOOST>;
 export type CollisionConfig = typeof COLLISION;

@@ -19,8 +19,6 @@ export const CAMERA = {
   /** Look-at point below the ship's flight line so Earth's horizon stays in view (u). */
   chaseLookDrop: 1.6,
 
-  /** Cockpit eye position in ship-local space. */
-  cockpitOffset: [0, 0.48, -0.55] as const,
 
   /** Screen shake (trauma model: offset = trauma² * max). */
   shakeDecay: 1.6,

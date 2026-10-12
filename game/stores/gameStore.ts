@@ -3,7 +3,7 @@ import type { InputDevice } from "@/game/controls/types";
 import type { MissionId } from "@/game/data/missions";
 import { canTransition, type GamePhase } from "@/game/systems/stateMachine";
 
-export type GameMode = "mission" | "freeflight";
+export type GameMode = "mission" | "freeflight" | "testflight";
 export type CameraMode = "chase" | "cockpit";
 export type WebGLStatus = "unknown" | "supported" | "unsupported";
 
@@ -28,6 +28,10 @@ interface GameStore {
   showResult: () => void;
   toMenu: () => void;
   toggleCamera: () => void;
+  openHangar: () => void;
+  closeHangar: () => void;
+  /** Ends a test flight (timer or button) and returns to the hangar. */
+  endTestFlight: () => void;
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -80,5 +84,15 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const { phase, cameraMode } = get();
     if (phase !== "playing") return;
     set({ cameraMode: cameraMode === "chase" ? "cockpit" : "chase" });
+  },
+  openHangar: () => {
+    if (get().phase === "menu") set({ phase: "hangar" });
+  },
+  closeHangar: () => {
+    if (get().phase === "hangar") set({ phase: "menu" });
+  },
+  endTestFlight: () => {
+    const { phase, mode } = get();
+    if (mode === "testflight" && (phase === "playing" || phase === "paused")) set({ phase: "hangar" });
   },
 }));

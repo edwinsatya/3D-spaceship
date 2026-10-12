@@ -5,7 +5,7 @@ import { useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { ControlsReference } from "./ControlsReference";
-import { HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon } from "./icons";
+import { HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon } from "./icons";
 import { GameButton, Panel } from "./primitives";
 
 export function PauseMenu() {
@@ -15,6 +15,7 @@ export function PauseMenu() {
   const resume = useGameStore((state) => state.resume);
   const restart = useGameStore((state) => state.restart);
   const toMenu = useGameStore((state) => state.toMenu);
+  const endTestFlight = useGameStore((state) => state.endTestFlight);
   const muted = useProgressStore((state) => state.settings.muted);
   const toggleMuted = useProgressStore((state) => state.toggleMuted);
 
@@ -49,9 +50,15 @@ export function PauseMenu() {
           <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
             {t("pause.sound")}: {muted ? t("pause.off") : t("pause.on")}
           </GameButton>
-          <GameButton variant="ghost" icon={<HomeIcon />} onClick={toMenu}>
-            {t("pause.menu")}
-          </GameButton>
+          {mode === "testflight" ? (
+            <GameButton variant="ghost" icon={<HangarIcon />} onClick={endTestFlight}>
+              {t("pause.hangar")}
+            </GameButton>
+          ) : (
+            <GameButton variant="ghost" icon={<HomeIcon />} onClick={toMenu}>
+              {t("pause.menu")}
+            </GameButton>
+          )}
         </Panel>
         <Panel className="flex-1 p-6 short:p-4">
           <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-hud">

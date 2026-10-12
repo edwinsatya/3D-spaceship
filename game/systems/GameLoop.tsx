@@ -4,9 +4,11 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 import type { PerspectiveCamera } from "three";
 import { useGameStore } from "@/game/stores/gameStore";
+import { useProgressStore } from "@/game/stores/progressStore";
+import { beginIntroBlend } from "./cameraRig";
 import { getMissionLayout } from "./missionLayout";
-import { notifyHud } from "./runtime";
-import { beginRun, placeShipForMenu, stepSimulation } from "./simulation";
+import { notifyHud, runtime } from "./runtime";
+import { applySelectedShip, beginRun, placeShipForMenu, stepSimulation } from "./simulation";
 
 /** Runs before everything else each frame (priority -1); the composer renders last. */
 const SIMULATION_PRIORITY = -1;
@@ -27,10 +29,25 @@ export function GameLoop() {
   useEffect(
     () =>
       useGameStore.subscribe((state, previous) => {
-        if (state.runId !== previous.runId) beginRun(state.mode, layout, previous.phase === "menu");
-        else if (state.phase === "menu" && previous.phase !== "menu") placeShipForMenu(layout);
+        if (state.runId !== previous.runId) {
+          beginRun(state.mode, layout, previous.phase === "menu" || previous.phase === "hangar");
+          return;
+        }
+        if (state.phase === previous.phase) return;
+        const showroom = (phase: string) => phase === "menu" || phase === "hangar";
+        // Menu ⇄ hangar: glide between the two framings; from a run: reset to the spawn.
+        if (showroom(state.phase) && showroom(previous.phase)) beginIntroBlend(runtime.camera);
+        else if (showroom(state.phase)) placeShipForMenu(layout);
       }),
     [layout],
+  );
+
+  useEffect(
+    () =>
+      useProgressStore.subscribe((state, previous) => {
+        if (state.ships.selected !== previous.ships.selected) applySelectedShip();
+      }),
+    [],
   );
 
   useFrame((_, delta) => {

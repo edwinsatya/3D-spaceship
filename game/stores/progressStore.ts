@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { MissionId } from "@/game/data/missions";
+import { DEFAULT_SHIP, type ShipCustomization, type ShipId } from "@/game/data/ships";
 import { DEFAULT_LOCALE, type Locale } from "@/game/i18n/types";
 import type { HintId } from "@/game/systems/hints";
 import { isNewBest, type StarRating } from "@/game/systems/scoring";
@@ -17,10 +18,17 @@ export interface RecordOutcome {
   bestTimeMs: number;
 }
 
+export interface ShipProgress {
+  selected: ShipId;
+  /** Paint per ship; missing ships use their defaults (see resolvePaint). */
+  paint: Partial<Record<ShipId, ShipCustomization>>;
+}
+
 interface ProgressData {
   missions: Partial<Record<MissionId, MissionProgress>>;
   settings: { muted: boolean; locale: Locale };
   onboarding: { completedHints: HintId[] };
+  ships: ShipProgress;
 }
 
 interface ProgressStore extends ProgressData {
@@ -28,6 +36,8 @@ interface ProgressStore extends ProgressData {
   setMuted: (muted: boolean) => void;
   toggleMuted: () => void;
   completeHint: (id: HintId) => void;
+  selectShip: (id: ShipId) => void;
+  setPaint: (id: ShipId, paint: ShipCustomization) => void;
 }
 
 export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
@@ -64,6 +74,7 @@ export const useProgressStore = create<ProgressStore>()(
       missions: {},
       settings: { muted: false, locale: DEFAULT_LOCALE },
       onboarding: { completedHints: [] },
+      ships: { selected: DEFAULT_SHIP, paint: {} },
 
       recordMissionResult: (id, timeMs, stars) => {
         const { progress, outcome } = mergeMissionResult(get().missions[id], timeMs, stars);
@@ -78,6 +89,9 @@ export const useProgressStore = create<ProgressStore>()(
             ? state
             : { onboarding: { completedHints: [...state.onboarding.completedHints, id] } },
         ),
+      selectShip: (id) => set((state) => ({ ships: { ...state.ships, selected: id } })),
+      setPaint: (id, paint) =>
+        set((state) => ({ ships: { ...state.ships, paint: { ...state.ships.paint, [id]: paint } } })),
     }),
     {
       name: PROGRESS_STORAGE_KEY,
@@ -88,6 +102,7 @@ export const useProgressStore = create<ProgressStore>()(
         missions: state.missions,
         settings: state.settings,
         onboarding: state.onboarding,
+        ships: state.ships,
       }),
     },
   ),
@@ -102,6 +117,8 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
     missions: data.missions ?? {},
     settings,
     onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
+    // Added in Phase 2 without a version bump: absent in older saves.
+    ships: { selected: data.ships?.selected ?? DEFAULT_SHIP, paint: data.ships?.paint ?? {} },
   };
 }
 

@@ -1,5 +1,5 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
-import { BOOST, FLIGHT, type FlightConfig } from "@/game/config/flight";
+import { BOOST, FLIGHT, type BoostConfig, type FlightConfig } from "@/game/config/flight";
 import type { ControlInput } from "@/game/controls/types";
 import { createBoostState, updateBoost, type BoostEvent, type BoostState } from "./boost";
 import { clamp01, damp, lerp } from "./math";
@@ -113,8 +113,9 @@ export function updateFlight(
   dt: number,
   context: FlightContext,
   config: FlightConfig = FLIGHT,
+  boostConfig: BoostConfig = BOOST,
 ): BoostEvent {
-  const boostEvent = updateBoost(ship.boost, input.boost && context.canMove, dt, BOOST);
+  const boostEvent = updateBoost(ship.boost, input.boost && context.canMove, dt, boostConfig);
   const boosting = ship.boost.active;
 
   const targetSpeed = !context.canMove

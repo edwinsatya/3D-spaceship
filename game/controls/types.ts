@@ -33,6 +33,8 @@ export interface InputSource {
   readonly id: string;
   /** Writes this frame's state into `out`. */
   sample(dt: number, out: SteeringSample): void;
+  /** Called when a run starts (e.g. ignore a cursor still parked on the Start button). */
+  resetForRun?(): void;
   dispose(): void;
 }
 

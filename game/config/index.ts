@@ -3,6 +3,7 @@ export * from "./audio";
 export * from "./camera";
 export * from "./controls";
 export * from "./flight";
+export * from "./hangar";
 export * from "./hud";
 export * from "./mission";
 export * from "./quality";

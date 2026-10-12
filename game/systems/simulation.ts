@@ -1,12 +1,14 @@
 import { Quaternion, Vector3, type PerspectiveCamera } from "three";
 import { audio } from "@/game/audio/audioManager";
 import { CAMERA } from "@/game/config/camera";
-import { BOOST, COLLISION, FLIGHT } from "@/game/config/flight";
+import { COLLISION, FLIGHT } from "@/game/config/flight";
+import { HANGAR } from "@/game/config/hangar";
 import { MISSION } from "@/game/config/mission";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
 import { MISSIONS } from "@/game/data/missions";
 import { EARTH, MOON, SOLID_BODIES } from "@/game/data/planets";
+import { SHIPS_BY_ID } from "@/game/data/ships";
 import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
@@ -19,6 +21,7 @@ import {
   updateChaseCamera,
   updateCockpitCamera,
   updateFov,
+  updateHangarCamera,
   updateMenuCamera,
   updateResultCamera,
 } from "./cameraRig";
@@ -33,6 +36,7 @@ import { canFly, createMissionState, passRing, startCountdown, tickMission } fro
 import type { MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
 import { rateTime } from "./scoring";
+import { boostConfigFor, flightConfigFor, resolveShipId } from "./shipConfig";
 
 const PLANET_COLLIDERS = SOLID_BODIES.map((body) => ({
   center: toVector(body.position),
@@ -49,6 +53,7 @@ const _referenceUp = new Vector3();
 const _spawnQuaternion = new Quaternion();
 const _wobble = new Quaternion();
 const _wobbleAxis = new Vector3(0, 0, 1);
+const _turntableAxis = new Vector3(0, 1, 0);
 const _cameraPosition = new Vector3();
 const _cameraQuaternion = new Quaternion();
 const _targetUniverse = new Vector3();
@@ -70,8 +75,19 @@ function referenceUp(ship: ShipState): Vector3 {
   return _referenceUp.normalize();
 }
 
-/** Ship hovering at the spawn point for the title screen. */
+/** Loads the selected ship's tuning and design into the runtime. */
+export function applySelectedShip(): void {
+  const definition = SHIPS_BY_ID[resolveShipId(useProgressStore.getState().ships.selected)];
+  runtime.flight = flightConfigFor(definition);
+  runtime.boost = boostConfigFor(definition);
+  runtime.shipDesign = definition.design;
+}
+
+const isExploring = (mode: GameMode) => mode !== "mission";
+
+/** Ship hovering at the spawn point for the title screen and hangar. */
 export function placeShipForMenu(layout: MissionLayout): void {
+  applySelectedShip();
   const spawn = layout.course.spawn;
   resetShip(runtime.ship, spawn.position, spawn.forward, spawn.up);
   runtime.origin.copy(spawn.position);
@@ -88,6 +104,7 @@ export function placeShipForMenu(layout: MissionLayout): void {
 }
 
 export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: boolean): void {
+  applySelectedShip();
   const spawn = layout.course.spawn;
   const ship = runtime.ship;
   resetShip(ship, spawn.position, spawn.forward, spawn.up);
@@ -115,12 +132,14 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   runtime.freeFlightTime = 0;
   runtime.collisionCooldown = 0;
   runtime.targetOffscreenTime = 0;
+  runtime.testFlightRemaining = mode === "testflight" ? HANGAR.testFlightDuration : 0;
 
   runtime.startThrottle = mode === "mission" ? FLIGHT.missionStartThrottle : FLIGHT.freeFlightStartThrottle;
   runtime.input?.setThrottle(runtime.startThrottle);
+  runtime.input?.resetForRun();
 
   const tutorial = runtime.tutorial;
-  tutorial.mode = mode;
+  tutorial.mode = isExploring(mode) ? "freeflight" : "mission";
   tutorial.steerAmount = 0;
   tutorial.throttleRaised = false;
   tutorial.boostUsed = false;
@@ -154,15 +173,37 @@ function stepMenu(layout: MissionLayout, realDt: number): void {
   ship.velocity.set(0, 0, 0);
   ship.bank = Math.sin(t * 0.6) * 0.05;
   updateMenuCamera(runtime.camera, ship, t);
+  applyIntroBlend(runtime.camera, realDt);
+  runtime.camera.fov = damp(runtime.camera.fov, CAMERA.fov, CAMERA.fovResponse, realDt);
+}
+
+/** Hangar turntable: the ship spins in place over Earth; drag adds spin. */
+function stepHangar(layout: MissionLayout, realDt: number): void {
+  const spawn = layout.course.spawn;
+  const ship = runtime.ship;
+  const hangar = runtime.hangar;
+  hangar.spin *= Math.exp(-HANGAR.spinDecay * realDt);
+  hangar.angle += (HANGAR.autoSpin + hangar.spin) * realDt;
+  ship.position.copy(spawn.position).addScaledVector(spawn.up, Math.sin(runtime.clock * 0.9) * 0.15);
+  orientationFromForwardUp(spawn.forward, spawn.up, _spawnQuaternion);
+  _wobble.setFromAxisAngle(_turntableAxis, hangar.angle);
+  ship.quaternion.copy(_spawnQuaternion).multiply(_wobble);
+  ship.previousPosition.copy(ship.position);
+  ship.speed = 0;
+  ship.velocity.set(0, 0, 0);
+  ship.bank = 0;
+  ship.visualPitch = 0;
+  updateHangarCamera(runtime.camera, spawn);
+  applyIntroBlend(runtime.camera, realDt);
   runtime.camera.fov = damp(runtime.camera.fov, CAMERA.fov, CAMERA.fovResponse, realDt);
 }
 
 function onCollision(strength: number): void {
   const ship = runtime.ship;
-  addBoostEnergy(ship.boost, -BOOST.collisionPenalty);
+  addBoostEnergy(ship.boost, -runtime.boost.collisionPenalty);
   if (ship.boost.active) {
     ship.boost.active = false;
-    ship.boost.regenDelay = BOOST.regenDelay;
+    ship.boost.regenDelay = runtime.boost.regenDelay;
     gameEvents.emit("boostEnd", EMPTY_PAYLOAD);
   }
   addTrauma(runtime.camera, CAMERA.collisionTrauma * strength);
@@ -178,12 +219,12 @@ function handleCollisions(layout: MissionLayout, dt: number): void {
   let impact = 0;
   for (let i = 0; i < asteroids.length; i++) {
     const radius = asteroids[i].radius * COLLISION.asteroidRadiusScale;
-    const hit = resolveShipSphere(ship, FLIGHT.collisionRadius, asteroids[i].position, radius, COLLISION, FLIGHT.maxSpeed);
+    const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, asteroids[i].position, radius, COLLISION, runtime.flight.maxSpeed);
     impact = Math.max(impact, hit);
   }
   for (let i = 0; i < PLANET_COLLIDERS.length; i++) {
     const planet = PLANET_COLLIDERS[i];
-    const hit = resolveShipSphere(ship, FLIGHT.collisionRadius, planet.center, planet.radius, COLLISION, FLIGHT.maxSpeed);
+    const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, planet.center, planet.radius, COLLISION, runtime.flight.maxSpeed);
     impact = Math.max(impact, hit);
   }
   if (impact > 0 && runtime.collisionCooldown <= 0) onCollision(impact);
@@ -196,7 +237,7 @@ function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void 
   let nearest = Infinity;
   for (let index = 0; index < pickups.length; index++) {
     if (!active[index]) {
-      if (mode === "freeflight") {
+      if (isExploring(mode)) {
         respawnIn[index] -= dt;
         if (respawnIn[index] <= 0) active[index] = true;
       }
@@ -204,13 +245,13 @@ function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void 
     }
     const position = pickups[index].position;
     nearest = Math.min(nearest, ship.position.distanceTo(position));
-    if (!spheresOverlap(ship.position, FLIGHT.collisionRadius, position, MISSION.pickupRadius)) continue;
+    if (!spheresOverlap(ship.position, runtime.flight.collisionRadius, position, MISSION.pickupRadius)) continue;
     active[index] = false;
     respawnIn[index] = MISSION.pickupRespawn;
     collectedAt[index] = runtime.clock;
-    addBoostEnergy(ship.boost, BOOST.pickupAmount);
+    addBoostEnergy(ship.boost, runtime.boost.pickupAmount);
     runtime.tutorial.pickupsCollected += 1;
-    gameEvents.emit("pickup", { amount: BOOST.pickupAmount });
+    gameEvents.emit("pickup", { amount: runtime.boost.pickupAmount });
   }
   runtime.tutorial.nearestPickupDistance = nearest;
 }
@@ -262,7 +303,7 @@ function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): vo
   const mission = runtime.mission;
   tutorial.device = useGameStore.getState().device;
   tutorial.active =
-    mode === "freeflight" || mission.status === "countdown" || mission.status === "running";
+    isExploring(mode) || mission.status === "countdown" || mission.status === "running";
   tutorial.timeSinceStart = mode === "mission" ? mission.elapsedMs / 1000 : runtime.freeFlightTime;
   tutorial.ringsPassed = mission.nextRing;
   tutorial.steerAmount += (Math.abs(input.pitch) + Math.abs(input.yaw)) * realDt;
@@ -292,10 +333,10 @@ function stepFlight(
   input?.update(realDt, controllable);
 
   if (phase === "playing" && mode === "mission") handleMissionClock(dt);
-  const canMove = mode === "freeflight" || canFly(mission);
+  const canMove = isExploring(mode) || canFly(mission);
   const control = controllable ? (input?.input ?? IDLE_INPUT) : AUTOPILOT_INPUT;
 
-  const boostEvent = updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) });
+  const boostEvent = updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) }, runtime.flight, runtime.boost);
   if (boostEvent === "started") {
     runtime.tutorial.boostUsed = true;
     gameEvents.emit("boostStart", EMPTY_PAYLOAD);
@@ -309,7 +350,11 @@ function stepFlight(
   handleCollisions(layout, dt);
   handlePickups(layout, mode, dt);
   if (mode === "mission") handleRings(layout);
-  if (mode === "freeflight" && phase === "playing") runtime.freeFlightTime += dt;
+  if (isExploring(mode) && phase === "playing") runtime.freeFlightTime += dt;
+  if (mode === "testflight" && phase === "playing") {
+    runtime.testFlightRemaining = Math.max(0, runtime.testFlightRemaining - realDt);
+    if (runtime.testFlightRemaining === 0) useGameStore.getState().endTestFlight();
+  }
   if (phase === "playing" && !finished) updateTutorial(control, mode, realDt);
 
   if (runtime.finishTimer > 0) {
@@ -388,6 +433,7 @@ export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera,
   runtime.clock += dt;
 
   if (phase === "menu") stepMenu(layout, realDt);
+  else if (phase === "hangar") stepHangar(layout, realDt);
   else stepFlight(layout, phase, mode, cameraMode, dt, realDt);
 
   rebaseIfNeeded(runtime.ship.position, runtime.origin, WORLD.floatingOriginThreshold);
@@ -395,9 +441,9 @@ export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera,
   if (phase === "playing" || phase === "result") updateTargetIndicator(layout, mode, camera, realDt);
   else runtime.target.visible = false;
 
-  if (phase !== "menu") {
+  if (phase !== "menu" && phase !== "hangar") {
     const ship = runtime.ship;
-    audio.updateEngine(ship.speed / FLIGHT.maxSpeed, runtime.input?.input.throttle ?? 0, ship.boost.active, realDt);
+    audio.updateEngine(ship.speed / runtime.flight.maxSpeed, runtime.input?.input.throttle ?? 0, ship.boost.active, realDt);
   }
 }
 

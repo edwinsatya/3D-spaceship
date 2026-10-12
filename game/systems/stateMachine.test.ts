@@ -24,6 +24,14 @@ describe("game state machine", () => {
     expect(canTransition("result", "menu")).toBe(true);
   });
 
+  it("opens the hangar from the menu and test-flies from it", () => {
+    expect(canTransition("menu", "hangar")).toBe(true);
+    expect(canTransition("hangar", "playing")).toBe(true);
+    expect(canTransition("playing", "hangar")).toBe(true);
+    expect(canTransition("hangar", "menu")).toBe(true);
+    expect(canTransition("result", "hangar")).toBe(false);
+  });
+
   it("rejects skipping loading", () => {
     expect(canTransition("boot", "menu")).toBe(false);
     expect(nextPhase("boot", "playing")).toBe("boot");

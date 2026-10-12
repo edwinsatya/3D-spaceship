@@ -16,6 +16,10 @@ export class InputManager {
     this.input.throttle = clamp01(value);
   }
 
+  resetForRun(): void {
+    for (const source of this.sources) source.resetForRun?.();
+  }
+
   update(dt: number, enabled: boolean): void {
     const input = this.input;
     input.pitch = 0;

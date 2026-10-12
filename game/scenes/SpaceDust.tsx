@@ -3,7 +3,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { AdditiveBlending, BufferGeometry, Float32BufferAttribute, ShaderMaterial, Vector3 } from "three";
-import { FLIGHT } from "@/game/config/flight";
 import { DUST } from "@/game/config/world";
 import { clamp01 } from "@/game/systems/math";
 import { createRandom } from "@/game/systems/random";
@@ -107,7 +106,7 @@ export function SpaceDust() {
     uniforms.uCameraMod.value.copy(_cameraMod);
     uniforms.uCameraRender.value.copy(camera.position);
     uniforms.uVelocity.value.copy(runtime.ship.velocity);
-    uniforms.uBrightness.value = 0.35 + clamp01(runtime.ship.speed / FLIGHT.boostSpeed) * 0.9;
+    uniforms.uBrightness.value = 0.35 + clamp01(runtime.ship.speed / runtime.flight.boostSpeed) * 0.9;
   });
 
   return <lineSegments geometry={geometry} material={material} frustumCulled={false} renderOrder={5} />;

@@ -4,15 +4,19 @@ import { FLIGHT } from "@/game/config/flight";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
 import { ORBIT_RINGS } from "@/game/data/missions";
+import { SHIPS, type ShipDefinition } from "@/game/data/ships";
 import { clamp } from "./math";
 import { generateCourse, segmentCrossesDisc } from "./course";
 import { createShipState, resetShip, updateFlight } from "./flight";
+import { boostConfigFor, flightConfigFor } from "./shipConfig";
 
 /**
  * Balance check: an autopilot flies the real course with the real flight
  * model. Guards the star thresholds against accidental tuning changes.
  */
-function flyCourse(useBoost: boolean): number {
+function flyCourse(useBoost: boolean, shipDefinition: ShipDefinition = SHIPS[0]): number {
+  const flight = flightConfigFor(shipDefinition);
+  const boost = boostConfigFor(shipDefinition);
   const layout = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
   const ship = createShipState();
   resetShip(ship, layout.spawn.position, layout.spawn.forward, layout.spawn.up);
@@ -32,7 +36,7 @@ function flyCourse(useBoost: boolean): number {
     input.pitch = local.z > 0 ? 0 : clamp(local.y * 4, -1, 1);
     input.boost = useBoost && local.z < -0.97;
     up.copy(ship.position).normalize();
-    updateFlight(ship, input, dt, { canMove: true, referenceUp: up });
+    updateFlight(ship, input, dt, { canMove: true, referenceUp: up }, flight, boost);
     if (segmentCrossesDisc(ship.previousPosition, ship.position, ring.position, ring.normal, ring.radius)) next++;
     time += dt;
   }
@@ -56,6 +60,14 @@ describe("orbit rings balance", () => {
 
   it("gives two stars to a clean pilot without boost", () => {
     expect(cruise).toBeLessThan(two);
+  });
+
+  it.each(SHIPS.map((s) => [s.id, s] as const))("is fair for the %s: boost is still needed for three stars", (_id, definition) => {
+    const shipCruise = flyCourse(false, definition);
+    const shipBoosted = flyCourse(true, definition);
+    expect(shipCruise).toBeGreaterThan(three);
+    expect(shipBoosted).toBeLessThan(three);
+    expect(shipCruise).toBeLessThan(two);
   });
 
   it("uses speeds consistent with the course length", () => {

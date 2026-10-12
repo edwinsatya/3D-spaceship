@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { FLIGHT } from "@/game/config/flight";
 import { HUD } from "@/game/config/hud";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { gameEvents } from "@/game/systems/events";
@@ -24,10 +23,10 @@ export function SpeedGauge({ compact = false }: { compact?: boolean }) {
       lastKmh.current = kmh;
       setText(value.current, formatNumber(kmh, locale));
     }
-    if (speedBar.current) speedBar.current.style.transform = `scaleX(${Math.min(1, runtime.ship.speed / FLIGHT.boostSpeed)})`;
+    if (speedBar.current) speedBar.current.style.transform = `scaleX(${Math.min(1, runtime.ship.speed / runtime.flight.boostSpeed)})`;
     if (throttleMark.current) {
       const throttle = runtime.input?.input.throttle ?? 0;
-      const position = (throttle * FLIGHT.maxSpeed) / FLIGHT.boostSpeed;
+      const position = (throttle * runtime.flight.maxSpeed) / runtime.flight.boostSpeed;
       throttleMark.current.style.left = `${position * 100}%`;
     }
   });

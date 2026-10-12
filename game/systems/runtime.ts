@@ -1,5 +1,7 @@
 import { Quaternion, Vector3, type Group } from "three";
+import { BOOST, FLIGHT, type BoostConfig, type FlightConfig } from "@/game/config/flight";
 import type { CursorState } from "@/game/controls/keyboardMouse";
+import { SHIPS_BY_ID, DEFAULT_SHIP, type ShipDesign } from "@/game/data/ships";
 import type { InputManager } from "@/game/controls/inputManager";
 import { createShipState } from "./flight";
 import { createHintState, type HintContext, type HintState } from "./hints";
@@ -51,6 +53,14 @@ export interface PickupRuntime {
  */
 export const runtime = {
   ship: createShipState(),
+  /** Tuning of the ship currently flown (base FLIGHT/BOOST × ship modifiers). */
+  flight: { ...FLIGHT } as FlightConfig,
+  boost: { ...BOOST } as BoostConfig,
+  shipDesign: SHIPS_BY_ID[DEFAULT_SHIP].design as ShipDesign,
+  /** Hangar turntable: yaw angle (rad) and drag-imparted spin (rad/s). */
+  hangar: { angle: 0, spin: 0 },
+  /** Seconds left in a hangar test flight. */
+  testFlightRemaining: 0,
   origin: new Vector3(),
   camera: {
     position: new Vector3(),

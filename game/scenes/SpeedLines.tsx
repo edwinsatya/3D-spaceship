@@ -3,7 +3,6 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, BufferGeometry, Float32BufferAttribute, ShaderMaterial, type Mesh } from "three";
-import { FLIGHT } from "@/game/config/flight";
 import { FULLSCREEN_OVERLAY_VERTEX } from "@/game/scenes/shaders/common";
 import { clamp01, damp } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
@@ -72,7 +71,8 @@ export function SpeedLines() {
 
   useFrame((_, delta) => {
     const uniforms = material.uniforms;
-    const overSpeed = clamp01((runtime.ship.speed - FLIGHT.maxSpeed) / (FLIGHT.boostSpeed - FLIGHT.maxSpeed));
+    const { maxSpeed, boostSpeed } = runtime.flight;
+    const overSpeed = clamp01((runtime.ship.speed - maxSpeed) / (boostSpeed - maxSpeed));
     const target = runtime.ship.boost.active ? 0.6 + overSpeed * 0.4 : overSpeed * 0.5;
     uniforms.uIntensity.value = damp(uniforms.uIntensity.value, target, 5, delta);
     uniforms.uTime.value += delta;

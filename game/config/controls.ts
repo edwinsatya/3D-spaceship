@@ -25,6 +25,13 @@ export const MOUSE = {
   curve: 1.35,
   /** Pixels the mouse must move to retake steering from the arrow keys. */
   retakeThresholdPx: 6,
+  /**
+   * After a run starts the cursor usually sits on the Start button. Mouse
+   * steering arms once the cursor enters this normalized radius around the
+   * centre, or after it travels this many pixels.
+   */
+  armRadius: 0.4,
+  armDistancePx: 160,
 } as const;
 
 export const KEYBOARD_STEER = {

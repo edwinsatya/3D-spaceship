@@ -16,7 +16,7 @@ import { VISUALS } from "@/game/config/visuals";
 import { TRAIL } from "@/game/config/world";
 import { damp, smoothstep } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
-import { SHIP_LAYOUT } from "./shipGeometry";
+import type { Vec3Tuple } from "@/game/data/planets";
 
 const TRAIL_VERTEX = /* glsl */ `
 attribute float aAlpha;
@@ -46,7 +46,7 @@ interface Trail {
   offset: Vector3;
 }
 
-function createTrail(offset: readonly [number, number, number]): Trail {
+function createTrail(offset: Vec3Tuple): Trail {
   const count = TRAIL.points;
   const positions = new Float32Array(count * 2 * 3);
   const alphas = new Float32Array(count * 2);
@@ -89,9 +89,14 @@ function readPoint(trail: Trail, index: number, target: Vector3): Vector3 {
   return target.set(trail.points[index * 3], trail.points[index * 3 + 1], trail.points[index * 3 + 2]);
 }
 
-/** Ribbon trails behind both nozzles, stored in universe space (floating-origin safe). */
-export function EngineTrails() {
-  const trails = useMemo(() => SHIP_LAYOUT.nozzles.map(createTrail), []);
+interface EngineTrailsProps {
+  nozzles: readonly Vec3Tuple[];
+  color: string;
+}
+
+/** Ribbon trails behind every nozzle, stored in universe space (floating-origin safe). */
+export function EngineTrails({ nozzles, color }: EngineTrailsProps) {
+  const trails = useMemo(() => nozzles.map((nozzle) => createTrail(nozzle)), [nozzles]);
   const material = useMemo(
     () =>
       new ShaderMaterial({
@@ -105,17 +110,12 @@ export function EngineTrails() {
       }),
     [],
   );
-  const baseColor = useMemo(() => new Color(TRAIL.color).multiplyScalar(1.6), []);
+  const baseColor = useMemo(() => new Color(color).multiplyScalar(1.6), [color]);
   const boostColor = useMemo(() => new Color(TRAIL.boostColor).multiplyScalar(2.2), []);
   const sampleTimer = useMemo(() => ({ value: 0 }), []);
 
-  useEffect(
-    () => () => {
-      for (const trail of trails) trail.geometry.dispose();
-      material.dispose();
-    },
-    [trails, material],
-  );
+  useEffect(() => () => trails.forEach((trail) => trail.geometry.dispose()), [trails]);
+  useEffect(() => () => material.dispose(), [material]);
 
   useFrame(({ camera }, delta) => {
     const ship = runtime.ship;

@@ -11,24 +11,12 @@ import {
   ShaderMaterial,
   type Group,
 } from "three";
-import { FLIGHT } from "@/game/config/flight";
 import { VISUALS } from "@/game/config/visuals";
 import { TRAIL } from "@/game/config/world";
+import type { ShipCustomization, ShipDesign } from "@/game/data/ships";
 import { clamp01, damp } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
-import { createShipGeometries, disposeShipGeometries, SHIP_LAYOUT } from "./shipGeometry";
-
-export interface ShipColors {
-  body: string;
-  accent: string;
-  glow: string;
-}
-
-export const DEFAULT_SHIP_COLORS: ShipColors = {
-  body: "#cfd8e6",
-  accent: "#ff6b3d",
-  glow: TRAIL.color,
-};
+import { createDecalGeometry, createShipGeometries, disposeShipGeometries } from "./shipGeometry";
 
 const FLAME_VERTEX = /* glsl */ `
 varying float vAlong;
@@ -57,14 +45,16 @@ void main() {
 
 const { glowIntensity: GLOW_INTENSITY, flameIdle, flameThrottle, flameBoost, flameResponse } = VISUALS.ship;
 const BOOST_COLOR = new Color(TRAIL.boostColor);
+const NAV_LIGHT_COLORS = { left: "#ff3b4a", right: "#3bff8a" } as const;
 
-function useShipMaterials(colors: ShipColors) {
+function useShipMaterials(paint: ShipCustomization) {
   return useMemo(() => {
-    const glow = new Color(colors.glow);
+    const glow = new Color(paint.trail);
     return {
-      body: new MeshStandardMaterial({ color: colors.body, flatShading: true, roughness: 0.45, metalness: 0.25 }),
-      accent: new MeshStandardMaterial({ color: colors.accent, flatShading: true, roughness: 0.45, metalness: 0.3 }),
-      fin: new MeshStandardMaterial({ color: colors.accent, flatShading: true, roughness: 0.5, side: DoubleSide }),
+      body: new MeshStandardMaterial({ color: paint.body, flatShading: true, roughness: 0.45, metalness: 0.25 }),
+      accent: new MeshStandardMaterial({ color: paint.accent, flatShading: true, roughness: 0.45, metalness: 0.3 }),
+      fin: new MeshStandardMaterial({ color: paint.accent, flatShading: true, roughness: 0.5, side: DoubleSide }),
+      decal: new MeshStandardMaterial({ color: paint.accent, roughness: 0.5, metalness: 0.2, side: DoubleSide }),
       glass: new MeshStandardMaterial({
         color: "#0d2a5c",
         emissive: "#1a5cff",
@@ -74,9 +64,8 @@ function useShipMaterials(colors: ShipColors) {
         metalness: 0.6,
       }),
       nozzle: new MeshBasicMaterial({ color: glow.clone().multiplyScalar(GLOW_INTENSITY), toneMapped: false }),
-      navLights: SHIP_LAYOUT.navLights.map(
-        (light) => new MeshBasicMaterial({ color: new Color(light.color).multiplyScalar(3), toneMapped: false }),
-      ),
+      navLeft: new MeshBasicMaterial({ color: new Color(NAV_LIGHT_COLORS.left).multiplyScalar(3), toneMapped: false }),
+      navRight: new MeshBasicMaterial({ color: new Color(NAV_LIGHT_COLORS.right).multiplyScalar(3), toneMapped: false }),
       flame: new ShaderMaterial({
         vertexShader: FLAME_VERTEX,
         fragmentShader: FLAME_FRAGMENT,
@@ -89,28 +78,39 @@ function useShipMaterials(colors: ShipColors) {
       }),
       glowColor: glow,
     };
-  }, [colors.body, colors.accent, colors.glow]);
+  }, [paint.body, paint.accent, paint.trail]);
 }
 
-/** Procedural low-poly ship. Colors are props so the Phase 2 hangar can recolor it. */
-export function ShipModel({ colors = DEFAULT_SHIP_COLORS, cockpit = false }: { colors?: ShipColors; cockpit?: boolean }) {
-  const geometries = useMemo(() => createShipGeometries(), []);
-  const materials = useShipMaterials(colors);
+interface ShipModelProps {
+  design: ShipDesign;
+  paint: ShipCustomization;
+  /** First-person view: hide the exterior, keep the engine glow. */
+  cockpit?: boolean;
+}
+
+/** Procedural low-poly ship built from a parametric design and the player's paint job. */
+export function ShipModel({ design, paint, cockpit = false }: ShipModelProps) {
+  const geometries = useMemo(() => createShipGeometries(design), [design]);
+  const decal = useMemo(() => createDecalGeometry(design, paint.decal), [design, paint.decal]);
+  const materials = useShipMaterials(paint);
   const flames = useRef<Group>(null);
   const flameLength = useRef(0.4);
+  const nozzles = design.engines.nozzles;
+  const [navX, navY, navZ] = design.navLight;
 
   useEffect(() => () => disposeShipGeometries(geometries), [geometries]);
+  useEffect(() => () => decal?.dispose(), [decal]);
   useEffect(
     () => () => {
-      const { glowColor: _glow, navLights, ...rest } = materials;
-      for (const material of [...Object.values(rest), ...navLights]) material.dispose();
+      const { glowColor: _glow, ...disposable } = materials;
+      for (const material of Object.values(disposable)) material.dispose();
     },
     [materials],
   );
 
   useFrame((_, delta) => {
     const ship = runtime.ship;
-    const speed01 = clamp01(ship.speed / FLIGHT.maxSpeed);
+    const speed01 = clamp01(ship.speed / runtime.flight.maxSpeed);
     const boosting = ship.boost.active;
     const flameTarget = boosting ? flameBoost : flameIdle + speed01 * flameThrottle;
     flameLength.current = damp(flameLength.current, flameTarget, flameResponse, delta);
@@ -132,21 +132,27 @@ export function ShipModel({ colors = DEFAULT_SHIP_COLORS, cockpit = false }: { c
         <mesh geometry={geometries.canopy} material={materials.glass} />
         <mesh geometry={geometries.wingLeft} material={materials.body} />
         <mesh geometry={geometries.wingRight} material={materials.body} />
-        <mesh geometry={geometries.finLeft} material={materials.fin} />
-        <mesh geometry={geometries.finRight} material={materials.fin} />
-        {SHIP_LAYOUT.nozzles.map(([x, y, z]) => (
-          <mesh key={x} geometry={geometries.engine} material={materials.accent} position={[x, y, z - 0.47]} />
+        {geometries.fins.map((fin, index) => (
+          <mesh key={index} geometry={fin} material={materials.fin} />
         ))}
-        {SHIP_LAYOUT.navLights.map((light, index) => (
-          <mesh key={light.color} geometry={geometries.tip} material={materials.navLights[index]} position={light.position} />
+        {decal && <mesh geometry={decal} material={materials.decal} />}
+        {nozzles.map(([x, y, z], index) => (
+          <mesh
+            key={index}
+            geometry={geometries.engine}
+            material={materials.accent}
+            position={[x, y, z - design.engines.length / 2]}
+          />
         ))}
+        <mesh geometry={geometries.tip} material={materials.navLeft} position={[-navX, navY, navZ]} />
+        <mesh geometry={geometries.tip} material={materials.navRight} position={[navX, navY, navZ]} />
       </group>
-      {SHIP_LAYOUT.nozzles.map(([x, y, z]) => (
-        <mesh key={x} geometry={geometries.nozzle} material={materials.nozzle} position={[x, y, z]} />
+      {nozzles.map(([x, y, z], index) => (
+        <mesh key={index} geometry={geometries.nozzle} material={materials.nozzle} position={[x, y, z]} />
       ))}
       <group ref={flames}>
-        {SHIP_LAYOUT.nozzles.map(([x, y, z]) => (
-          <mesh key={x} geometry={geometries.flame} material={materials.flame} position={[x, y, z]} renderOrder={3} />
+        {nozzles.map(([x, y, z], index) => (
+          <mesh key={index} geometry={geometries.flame} material={materials.flame} position={[x, y, z]} renderOrder={3} />
         ))}
       </group>
     </group>
@@ -155,7 +161,7 @@ export function ShipModel({ colors = DEFAULT_SHIP_COLORS, cockpit = false }: { c
 
 /**
  * Minimal cockpit frame for the first-person view. The eye sits at
- * CAMERA.cockpitOffset; the dash stays in the bottom ~15% of the screen.
+ * the design's cockpit offset; the dash stays in the bottom ~15% of the screen.
  */
 export function CockpitFrame() {
   const materials = useMemo(

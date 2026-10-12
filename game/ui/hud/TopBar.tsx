@@ -7,6 +7,7 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
 import { runtime } from "@/game/systems/runtime";
 import { formatTime } from "@/game/systems/scoring";
+import { GameButton } from "../primitives";
 import { setText, useHudFrame } from "../useHudFrame";
 
 function RingPips({ passed, total }: { passed: number; total: number }) {
@@ -34,13 +35,29 @@ export function TopBar() {
   const mode = useGameStore((state) => state.mode);
   const ringsPassed = useSessionStore((state) => state.ringsPassed);
   const totalRings = useSessionStore((state) => state.totalRings);
+  const endTestFlight = useGameStore((state) => state.endTestFlight);
   const timer = useRef<HTMLSpanElement>(null);
   const freeObjective = useRef<HTMLSpanElement>(null);
 
   useHudFrame(() => {
     if (mode === "mission") setText(timer.current, formatTime(runtime.mission.elapsedMs));
+    else if (mode === "testflight") setText(timer.current, formatTime(runtime.testFlightRemaining * 1000).slice(0, -3));
     else setText(freeObjective.current, t(runtime.target.kind === "earth" ? "hud.objectiveReturn" : "hud.objectiveFree"));
   });
+
+  if (mode === "testflight") {
+    return (
+      <div className="hud-panel flex items-center gap-3 rounded-2xl py-1.5 pr-1.5 pl-4">
+        <span className="font-display text-xs font-bold uppercase tracking-widest text-hud">{t("hud.testFlight")}</span>
+        <span ref={timer} className="hud-text min-w-[4ch] font-display text-xl font-bold tabular-nums">
+          0:45
+        </span>
+        <GameButton variant="secondary" onClick={endTestFlight} className="!min-h-9 !px-3 !py-1 !text-xs">
+          {t("hud.backToHangar")}
+        </GameButton>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-1.5">

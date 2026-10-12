@@ -43,7 +43,7 @@ export function useGameAudio() {
         } else if (state.phase === "playing" && previous.phase === "paused") {
           audio.setEngineMuted(false);
           audio.setMusicDucked(false);
-        } else if (state.phase === "menu") {
+        } else if (state.phase === "menu" || state.phase === "hangar") {
           audio.stopEngine();
           audio.setMusicDucked(false);
         }

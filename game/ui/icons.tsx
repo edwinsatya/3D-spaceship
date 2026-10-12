@@ -90,6 +90,14 @@ export const OrbitIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const HangarIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3 20V9l9-5 9 5v11" />
+    <path d="M7 20v-6h10v6" />
+    <path d="M12 10l3 2.5-3 1-3-1z" fill="currentColor" />
+  </Icon>
+);
+
 export const StarIcon = ({ filled = true, ...props }: IconProps & { filled?: boolean }) => (
   <Icon {...props} strokeWidth={1.6}>
     <path
