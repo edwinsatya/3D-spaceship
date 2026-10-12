@@ -5,7 +5,7 @@
 export const WORLD = {
   /** Direction *towards* the sun (normalized at use site). */
   sunDirection: [-0.75, 0.25, 0.6] as const,
-  sunLightIntensity: 3.1,
+  sunLightIntensity: 2.5,
   ambientIntensity: 0.16,
   ambientColor: "#6d84c4",
   /** Rebase the floating origin when the ship is this far from it (u). */

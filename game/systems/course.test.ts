@@ -1,5 +1,6 @@
 import { Vector3 } from "three";
 import { describe, expect, it } from "vitest";
+import { COLLISION, FLIGHT } from "@/game/config/flight";
 import { WORLD } from "@/game/config/world";
 import { ORBIT_RINGS } from "@/game/data/missions";
 import { EARTH } from "@/game/data/planets";
@@ -39,10 +40,11 @@ describe("segmentCrossesDisc", () => {
 describe("orbit ring course", () => {
   const layout = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
 
-  it("has 12 rings orbiting outside the planet", () => {
+  it("has 12 rings whose openings clear the planet's collision sphere", () => {
     expect(layout.rings).toHaveLength(12);
+    const planetCollider = EARTH.radius * (EARTH.atmosphere?.scale ?? 1) + COLLISION.planetMargin + FLIGHT.collisionRadius;
     for (const ring of layout.rings) {
-      expect(ring.position.length()).toBeGreaterThan(EARTH.radius * 1.5);
+      expect(ring.position.length() - ring.radius).toBeGreaterThan(planetCollider);
       expect(ring.normal.length()).toBeCloseTo(1);
       expect(Math.abs(ring.normal.dot(ring.up))).toBeLessThan(1e-6);
     }

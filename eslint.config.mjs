@@ -7,7 +7,15 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
+  {
+    // three.js objects (materials, uniforms, scene) are mutable engine state that
+    // R3F mutates inside useFrame by design. React Compiler is not enabled here.
+    files: ["game/scenes/**/*.tsx", "game/entities/**/*.tsx"],
+    rules: {
+      "react-hooks/immutability": "off",
     },
   },
   // Override default ignores of eslint-config-next.

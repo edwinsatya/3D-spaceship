@@ -1,0 +1,420 @@
+import { Quaternion, Vector3, type PerspectiveCamera } from "three";
+import { audio } from "@/game/audio/audioManager";
+import { CAMERA } from "@/game/config/camera";
+import { BOOST, COLLISION, FLIGHT } from "@/game/config/flight";
+import { MISSION } from "@/game/config/mission";
+import { WORLD } from "@/game/config/world";
+import type { ControlInput } from "@/game/controls/types";
+import { MISSIONS } from "@/game/data/missions";
+import { EARTH, MOON, SOLID_BODIES } from "@/game/data/planets";
+import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
+import { useProgressStore } from "@/game/stores/progressStore";
+import { useSessionStore } from "@/game/stores/sessionStore";
+import { addBoostEnergy } from "./boost";
+import {
+  addTrauma,
+  applyIntroBlend,
+  beginIntroBlend,
+  resolveShake,
+  updateChaseCamera,
+  updateCockpitCamera,
+  updateFov,
+  updateMenuCamera,
+  updateResultCamera,
+} from "./cameraRig";
+import { resolveShipSphere, spheresOverlap } from "./collision";
+import { segmentCrossesDisc, toVector } from "./course";
+import { EMPTY_PAYLOAD, gameEvents } from "./events";
+import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
+import { rebaseIfNeeded } from "./floatingOrigin";
+import { createHintState, updateHints } from "./hints";
+import { damp } from "./math";
+import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
+import type { MissionLayout } from "./missionLayout";
+import { runtime } from "./runtime";
+import { rateTime } from "./scoring";
+
+const PLANET_COLLIDERS = SOLID_BODIES.map((body) => ({
+  center: toVector(body.position),
+  radius: body.radius * (body.atmosphere?.scale ?? 1) + COLLISION.planetMargin,
+  surfaceRadius: body.radius,
+}));
+const EARTH_CENTER = toVector(EARTH.position);
+const MOON_CENTER = toVector(MOON.position);
+
+const AUTOPILOT_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0.35, boost: false };
+const IDLE_INPUT: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 0, boost: false };
+
+const _referenceUp = new Vector3();
+const _spawnQuaternion = new Quaternion();
+const _wobble = new Quaternion();
+const _wobbleAxis = new Vector3(0, 0, 1);
+const _cameraPosition = new Vector3();
+const _cameraQuaternion = new Quaternion();
+const _targetUniverse = new Vector3();
+const _ndc = new Vector3();
+const _toTarget = new Vector3();
+const _cameraForward = new Vector3();
+
+/** Nearest planet's radial "up" for auto-level (keeps the horizon level in orbit). */
+function referenceUp(ship: ShipState): Vector3 {
+  let best = Infinity;
+  for (let i = 0; i < PLANET_COLLIDERS.length; i++) {
+    const collider = PLANET_COLLIDERS[i];
+    const altitude = ship.position.distanceTo(collider.center) - collider.surfaceRadius;
+    if (altitude < best) {
+      best = altitude;
+      _referenceUp.subVectors(ship.position, collider.center);
+    }
+  }
+  return _referenceUp.normalize();
+}
+
+/** Ship hovering at the spawn point for the title screen. */
+export function placeShipForMenu(layout: MissionLayout): void {
+  const spawn = layout.course.spawn;
+  resetShip(runtime.ship, spawn.position, spawn.forward, spawn.up);
+  runtime.origin.copy(spawn.position);
+  runtime.mission = createMissionState(0);
+  runtime.ringPassedAt = layout.course.rings.map(() => -1);
+  runtime.pickups.active = layout.energyStars.map(() => true);
+  runtime.pickups.respawnIn = layout.energyStars.map(() => 0);
+  runtime.pickups.collectedAt = layout.energyStars.map(() => -Infinity);
+  runtime.finishTimer = 0;
+  runtime.timeScale = 1;
+  runtime.camera.intro = 1;
+  runtime.camera.trauma = 0;
+  updateMenuCamera(runtime.camera, runtime.ship, runtime.clock);
+}
+
+export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: boolean): void {
+  const spawn = layout.course.spawn;
+  const ship = runtime.ship;
+  resetShip(ship, spawn.position, spawn.forward, spawn.up);
+  runtime.origin.copy(spawn.position);
+
+  const session = useSessionStore.getState();
+  const totalRings = mode === "mission" ? layout.course.rings.length : 0;
+  runtime.mission = createMissionState(totalRings);
+  session.reset(totalRings);
+  if (mode === "mission") {
+    const tick = startCountdown(runtime.mission, MISSION);
+    session.setStatus("countdown");
+    if (tick.type === "countdown") {
+      session.setCountdown(tick.value);
+      gameEvents.emit("countdown", { value: tick.value });
+    }
+  }
+
+  runtime.ringPassedAt = layout.course.rings.map(() => -1);
+  runtime.pickups.active = layout.energyStars.map(() => true);
+  runtime.pickups.respawnIn = layout.energyStars.map(() => 0);
+  runtime.pickups.collectedAt = layout.energyStars.map(() => -Infinity);
+  runtime.timeScale = 1;
+  runtime.finishTimer = 0;
+  runtime.freeFlightTime = 0;
+  runtime.collisionCooldown = 0;
+  runtime.targetOffscreenTime = 0;
+
+  runtime.startThrottle = mode === "mission" ? FLIGHT.missionStartThrottle : FLIGHT.freeFlightStartThrottle;
+  runtime.input?.setThrottle(runtime.startThrottle);
+
+  const tutorial = runtime.tutorial;
+  tutorial.mode = mode;
+  tutorial.steerAmount = 0;
+  tutorial.throttleRaised = false;
+  tutorial.boostUsed = false;
+  tutorial.rollUsed = false;
+  tutorial.cameraToggled = false;
+  tutorial.pickupsCollected = 0;
+  tutorial.collisions = 0;
+  tutorial.ringsPassed = 0;
+  tutorial.timeSinceStart = 0;
+  runtime.hints = createHintState(useProgressStore.getState().onboarding.completedHints);
+
+  const camera = runtime.camera;
+  camera.trauma = 0;
+  camera.fov = CAMERA.fov;
+  camera.orbitAngle = 0;
+  if (introFromMenu) beginIntroBlend(camera);
+  else camera.intro = 1;
+  updateChaseCamera(camera, ship, 0, true);
+}
+
+function stepMenu(layout: MissionLayout, realDt: number): void {
+  const spawn = layout.course.spawn;
+  const ship = runtime.ship;
+  const t = runtime.clock;
+  ship.position.copy(spawn.position).addScaledVector(spawn.up, Math.sin(t * 0.9) * 0.25);
+  orientationFromForwardUp(spawn.forward, spawn.up, _spawnQuaternion);
+  _wobble.setFromAxisAngle(_wobbleAxis, Math.sin(t * 0.6) * 0.06);
+  ship.quaternion.copy(_spawnQuaternion).multiply(_wobble);
+  ship.previousPosition.copy(ship.position);
+  ship.speed = 0;
+  ship.velocity.set(0, 0, 0);
+  ship.bank = Math.sin(t * 0.6) * 0.05;
+  updateMenuCamera(runtime.camera, ship, t);
+  runtime.camera.fov = damp(runtime.camera.fov, CAMERA.fov, CAMERA.fovResponse, realDt);
+}
+
+function onCollision(strength: number): void {
+  const ship = runtime.ship;
+  addBoostEnergy(ship.boost, -BOOST.collisionPenalty);
+  if (ship.boost.active) {
+    ship.boost.active = false;
+    ship.boost.regenDelay = BOOST.regenDelay;
+    gameEvents.emit("boostEnd", EMPTY_PAYLOAD);
+  }
+  addTrauma(runtime.camera, CAMERA.collisionTrauma * strength);
+  runtime.collisionCooldown = COLLISION.cooldown;
+  runtime.tutorial.collisions += 1;
+  gameEvents.emit("collision", { strength });
+}
+
+function handleCollisions(layout: MissionLayout, dt: number): void {
+  const ship = runtime.ship;
+  runtime.collisionCooldown = Math.max(0, runtime.collisionCooldown - dt);
+  const asteroids = layout.asteroids;
+  let impact = 0;
+  for (let i = 0; i < asteroids.length; i++) {
+    const radius = asteroids[i].radius * COLLISION.asteroidRadiusScale;
+    const hit = resolveShipSphere(ship, FLIGHT.collisionRadius, asteroids[i].position, radius, COLLISION, FLIGHT.maxSpeed);
+    impact = Math.max(impact, hit);
+  }
+  for (let i = 0; i < PLANET_COLLIDERS.length; i++) {
+    const planet = PLANET_COLLIDERS[i];
+    const hit = resolveShipSphere(ship, FLIGHT.collisionRadius, planet.center, planet.radius, COLLISION, FLIGHT.maxSpeed);
+    impact = Math.max(impact, hit);
+  }
+  if (impact > 0 && runtime.collisionCooldown <= 0) onCollision(impact);
+}
+
+function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void {
+  const ship = runtime.ship;
+  const { active, respawnIn, collectedAt } = runtime.pickups;
+  const pickups = layout.energyStars;
+  let nearest = Infinity;
+  for (let index = 0; index < pickups.length; index++) {
+    if (!active[index]) {
+      if (mode === "freeflight") {
+        respawnIn[index] -= dt;
+        if (respawnIn[index] <= 0) active[index] = true;
+      }
+      continue;
+    }
+    const position = pickups[index].position;
+    nearest = Math.min(nearest, ship.position.distanceTo(position));
+    if (!spheresOverlap(ship.position, FLIGHT.collisionRadius, position, MISSION.pickupRadius)) continue;
+    active[index] = false;
+    respawnIn[index] = MISSION.pickupRespawn;
+    collectedAt[index] = runtime.clock;
+    addBoostEnergy(ship.boost, BOOST.pickupAmount);
+    runtime.tutorial.pickupsCollected += 1;
+    gameEvents.emit("pickup", { amount: BOOST.pickupAmount });
+  }
+  runtime.tutorial.nearestPickupDistance = nearest;
+}
+
+function finishMission(): void {
+  const { missionId } = useGameStore.getState();
+  const definition = MISSIONS[missionId];
+  const timeMs = runtime.mission.elapsedMs;
+  const stars = rateTime(timeMs, definition.starThresholds);
+  const outcome = useProgressStore.getState().recordMissionResult(missionId, timeMs, stars);
+  const session = useSessionStore.getState();
+  session.setStatus("finished");
+  session.setHint(null);
+  session.setResult({ missionId, timeMs, stars, ...outcome });
+  runtime.finishTimer = MISSION.finishDelay;
+  gameEvents.emit("missionComplete", { timeMs });
+}
+
+function handleRings(layout: MissionLayout): void {
+  const mission = runtime.mission;
+  if (mission.status !== "running") return;
+  const ring = layout.course.rings[mission.nextRing];
+  if (!ring) return;
+  const ship = runtime.ship;
+  if (!segmentCrossesDisc(ship.previousPosition, ship.position, ring.position, ring.normal, ring.radius)) return;
+  runtime.ringPassedAt[ring.index] = runtime.clock;
+  const finished = passRing(mission);
+  useSessionStore.getState().setRingsPassed(mission.nextRing);
+  gameEvents.emit("ringPassed", { index: ring.index, total: mission.totalRings });
+  if (finished) finishMission();
+}
+
+function handleMissionClock(dt: number): void {
+  const tick = tickMission(runtime.mission, dt, MISSION);
+  if (tick.type === "none") return;
+  const session = useSessionStore.getState();
+  if (tick.type === "countdown") {
+    session.setCountdown(tick.value);
+    gameEvents.emit("countdown", { value: tick.value });
+  } else {
+    session.setCountdown(0);
+    session.setStatus("running");
+    gameEvents.emit("go", EMPTY_PAYLOAD);
+  }
+}
+
+function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): void {
+  const tutorial = runtime.tutorial;
+  const mission = runtime.mission;
+  tutorial.device = useGameStore.getState().device;
+  tutorial.active =
+    mode === "freeflight" || mission.status === "countdown" || mission.status === "running";
+  tutorial.timeSinceStart = mode === "mission" ? mission.elapsedMs / 1000 : runtime.freeFlightTime;
+  tutorial.ringsPassed = mission.nextRing;
+  tutorial.steerAmount += (Math.abs(input.pitch) + Math.abs(input.yaw)) * realDt;
+  tutorial.throttleRaised ||= input.throttle > runtime.startThrottle + 0.12;
+  tutorial.rollUsed ||= Math.abs(input.roll) > 0.5;
+  tutorial.boostEnergy = runtime.ship.boost.energy;
+  tutorial.targetOffscreenTime = runtime.targetOffscreenTime;
+
+  const update = updateHints(runtime.hints, tutorial, realDt);
+  if (update.changed) useSessionStore.getState().setHint(runtime.hints.active);
+  if (update.completed) useProgressStore.getState().completeHint(update.completed);
+}
+
+function stepFlight(
+  layout: MissionLayout,
+  phase: "playing" | "result",
+  mode: GameMode,
+  cameraMode: CameraMode,
+  dt: number,
+  realDt: number,
+): void {
+  const ship = runtime.ship;
+  const mission = runtime.mission;
+  const input = runtime.input;
+  const finished = mission.status === "finished";
+  const controllable = phase === "playing" && !finished;
+  input?.update(realDt, controllable);
+
+  if (phase === "playing" && mode === "mission") handleMissionClock(dt);
+  const canMove = mode === "freeflight" || canFly(mission);
+  const control = controllable ? (input?.input ?? IDLE_INPUT) : AUTOPILOT_INPUT;
+
+  const boostEvent = updateFlight(ship, control, dt, { canMove, referenceUp: referenceUp(ship) });
+  if (boostEvent === "started") {
+    runtime.tutorial.boostUsed = true;
+    gameEvents.emit("boostStart", EMPTY_PAYLOAD);
+  } else if (boostEvent === "ended") {
+    gameEvents.emit("boostEnd", EMPTY_PAYLOAD);
+  } else if (boostEvent === "denied") {
+    gameEvents.emit("boostDenied", EMPTY_PAYLOAD);
+  }
+  decayKnockback(ship, COLLISION.knockbackDecay, dt);
+
+  handleCollisions(layout, dt);
+  handlePickups(layout, mode, dt);
+  if (mode === "mission") handleRings(layout);
+  if (mode === "freeflight" && phase === "playing") runtime.freeFlightTime += dt;
+  if (phase === "playing" && !finished) updateTutorial(control, mode, realDt);
+
+  if (runtime.finishTimer > 0) {
+    runtime.finishTimer -= realDt;
+    if (runtime.finishTimer <= 0) useGameStore.getState().showResult();
+  }
+
+  const camera = runtime.camera;
+  if (phase === "result") updateResultCamera(camera, ship, realDt);
+  else if (cameraMode === "cockpit") updateCockpitCamera(camera, ship);
+  else updateChaseCamera(camera, ship, realDt);
+  applyIntroBlend(camera, realDt);
+  updateFov(camera, ship, realDt);
+}
+
+function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: PerspectiveCamera, dt: number): void {
+  const target = runtime.target;
+  const mission = runtime.mission;
+  const ship = runtime.ship;
+  let surface = 0;
+
+  if (mode === "mission") {
+    const ring = layout.course.rings[mission.nextRing];
+    if (!ring || mission.status === "finished") {
+      target.visible = false;
+      runtime.targetOffscreenTime = 0;
+      return;
+    }
+    _targetUniverse.copy(ring.position);
+    target.kind = "ring";
+  } else if (ship.position.distanceTo(EARTH_CENTER) > WORLD.freeFlightReturnDistance) {
+    _targetUniverse.copy(EARTH_CENTER);
+    surface = EARTH.radius;
+    target.kind = "earth";
+  } else {
+    _targetUniverse.copy(MOON_CENTER);
+    surface = MOON.radius;
+    target.kind = "moon";
+  }
+
+  target.visible = true;
+  target.distance = Math.max(0, ship.position.distanceTo(_targetUniverse) - surface);
+  _toTarget.subVectors(_targetUniverse, runtime.camera.position);
+  camera.getWorldDirection(_cameraForward);
+  const behind = _toTarget.dot(_cameraForward) < 0;
+  _ndc.copy(_targetUniverse).sub(runtime.origin).project(camera);
+  let x = behind ? -_ndc.x : _ndc.x;
+  let y = behind ? -_ndc.y : _ndc.y;
+  const margin = MISSION.targetScreenMargin;
+  const onScreen = !behind && Math.abs(x) <= margin && Math.abs(y) <= margin;
+  if (!onScreen) {
+    if (Math.abs(x) < 1e-4 && Math.abs(y) < 1e-4) y = -1;
+    const scale = margin / Math.max(Math.abs(x), Math.abs(y));
+    x *= scale;
+    y *= scale;
+  }
+  target.onScreen = onScreen;
+  target.x = x;
+  target.y = y;
+  target.angle = Math.atan2(y, x);
+  runtime.targetOffscreenTime = onScreen ? 0 : runtime.targetOffscreenTime + dt;
+}
+
+/** One simulation frame. Allocation-free; called from GameLoop's useFrame. */
+export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera, delta: number): void {
+  const { phase, mode, cameraMode } = useGameStore.getState();
+  if (phase === "boot" || phase === "loading" || phase === "paused") {
+    if (phase !== "paused") writeTransforms(camera, 0);
+    return;
+  }
+
+  const realDt = Math.min(delta, WORLD.maxFrameDelta);
+  const targetScale = runtime.finishTimer > 0 ? MISSION.finishTimeScale : 1;
+  runtime.timeScale = damp(runtime.timeScale, targetScale, 6, realDt);
+  const dt = realDt * runtime.timeScale;
+  runtime.clock += dt;
+
+  if (phase === "menu") stepMenu(layout, realDt);
+  else stepFlight(layout, phase, mode, cameraMode, dt, realDt);
+
+  rebaseIfNeeded(runtime.ship.position, runtime.origin, WORLD.floatingOriginThreshold);
+  writeTransforms(camera, realDt);
+  if (phase === "playing" || phase === "result") updateTargetIndicator(layout, mode, camera, realDt);
+  else runtime.target.visible = false;
+
+  if (phase !== "menu") {
+    const ship = runtime.ship;
+    audio.updateEngine(ship.speed / FLIGHT.maxSpeed, runtime.input?.input.throttle ?? 0, ship.boost.active, realDt);
+  }
+}
+
+/** Universe → render space for the world root, ship and camera (floating origin). */
+function writeTransforms(camera: PerspectiveCamera, realDt: number): void {
+  const { worldRoot, ship: shipGroup } = runtime.refs;
+  worldRoot?.position.copy(runtime.origin).negate();
+  if (shipGroup) {
+    shipGroup.position.subVectors(runtime.ship.position, runtime.origin);
+    shipGroup.quaternion.copy(runtime.ship.quaternion);
+  }
+  resolveShake(runtime.camera, realDt, _cameraPosition, _cameraQuaternion);
+  camera.position.subVectors(_cameraPosition, runtime.origin);
+  camera.quaternion.copy(_cameraQuaternion);
+  if (Math.abs(camera.fov - runtime.camera.fov) > 0.01) {
+    camera.fov = runtime.camera.fov;
+    camera.updateProjectionMatrix();
+  }
+  camera.updateMatrixWorld();
+}

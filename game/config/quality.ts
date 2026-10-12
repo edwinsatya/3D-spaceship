@@ -22,7 +22,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     multisampling: 4,
     starsScale: 1,
     dustCount: "high",
-    planetSegments: 128,
+    planetSegments: 160,
     trails: true,
     speedLines: true,
   },

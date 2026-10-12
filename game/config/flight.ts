@@ -64,8 +64,10 @@ export const COLLISION = {
   knockbackDecay: 2.4,
   /** Seconds between two collision events with the same body. */
   cooldown: 0.35,
-  /** Extra margin added to planet radii (keeps ship out of atmosphere mesh). */
-  planetMargin: 4,
+  /** Extra margin added to planet atmosphere radii (keeps the camera out of the glow shell). */
+  planetMargin: 1.5,
+  /** Asteroid collision sphere vs. visual size (<1 = forgiving, no invisible hits). */
+  asteroidRadiusScale: 0.85,
 } as const;
 
 export type FlightConfig = typeof FLIGHT;
