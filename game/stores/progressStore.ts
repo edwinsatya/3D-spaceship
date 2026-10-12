@@ -31,7 +31,11 @@ interface ProgressStore extends ProgressData {
 }
 
 export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
-export const PROGRESS_VERSION = 1;
+/**
+ * v2: default UI language became English. v1 saves only ever stored the old
+ * default ("id") — there was no language picker yet — so they move to English.
+ */
+export const PROGRESS_VERSION = 2;
 
 export const EMPTY_MISSION_PROGRESS: MissionProgress = { bestTimeMs: null, bestStars: 0, completions: 0 };
 
@@ -79,6 +83,7 @@ export const useProgressStore = create<ProgressStore>()(
       name: PROGRESS_STORAGE_KEY,
       version: PROGRESS_VERSION,
       storage: createJSONStorage(() => localStorage),
+      migrate: migrateProgress,
       partialize: (state): ProgressData => ({
         missions: state.missions,
         settings: state.settings,
@@ -87,6 +92,18 @@ export const useProgressStore = create<ProgressStore>()(
     },
   ),
 );
+
+/** Pure helper (unit-tested): upgrades persisted progress from older versions. */
+export function migrateProgress(persisted: unknown, version: number): ProgressData {
+  const data = (persisted ?? {}) as Partial<ProgressData>;
+  const settings = { muted: data.settings?.muted ?? false, locale: data.settings?.locale ?? DEFAULT_LOCALE };
+  if (version < 2) settings.locale = DEFAULT_LOCALE;
+  return {
+    missions: data.missions ?? {},
+    settings,
+    onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
+  };
+}
 
 /** Sum of best stars across missions (drives unlocks from Phase 2 on). */
 export function totalStars(missions: ProgressData["missions"]): number {

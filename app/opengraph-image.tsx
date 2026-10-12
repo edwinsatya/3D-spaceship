@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
+import { DEFAULT_LOCALE, translate } from "@/game/i18n";
 
-export const alt = "Jelajah Angkasa 3D — game eksplorasi luar angkasa di browser";
+export const alt = translate(DEFAULT_LOCALE, "meta.ogAlt");
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -66,11 +67,13 @@ export default function OpenGraphImage() {
         />
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 80px", gap: 24 }}>
           <div style={{ fontSize: 30, letterSpacing: 8, color: "#7df9ff", textTransform: "uppercase" }}>
-            Game web 3D · tanpa install
+            {translate(DEFAULT_LOCALE, "meta.ogKicker")}
           </div>
-          <div style={{ fontSize: 92, fontWeight: 800, lineHeight: 1.05, maxWidth: 640 }}>Jelajah Angkasa 3D</div>
+          <div style={{ fontSize: 92, fontWeight: 800, lineHeight: 1.05, maxWidth: 640 }}>
+            {translate(DEFAULT_LOCALE, "app.title")}
+          </div>
           <div style={{ fontSize: 34, color: "rgba(255,255,255,0.85)", maxWidth: 620 }}>
-            Terbangkan pesawatmu, lewati cincin orbit mengelilingi Bumi, dan jelajahi angkasa!
+            {translate(DEFAULT_LOCALE, "meta.ogBody")}
           </div>
         </div>
       </div>

@@ -1,12 +1,12 @@
 import { HUD } from "@/game/config/hud";
-import type { Locale } from "@/game/i18n/types";
+import { LOCALE_TAGS, type Locale } from "@/game/i18n/types";
 
 const numberFormats = new Map<Locale, Intl.NumberFormat>();
 
 function numberFormat(locale: Locale): Intl.NumberFormat {
   let format = numberFormats.get(locale);
   if (!format) {
-    format = new Intl.NumberFormat(locale === "id" ? "id-ID" : "en-US", { maximumFractionDigits: 1 });
+    format = new Intl.NumberFormat(LOCALE_TAGS[locale].bcp47, { maximumFractionDigits: 1 });
     numberFormats.set(locale, format);
   }
   return format;

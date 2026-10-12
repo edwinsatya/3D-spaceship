@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { HUD } from "@/game/config/hud";
 import { SPACE_FACTS } from "@/game/data/facts";
-import { translate, type Locale } from "@/game/i18n";
+import { DEFAULT_LOCALE, translate, type Locale } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { currentTask, overallProgress, useLoadingStore } from "@/game/stores/loadingStore";
 import { OrbitIcon } from "./icons";
@@ -69,7 +69,7 @@ function LoadingView({ progress, title, label, factTitle, fact }: LoadingViewPro
 }
 
 /** Server-rendered placeholder shown while the game bundle downloads. */
-export function StaticLoadingScreen({ locale = "id" }: { locale?: Locale }) {
+export function StaticLoadingScreen({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
   return (
     <LoadingView
       progress={null}

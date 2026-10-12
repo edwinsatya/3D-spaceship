@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { en } from "./en";
 import { id } from "./id";
-import { translate } from "./index";
+import { DEFAULT_LOCALE, translate } from "./index";
 
 function keysOf(value: unknown, prefix = ""): string[] {
   if (typeof value !== "object" || value === null) return [prefix];
@@ -16,6 +16,11 @@ describe("i18n", () => {
 
   it("leaves unknown parameters untouched", () => {
     expect(translate("id", "hud.toastRing", { current: 1 })).toBe("Cincin 1/{total}");
+  });
+
+  it("defaults to English", () => {
+    expect(DEFAULT_LOCALE).toBe("en");
+    expect(translate(DEFAULT_LOCALE, "menu.startMission")).toBe("Start Mission");
   });
 
   it("keeps English and Indonesian dictionaries in sync", () => {

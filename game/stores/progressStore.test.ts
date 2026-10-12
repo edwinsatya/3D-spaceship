@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeMissionResult, totalStars } from "./progressStore";
+import { mergeMissionResult, migrateProgress, totalStars } from "./progressStore";
 
 describe("mergeMissionResult", () => {
   it("records the first run as best", () => {
@@ -24,6 +24,28 @@ describe("mergeMissionResult", () => {
     expect(progress.bestTimeMs).toBe(25_000);
     expect(progress.bestStars).toBe(3);
     expect(outcome.isNewBest).toBe(true);
+  });
+});
+
+describe("migrateProgress", () => {
+  it("moves v1 saves to the English default but keeps records and settings", () => {
+    const v1 = {
+      missions: { "orbit-rings": { bestTimeMs: 30_000, bestStars: 2, completions: 3 } },
+      settings: { muted: true, locale: "id" },
+      onboarding: { completedHints: ["steer"] },
+    };
+    const migrated = migrateProgress(v1, 1);
+    expect(migrated.settings).toEqual({ muted: true, locale: "en" });
+    expect(migrated.missions["orbit-rings"]?.bestTimeMs).toBe(30_000);
+    expect(migrated.onboarding.completedHints).toEqual(["steer"]);
+  });
+
+  it("fills defaults for empty saves", () => {
+    expect(migrateProgress(undefined, 0)).toEqual({
+      missions: {},
+      settings: { muted: false, locale: "en" },
+      onboarding: { completedHints: [] },
+    });
   });
 });
 

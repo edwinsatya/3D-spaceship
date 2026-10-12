@@ -1,10 +1,16 @@
-import type { Dictionary } from "./types";
-
-/** English strings (UI switch arrives in Phase 4; kept complete so types stay in sync). */
-export const en: Dictionary = {
+/** English UI strings — the default locale and the source of the dictionary shape. */
+export const en = {
   app: {
     title: "Space Explorer 3D",
     tagline: "Fly, discover, and explore space!",
+  },
+  meta: {
+    description:
+      "Fly your ship around Earth, race through orbit rings, and explore space right in your browser — no install needed.",
+    shareDescription: "A 3D space exploration game in your browser. Fly, discover, complete missions!",
+    ogKicker: "3D web game · no install",
+    ogBody: "Fly your ship through orbit rings around Earth and explore space!",
+    ogAlt: "Space Explorer 3D — a space exploration game in your browser",
   },
   loading: {
     title: "Preparing space…",
@@ -118,4 +124,4 @@ export const en: Dictionary = {
     body: "Your browser or device doesn't support WebGL2, the 3D graphics technology this game needs.",
     tips: "Try updating your browser (latest Chrome, Safari, Firefox, or Edge) and make sure hardware acceleration is enabled.",
   },
-};
+} as const;

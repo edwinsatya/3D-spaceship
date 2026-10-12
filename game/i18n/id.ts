@@ -1,8 +1,18 @@
-/** Indonesian (default) UI strings. This file defines the dictionary shape. */
-export const id = {
+import type { Dictionary } from "./types";
+
+/** Indonesian UI strings (shape enforced by the English dictionary). */
+export const id: Dictionary = {
   app: {
     title: "Jelajah Angkasa 3D",
     tagline: "Terbang, temukan, dan jelajahi angkasa!",
+  },
+  meta: {
+    description:
+      "Terbangkan pesawatmu mengelilingi Bumi, lewati cincin orbit, dan jelajahi angkasa langsung dari browser — tanpa install.",
+    shareDescription: "Game 3D eksplorasi luar angkasa di browser. Terbang, temukan, selesaikan misi!",
+    ogKicker: "Game web 3D · tanpa install",
+    ogBody: "Terbangkan pesawatmu, lewati cincin orbit mengelilingi Bumi, dan jelajahi angkasa!",
+    ogAlt: "Jelajah Angkasa 3D — game eksplorasi luar angkasa di browser",
   },
   loading: {
     title: "Menyiapkan angkasa…",
@@ -116,4 +126,4 @@ export const id = {
     body: "Browser atau perangkatmu belum mendukung WebGL2, teknologi grafis 3D yang dibutuhkan game ini.",
     tips: "Coba perbarui browser (Chrome, Safari, Firefox, atau Edge terbaru) dan pastikan akselerasi perangkat keras aktif.",
   },
-} as const;
+};

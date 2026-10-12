@@ -3,6 +3,8 @@
 Game web 3D eksplorasi luar angkasa yang langsung jalan di browser (desktop & HP) tanpa install.
 Spesifikasi lengkap ada di [`PRD.md`](PRD.md); daftar aset dan lisensi di [`ASSETS.md`](ASSETS.md).
 
+**Bahasa UI default:** English (`DEFAULT_LOCALE` di `game/i18n/types.ts`); kamus Indonesia tetap lengkap.
+
 **Status:** Fase 1 (Core Loop) — terbang, misi *Cincin Orbit*, menu/HUD, onboarding, audio, kualitas otomatis.
 
 ## Menjalankan
@@ -44,7 +46,7 @@ game/
   GameRoot.tsx       next/dynamic(ssr:false) → GameApp (Canvas + lapisan UI)
   config/            SEMUA angka tuning (terbang, kamera, misi, kualitas, audio, HUD, visual)
   data/              planets.ts (data & fakta planet), missions.ts, facts.ts
-  i18n/              id (default) + en, t() bertipe
+  i18n/              en (default, sumber tipe kamus) + id, t() bertipe; metadata/OG ikut DEFAULT_LOCALE
   stores/            Zustand: game (state machine), session (UI misi), progress (persist), quality, loading, asset
   controls/          keyboard+mouse, touch, gamepad (stub) → satu ControlInput
   systems/           logika murni (flight, boost, collision, course, mission, scoring, hints, floating origin)
