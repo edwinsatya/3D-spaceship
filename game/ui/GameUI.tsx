@@ -9,6 +9,7 @@ import { MissionSelect } from "./missions/MissionSelect";
 import { Gallery } from "./gallery/Gallery";
 import { BadgesScreen } from "./badges/BadgesScreen";
 import { AccountPanel } from "./account/AccountPanel";
+import { SettingsScreen } from "./settings/SettingsScreen";
 import { useAccountStore } from "@/game/stores/accountStore";
 import { BadgeToasts } from "./badges/BadgeToasts";
 import { PhotoModeOverlay } from "./photo/PhotoModeOverlay";
@@ -29,6 +30,7 @@ export function GameUI() {
   const galleryOpen = useUiStore((state) => state.gallery);
   const badgesOpen = useUiStore((state) => state.badges);
   const accountOpen = useAccountStore((state) => state.panelOpen);
+  const settingsOpen = useUiStore((state) => state.settings);
   const loading = phase === "boot" || phase === "loading";
 
   return (
@@ -51,6 +53,7 @@ export function GameUI() {
         {galleryOpen && <Gallery key="gallery" />}
         {badgesOpen && <BadgesScreen key="badges" />}
         {accountOpen && <AccountPanel key="account" />}
+        {settingsOpen && <SettingsScreen key="settings" />}
       </AnimatePresence>
       <BadgeToasts />
       <OrientationGuard />

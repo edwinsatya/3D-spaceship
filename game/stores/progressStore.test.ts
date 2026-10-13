@@ -36,14 +36,13 @@ describe("mergeMissionResult", () => {
 });
 
 describe("migrateProgress", () => {
-  it("moves v1 saves to the English default but keeps records and settings", () => {
+  it("keeps records and onboarding from v1 saves", () => {
     const v1 = {
       missions: { "orbit-rings": { bestTimeMs: 30_000, bestStars: 2, completions: 3 } },
       settings: { muted: true, locale: "id" },
       onboarding: { completedHints: ["steer"] },
     };
     const migrated = migrateProgress(v1, 1);
-    expect(migrated.settings).toEqual({ muted: true, locale: "en" });
     expect(migrated.missions["orbit-rings"]?.best).toBe(30_000);
     expect(migrated.onboarding.completedHints).toEqual(["steer"]);
   });
@@ -51,7 +50,6 @@ describe("migrateProgress", () => {
   it("fills defaults for empty saves", () => {
     expect(migrateProgress(undefined, 0)).toEqual({
       missions: {},
-      settings: { muted: false, locale: "en" },
       onboarding: { completedHints: [] },
       ships: { selected: "comet", paint: {}, updatedAt: 0 },
       discovered: [],

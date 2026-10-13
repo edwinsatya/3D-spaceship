@@ -2,13 +2,13 @@
 
 import { useEffect } from "react";
 import { useGameStore } from "@/game/stores/gameStore";
-import { useProgressStore } from "@/game/stores/progressStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { gameEvents } from "@/game/systems/events";
 import { audio } from "./audioManager";
 
 /** Maps gameplay events and phase changes to sound. */
 export function useGameAudio() {
-  const muted = useProgressStore((state) => state.settings.muted);
+  const muted = useSettingsStore((state) => state.muted);
 
   useEffect(() => {
     audio.setMuted(muted);

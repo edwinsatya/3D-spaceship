@@ -137,6 +137,7 @@ export const en = {
   },
   pause: {
     title: "Paused",
+    settings: "Settings",
     resume: "Resume",
     encyclopedia: "Encyclopedia",
     gallery: "Gallery",
@@ -148,6 +149,14 @@ export const en = {
     sound: "Sound",
     on: "On",
     off: "Off",
+  },
+  settings: {
+    title: "Settings",
+    subtitle: "Changes apply right away and are saved on this device.",
+    close: "Close",
+    tabs: { audio: "Sound", display: "Display", controls: "Controls", accessibility: "Accessibility", language: "Language" },
+    languageHint: "Choose the language for menus, the HUD and all planet facts.",
+    sound: "Sound",
   },
   account: {
     title: "Account",

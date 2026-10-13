@@ -6,6 +6,7 @@ import { localize, translate } from "@/game/i18n";
 import { useGameStore } from "@/game/stores/gameStore";
 import { usePhotoStore } from "@/game/stores/photoStore";
 import { useProgressStore } from "@/game/stores/progressStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { spinAngle } from "./bodySpin";
 import { gameEvents } from "./events";
 import type { PhotoRecord } from "./galleryDb";
@@ -80,7 +81,7 @@ export async function processCapture(frame: Promise<ImageBitmap>, meta: CaptureM
     applyColorMatrix(pixels.data, filterMatrix(meta.filter));
     context.putImageData(pixels, 0, 0);
   }
-  const locale = useProgressStore.getState().settings.locale;
+  const locale = useSettingsStore.getState().locale;
   const location = useGameStore.getState().location;
   drawCaption(context, height, `${translate(locale, "app.title")} · ${localize(BODIES[location].name, locale)}`);
   const image = await toBlob(canvas, "image/jpeg", PHOTO.capture.quality);

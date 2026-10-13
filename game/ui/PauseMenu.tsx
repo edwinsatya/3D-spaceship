@@ -3,10 +3,10 @@
 import { motion } from "motion/react";
 import { useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
-import { useProgressStore } from "@/game/stores/progressStore";
 import { ControlsReference } from "./ControlsReference";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { useUiStore } from "@/game/stores/uiStore";
-import { BookIcon, GalleryIcon, HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon, TrophyIcon } from "./icons";
+import { BookIcon, GalleryIcon, HangarIcon, HomeIcon, PlayIcon, RestartIcon, SettingsIcon, SoundOffIcon, SoundOnIcon, TrophyIcon } from "./icons";
 import { GameButton, Panel } from "./primitives";
 
 export function PauseMenu() {
@@ -17,11 +17,12 @@ export function PauseMenu() {
   const restart = useGameStore((state) => state.restart);
   const toMenu = useGameStore((state) => state.toMenu);
   const endTestFlight = useGameStore((state) => state.endTestFlight);
-  const muted = useProgressStore((state) => state.settings.muted);
-  const toggleMuted = useProgressStore((state) => state.toggleMuted);
+  const muted = useSettingsStore((state) => state.muted);
+  const toggleMuted = useSettingsStore((state) => state.toggleMuted);
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
   const openGallery = useUiStore((state) => state.openGallery);
   const openBadges = useUiStore((state) => state.openBadges);
+  const openSettings = useUiStore((state) => state.openSettings);
 
   return (
     <motion.div
@@ -60,9 +61,14 @@ export function PauseMenu() {
           <GameButton variant="secondary" icon={<TrophyIcon />} onClick={openBadges}>
             {t("pause.badges")}
           </GameButton>
-          <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
-            {t("pause.sound")}: {muted ? t("pause.off") : t("pause.on")}
-          </GameButton>
+          <div className="grid grid-cols-2 gap-3 short:gap-2">
+            <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
+              {muted ? t("pause.off") : t("pause.on")}
+            </GameButton>
+            <GameButton variant="secondary" icon={<SettingsIcon />} onClick={() => openSettings()}>
+              {t("pause.settings")}
+            </GameButton>
+          </div>
           {mode === "testflight" ? (
             <GameButton variant="ghost" icon={<HangarIcon />} onClick={endTestFlight}>
               {t("pause.hangar")}

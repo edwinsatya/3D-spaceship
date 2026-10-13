@@ -139,6 +139,7 @@ export const id: Dictionary = {
   },
   pause: {
     title: "Jeda",
+    settings: "Pengaturan",
     resume: "Lanjutkan",
     encyclopedia: "Ensiklopedia",
     gallery: "Galeri",
@@ -150,6 +151,14 @@ export const id: Dictionary = {
     sound: "Suara",
     on: "Nyala",
     off: "Mati",
+  },
+  settings: {
+    title: "Pengaturan",
+    subtitle: "Perubahan langsung berlaku dan tersimpan di perangkat ini.",
+    close: "Tutup",
+    tabs: { audio: "Suara", display: "Tampilan", controls: "Kontrol", accessibility: "Aksesibilitas", language: "Bahasa" },
+    languageHint: "Pilih bahasa untuk menu, HUD, dan semua fakta planet.",
+    sound: "Suara",
   },
   account: {
     title: "Akun",

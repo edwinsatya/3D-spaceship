@@ -7,10 +7,10 @@ import { useT } from "@/game/i18n/useT";
 import { useGameStore, type GameMode } from "@/game/stores/gameStore";
 import { totalStars, useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
-import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon, TrophyIcon } from "./icons";
+import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon, SettingsIcon, TrophyIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
 import { AccountButton } from "./account/AccountButton";
-import { GameButton } from "./primitives";
+import { GameButton, IconButton } from "./primitives";
 
 /** Best effort: fullscreen + landscape lock on phones (needs the click gesture). */
 async function requestImmersive() {
@@ -38,6 +38,7 @@ export function TitleMenu() {
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
   const openGallery = useUiStore((state) => state.openGallery);
   const openBadges = useUiStore((state) => state.openBadges);
+  const openSettings = useUiStore((state) => state.openSettings);
 
   return (
     <motion.div
@@ -55,6 +56,9 @@ export function TitleMenu() {
         </motion.div>
         <div className="flex gap-2">
           <AccountButton />
+          <IconButton label={t("settings.title")} onClick={() => openSettings()}>
+            <SettingsIcon />
+          </IconButton>
           <MuteButton />
         </div>
       </div>

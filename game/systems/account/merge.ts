@@ -22,7 +22,7 @@ function mergeMission(id: MissionId, a: MissionProgress | undefined, b: MissionP
 /**
  * Combines this device's progress with the account's (pure; unit-tested).
  * Records, discoveries and badges keep the best of both; the newer ship
- * loadout wins; device settings (sound, language) stay local.
+ * loadout wins. (Device settings live in the settings store and never sync.)
  * Idempotent: merging a result again with either input changes nothing.
  */
 export function mergeProgress(local: ProgressData, remote: ProgressData): ProgressData {
@@ -36,7 +36,6 @@ export function mergeProgress(local: ProgressData, remote: ProgressData): Progre
   const older = newer === remote.ships ? local.ships : remote.ships;
   return {
     missions,
-    settings: local.settings,
     onboarding: { completedHints: union(local.onboarding.completedHints, remote.onboarding.completedHints) },
     ships: { selected: newer.selected, paint: { ...older.paint, ...newer.paint }, updatedAt: newer.updatedAt },
     discovered: union(local.discovered, remote.discovered),

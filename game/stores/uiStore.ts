@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { MissionId } from "@/game/data/missions";
+import type { SettingsTab } from "@/game/ui/settings/SettingsScreen";
 import type { BodyId } from "@/game/data/planets";
 
 /** Overlays that can open on top of any phase (menu, pause…). */
@@ -12,6 +13,11 @@ interface UiStore {
   badges: boolean;
   openBadges: () => void;
   closeBadges: () => void;
+  settings: boolean;
+  /** Tab to open the Settings screen on (null = first). */
+  settingsTab: SettingsTab | null;
+  openSettings: (tab?: SettingsTab) => void;
+  closeSettings: () => void;
   openMissions: (selected?: MissionId | null) => void;
   closeMissions: () => void;
   selectMission: (id: MissionId) => void;
@@ -29,6 +35,10 @@ export const useUiStore = create<UiStore>()((set) => ({
   badges: false,
   openBadges: () => set({ badges: true }),
   closeBadges: () => set({ badges: false }),
+  settings: false,
+  settingsTab: null,
+  openSettings: (tab) => set({ settings: true, settingsTab: tab ?? null }),
+  closeSettings: () => set({ settings: false }),
   openMissions: (selected = null) => set((state) => ({ missions: { open: true, selected: selected ?? state.missions.selected } })),
   closeMissions: () => set((state) => ({ missions: { ...state.missions, open: false } })),
   selectMission: (id) => set((state) => ({ missions: { ...state.missions, selected: id } })),

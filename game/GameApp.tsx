@@ -14,6 +14,7 @@ import { usePhotoStore } from "@/game/stores/photoStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { useBadgeAwards } from "@/game/ui/useBadgeAwards";
+import { useSettingsEffects } from "@/game/ui/useSettingsEffects";
 import { startAccount } from "@/game/systems/account/service";
 import { photoSubject } from "@/game/systems/simulation";
 import { useQualityStore } from "@/game/stores/qualityStore";
@@ -57,6 +58,7 @@ export default function GameApp() {
   useGameAudio();
   useFeedback();
   useBadgeAwards();
+  useSettingsEffects();
   useEffect(() => {
     void startAccount();
   }, []);

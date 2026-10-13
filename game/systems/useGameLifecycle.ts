@@ -12,8 +12,8 @@ import { TouchSource } from "@/game/controls/touch";
 import type { ControlAction } from "@/game/controls/types";
 import { useGameStore } from "@/game/stores/gameStore";
 import { overallProgress, useLoadingStore } from "@/game/stores/loadingStore";
-import { useProgressStore } from "@/game/stores/progressStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { runtime } from "./runtime";
 import { isWarping } from "./warp";
 import { togglePhotoMode } from "./photoMode";
@@ -65,7 +65,7 @@ export function useInputSystem() {
         else if (game.phase === "photo") game.closePhoto();
         else game.togglePause();
       } else if (action === "toggleCamera") game.toggleCamera();
-      else if (action === "mute") useProgressStore.getState().toggleMuted();
+      else if (action === "mute") useSettingsStore.getState().toggleMuted();
       else if (action === "map") {
         if (game.phase === "map") game.closeMap();
         else if (!isWarping(runtime.warp)) {

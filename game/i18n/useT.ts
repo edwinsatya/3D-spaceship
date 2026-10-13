@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { useProgressStore } from "@/game/stores/progressStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { createTranslator, type Translator } from "./index";
 
 export function useT(): Translator {
-  const locale = useProgressStore((state) => state.settings.locale);
+  const locale = useSettingsStore((state) => state.locale);
   return useMemo(() => createTranslator(locale), [locale]);
 }
 
 export function useLocale() {
-  return useProgressStore((state) => state.settings.locale);
+  return useSettingsStore((state) => state.locale);
 }

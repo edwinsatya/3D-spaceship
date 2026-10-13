@@ -155,6 +155,14 @@ export const UserIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const SettingsIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2.5v3M12 18.5v3M4.2 7l2.6 1.5M17.2 15.5l2.6 1.5M4.2 17l2.6-1.5M17.2 8.5 19.8 7" />
+    <circle cx="12" cy="12" r="6.5" />
+  </Icon>
+);
+
 export const HangarIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 20V9l9-5 9 5v11" />

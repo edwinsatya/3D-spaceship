@@ -13,7 +13,6 @@ describe("mergeProgress", () => {
     discovered: ["earth", "moon"],
     badges: ["first-mission"],
     photosTaken: 4,
-    settings: { muted: true, locale: "id" },
     ships: { selected: "swift", paint: { swift: { body: "#e2463b", accent: "#ffd24d", decal: "stripe", trail: "#ffb347" } }, updatedAt: 200 },
   });
   const account = base({
@@ -47,9 +46,6 @@ describe("mergeProgress", () => {
     expect(mergeProgress(guest, { ...account, ships: { ...account.ships, updatedAt: 300 } }).ships.selected).toBe("comet");
   });
 
-  it("keeps this device's sound and language", () => {
-    expect(merged.settings).toEqual({ muted: true, locale: "id" });
-  });
 
   it("is idempotent", () => {
     expect(sameProgress(mergeProgress(merged, account), merged)).toBe(true);

@@ -4,7 +4,6 @@ import { isBadgeId, type BadgeId } from "@/game/data/badges";
 import { isMissionId, MISSIONS, type MissionId } from "@/game/data/missions";
 import { isBodyId, type BodyId } from "@/game/data/planets";
 import { DEFAULT_SHIP, isShipId, type ShipCustomization, type ShipId } from "@/game/data/ships";
-import { DEFAULT_LOCALE, type Locale } from "@/game/i18n/types";
 import type { HintId } from "@/game/systems/hints";
 import { isNewBest, type StarRating } from "@/game/systems/scoring";
 
@@ -31,7 +30,6 @@ export interface ShipProgress {
 
 export interface ProgressData {
   missions: Partial<Record<MissionId, MissionProgress>>;
-  settings: { muted: boolean; locale: Locale };
   onboarding: { completedHints: HintId[] };
   ships: ShipProgress;
   /** Encyclopedia: bodies visited at least once (free flight). */
@@ -48,8 +46,6 @@ export interface ProgressData {
 interface ProgressStore extends ProgressData {
   /** `value` is a time in ms or a score, as the mission's rating says. */
   recordMissionResult: (id: MissionId, value: number, stars: StarRating) => RecordOutcome;
-  setMuted: (muted: boolean) => void;
-  toggleMuted: () => void;
   completeHint: (id: HintId) => void;
   selectShip: (id: ShipId) => void;
   setPaint: (id: ShipId, paint: ShipCustomization) => void;
@@ -63,8 +59,8 @@ interface ProgressStore extends ProgressData {
 
 export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
 /**
- * v2: default UI language became English. v1 saves only ever stored the old
- * default ("id") — there was no language picker yet — so they move to English.
+ * v2: default UI language became English (sound and language moved to the
+ * settings store in Phase 4, which reads them from older saves).
  * v3: mission records store a generic `best` (time or score) instead of `bestTimeMs`.
  */
 export const PROGRESS_VERSION = 3;
@@ -95,7 +91,6 @@ export const useProgressStore = create<ProgressStore>()(
   persist(
     (set, get) => ({
       missions: {},
-      settings: { muted: false, locale: DEFAULT_LOCALE },
       onboarding: { completedHints: [] },
       ships: { selected: DEFAULT_SHIP, paint: {}, updatedAt: 0 },
       discovered: [],
@@ -110,8 +105,6 @@ export const useProgressStore = create<ProgressStore>()(
         set((state) => ({ missions: { ...state.missions, [id]: progress } }));
         return outcome;
       },
-      setMuted: (muted) => set((state) => ({ settings: { ...state.settings, muted } })),
-      toggleMuted: () => set((state) => ({ settings: { ...state.settings, muted: !state.settings.muted } })),
       completeHint: (id) =>
         set((state) =>
           state.onboarding.completedHints.includes(id)
@@ -156,7 +149,6 @@ export const useProgressStore = create<ProgressStore>()(
 export function progressData(state: ProgressData): ProgressData {
   return {
     missions: state.missions,
-    settings: state.settings,
     onboarding: state.onboarding,
     ships: state.ships,
     discovered: state.discovered,
@@ -168,13 +160,10 @@ export function progressData(state: ProgressData): ProgressData {
 }
 
 /** Pure helper (unit-tested): upgrades persisted progress from older versions. */
-export function migrateProgress(persisted: unknown, version: number): ProgressData {
+export function migrateProgress(persisted: unknown, _version: number): ProgressData {
   const data = (persisted ?? {}) as Partial<ProgressData>;
-  const settings = { muted: data.settings?.muted ?? false, locale: data.settings?.locale ?? DEFAULT_LOCALE };
-  if (version < 2) settings.locale = DEFAULT_LOCALE;
   return {
     missions: migrateMissions(data.missions),
-    settings,
     onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
     // Added in Phase 2 without a version bump: absent in older saves.
     ships: {
