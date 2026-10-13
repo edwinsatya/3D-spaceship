@@ -61,11 +61,19 @@ export function PauseMenu() {
           <GameButton variant="secondary" icon={<TrophyIcon />} onClick={openBadges}>
             {t("pause.badges")}
           </GameButton>
-          <div className="grid grid-cols-2 gap-3 short:gap-2">
-            <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
-              {muted ? t("pause.off") : t("pause.on")}
+          {/* Sound is an icon toggle so long labels (e.g. "Pengaturan") get the rest of the row. */}
+          <div className="flex gap-3 short:gap-2">
+            <GameButton
+              variant="secondary"
+              onClick={toggleMuted}
+              aria-label={`${t("pause.sound")}: ${muted ? t("pause.off") : t("pause.on")}`}
+              aria-pressed={!muted}
+              title={`${t("pause.sound")}: ${muted ? t("pause.off") : t("pause.on")}`}
+              className="!px-4 text-xl"
+            >
+              {muted ? <SoundOffIcon /> : <SoundOnIcon />}
             </GameButton>
-            <GameButton variant="secondary" icon={<SettingsIcon />} onClick={() => openSettings()}>
+            <GameButton variant="secondary" icon={<SettingsIcon />} onClick={() => openSettings()} className="min-w-0 flex-1">
               {t("pause.settings")}
             </GameButton>
           </div>

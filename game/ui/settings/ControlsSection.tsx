@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { KEY_BINDINGS, type KeyAction } from "@/game/config/controls";
 import { SETTINGS } from "@/game/config/settings";
 import { gyroSupported, requestGyroPermission } from "@/game/controls/gyro";
-import { keyName, RESERVED_KEYS } from "@/game/controls/keyNames";
-import { useT } from "@/game/i18n/useT";
+import { localizedKeyName, RESERVED_KEYS } from "@/game/controls/keyNames";
+import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { keysFor, useSettingsStore } from "@/game/stores/settingsStore";
 import { runtime } from "@/game/systems/runtime";
@@ -20,6 +20,7 @@ const multiplier = (value: number) => `×${value.toFixed(1)}`;
 
 function KeyBindings() {
   const t = useT();
+  const locale = useLocale();
   const bindings = useSettingsStore((state) => state.controls.bindings);
   const bindKey = useSettingsStore((state) => state.bindKey);
   const resetBindings = useSettingsStore((state) => state.resetBindings);
@@ -67,7 +68,7 @@ function KeyBindings() {
                 ) : keys.length > 0 ? (
                   keys.map((code) => (
                     <kbd key={code} className="rounded-md border border-cyan-200/30 bg-white/5 px-2 py-0.5 font-display text-xs text-hud">
-                      {keyName(code)}
+                      {localizedKeyName(code, locale)}
                     </kbd>
                   ))
                 ) : (

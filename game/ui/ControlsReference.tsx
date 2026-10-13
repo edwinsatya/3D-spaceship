@@ -1,8 +1,8 @@
 "use client";
 
 import type { KeyAction } from "@/game/config/controls";
-import { keyName } from "@/game/controls/keyNames";
-import { useT } from "@/game/i18n/useT";
+import { localizedKeyName } from "@/game/controls/keyNames";
+import { useLocale, useT } from "@/game/i18n/useT";
 import type { TranslationKey } from "@/game/i18n/types";
 import { keysFor, useSettingsStore } from "@/game/stores/settingsStore";
 
@@ -32,25 +32,23 @@ function Key({ children }: { children: string }) {
 
 export function ControlsReference({ device }: { device: ReferenceDevice }) {
   const t = useT();
+  const locale = useLocale();
   const bindings = useSettingsStore((state) => state.controls.bindings);
-  const rows =
+  const rows: { row: string; keys: string[] }[] =
     device === "desktop"
       ? DESKTOP.map(({ row, actions }) => ({
           row,
-          key: actions
-            ? actions
-                .map((action) => keysFor(action, bindings).map(keyName).join("/"))
-                .filter(Boolean)
-                .join(" / ") || "—"
-            : t("controls.desktop.steer.key"),
+          keys: actions
+            ? actions.flatMap((action) => keysFor(action, bindings).map((code) => localizedKeyName(code, locale)))
+            : [t("controls.desktop.steer.key")],
         }))
-      : (device === "touch" ? TOUCH : GAMEPAD).map((row) => ({ row, key: t(`controls.${device}.${row}.key` as TranslationKey) }));
+      : (device === "touch" ? TOUCH : GAMEPAD).map((row) => ({ row, keys: [t(`controls.${device}.${row}.key` as TranslationKey)] }));
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-      {rows.map(({ row, key }) => (
+    <dl className="grid grid-cols-[minmax(0,auto)_1fr] gap-x-4 gap-y-1.5 text-sm">
+      {rows.map(({ row, keys }) => (
         <div key={row} className="contents">
-          <dt>
-            <Key>{key}</Key>
+          <dt className="flex max-w-[11rem] flex-wrap gap-1">
+            {keys.length > 0 ? keys.map((key) => <Key key={key}>{key}</Key>) : <Key>—</Key>}
           </dt>
           <dd className="text-white/85">{t(`controls.${device}.${row}.action` as TranslationKey)}</dd>
         </div>
