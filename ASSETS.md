@@ -43,6 +43,8 @@ menggantikannya begitu selesai dimuat. Kalau file gagal dimuat, tekstur prosedur
 | Stasiun orbit (rangka, modul, panel surya, cincin dok) | `game/entities/Station.tsx` | Primitif three.js; panel surya dari tekstur canvas |
 | Kristal, kontainer kargo, sabuk asteroid, batu cincin Saturnus | `game/entities/MissionProps.tsx`, `game/systems/scenery.ts` | Prosedural, deterministik |
 | Ceres | `game/scenes/procedural/surfaceBakes.ts` (tipe *rocky*) | Belum ada tekstur asli (Solar System Scope menyediakan versi fiktif saja) |
+| Suara mesin per pesawat | `engineSound()` di `game/audio/synth.ts` + `engine` di `game/data/ships.ts` | Loop 2 detik yang mulus; slot file asli: `ENGINE_FILES` di `game/audio/audioManager.ts` |
+| Ikon PWA & iOS | `public/icons/*.png`, `app/apple-icon.png` | Di-render dari `app/icon.svg` |
 | Langit (nebula, galaksi, Bima Sakti, bintang jauh) | `game/scenes/procedural/skyBake.ts` | Cube map 1024² (512² di tier rendah) |
 | Efek suara + musik ambient | `game/audio/synth.ts` | Disintesis jadi WAV saat loading, diputar lewat Howler |
 | Font Orbitron & Exo 2 | `app/layout.tsx` (`next/font/google`) | SIL Open Font License 1.1, di-*self-host* oleh Next saat build |
