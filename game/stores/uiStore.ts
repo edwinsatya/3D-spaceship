@@ -13,6 +13,9 @@ interface UiStore {
   badges: boolean;
   openBadges: () => void;
   closeBadges: () => void;
+  credits: boolean;
+  openCredits: () => void;
+  closeCredits: () => void;
   settings: boolean;
   /** Tab to open the Settings screen on (null = first). */
   settingsTab: SettingsTab | null;
@@ -35,6 +38,9 @@ export const useUiStore = create<UiStore>()((set) => ({
   badges: false,
   openBadges: () => set({ badges: true }),
   closeBadges: () => set({ badges: false }),
+  credits: false,
+  openCredits: () => set({ credits: true }),
+  closeCredits: () => set({ credits: false }),
   settings: false,
   settingsTab: null,
   openSettings: (tab) => set({ settings: true, settingsTab: tab ?? null }),

@@ -39,6 +39,7 @@ export function TitleMenu() {
   const openGallery = useUiStore((state) => state.openGallery);
   const openBadges = useUiStore((state) => state.openBadges);
   const openSettings = useUiStore((state) => state.openSettings);
+  const openCredits = useUiStore((state) => state.openCredits);
 
   return (
     <motion.div
@@ -99,8 +100,11 @@ export function TitleMenu() {
           {device === "touch" ? t("menu.controlsTouch") : t("menu.controlsDesktop")}
         </p>
       </motion.div>
-      {/* CC BY 4.0 attribution; the full credits page arrives in Phase 4. */}
+      {/* CC BY 4.0 attribution, plus the full Credits screen. */}
       <p className="pointer-events-auto absolute right-4 bottom-3 text-[0.625rem] text-white/50 sm:right-8 sm:bottom-4 lg:right-12">
+        <button type="button" onClick={openCredits} className="mr-2 font-bold text-white/70 underline-offset-2 hover:text-white hover:underline">
+          {t("menu.credits")}
+        </button>
         {t("menu.textureCredit")}{" "}
         <a
           href="https://www.solarsystemscope.com/textures/"

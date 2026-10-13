@@ -72,7 +72,7 @@ export default function OpenGraphImage() {
           <div style={{ fontSize: 92, fontWeight: 800, lineHeight: 1.05, maxWidth: 640 }}>
             {translate(DEFAULT_LOCALE, "app.title")}
           </div>
-          <div style={{ fontSize: 34, color: "rgba(255,255,255,0.85)", maxWidth: 620 }}>
+          <div style={{ fontSize: 34, color: "rgba(255,255,255,0.85)", maxWidth: 520, lineHeight: 1.3 }}>
             {translate(DEFAULT_LOCALE, "meta.ogBody")}
           </div>
         </div>

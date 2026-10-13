@@ -8,10 +8,10 @@ export const id: Dictionary = {
   },
   meta: {
     description:
-      "Terbangkan pesawatmu mengelilingi Bumi, lewati cincin orbit, dan jelajahi angkasa langsung dari browser — tanpa install.",
+      "Terbangkan pesawatmu ke semua planet, mendarat di Bulan dan Mars, berpacu di sabuk asteroid, dan potret badai Jupiter — game 3D luar angkasa langsung di browser, tanpa install.",
     shareDescription: "Game 3D eksplorasi luar angkasa di browser. Terbang, temukan, selesaikan misi!",
     ogKicker: "Game web 3D · tanpa install",
-    ogBody: "Terbangkan pesawatmu, lewati cincin orbit mengelilingi Bumi, dan jelajahi angkasa!",
+    ogBody: "Warp ke semua planet, mendarat di Bulan dan Mars, dan potret Tata Surya!",
     ogAlt: "Jelajah Angkasa 3D — game eksplorasi luar angkasa di browser",
   },
   loading: {
@@ -40,6 +40,7 @@ export const id: Dictionary = {
     controlsDesktop: "Mouse: arahkan · W/S: gas · Shift: turbo",
     controlsTouch: "Joystick kiri: arahkan · Tuas kanan: gas",
     textureCredit: "Tekstur planet:",
+    credits: "Kredit",
   },
   hud: {
     speed: "Kecepatan",
@@ -151,6 +152,17 @@ export const id: Dictionary = {
     sound: "Suara",
     on: "Nyala",
     off: "Mati",
+  },
+  credits: {
+    title: "Kredit",
+    close: "Tutup",
+    intro: "Space Explorer 3D dibuat dengan bantuan orang-orang dan proyek berikut. Terima kasih!",
+    assets: "Tekstur & font",
+    libraries: "Pustaka open-source",
+    facts: "Fakta sains",
+    factsBody: "Fakta planet, tanggal misi, dan angka mengikuti sumber publik NASA dan ESA. Ukuran dan jarak di game diperkecil supaya semuanya muat di layar.",
+    made: "Sisanya",
+    madeBody: "Pesawat, stasiun, pendarat, rover, medan, langit berbintang, musik, dan efek suara dibuat oleh kode game itu sendiri.",
   },
   settings: {
     title: "Pengaturan",
