@@ -59,6 +59,7 @@ export const id: Dictionary = {
     exitOrbit: "Keluar orbit",
     orbiting: "Mengorbit {name}",
     discovered: "Planet ditemukan!",
+    discoveredDwarf: "Planet katai ditemukan!",
     discoveredMoon: "Bulan ditemukan!",
     discoveredStar: "Bintang ditemukan!",
     newEntry: "Entri baru di Ensiklopedia",

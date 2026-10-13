@@ -59,6 +59,7 @@ export const en = {
     discovered: "Planet discovered!",
     discoveredMoon: "Moon discovered!",
     discoveredStar: "Star discovered!",
+    discoveredDwarf: "Dwarf planet discovered!",
     newEntry: "New Encyclopedia entry",
     go: "GO!",
     distanceUnit: "km",

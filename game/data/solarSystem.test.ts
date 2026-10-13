@@ -7,9 +7,10 @@ import { LOCATION_BODIES, MAP_LAYOUT, sunDirectionFor, sunlightFor } from "./sol
 const bodies = BODY_ORDER.map((id) => BODIES[id]);
 
 describe("solar system data", () => {
-  it("has the Sun, eight planets and the Moon", () => {
+  it("has the Sun, eight planets, the dwarf planet Ceres and the Moon", () => {
     expect(bodies.filter((body) => body.kind === "planet")).toHaveLength(8);
-    expect(BODY_ORDER).toHaveLength(10);
+    expect(bodies.filter((body) => body.kind === "dwarf").map((body) => body.id)).toEqual(["ceres"]);
+    expect(BODY_ORDER).toHaveLength(11);
   });
 
   it("has every fact in every language", () => {

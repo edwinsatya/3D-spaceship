@@ -11,10 +11,11 @@ export function findDiscovery(
   colliders: readonly BodyCollider[],
   discovered: ReadonlySet<BodyId>,
   factor: number,
+  minDistance = 0,
 ): BodyId | null {
   for (const collider of colliders) {
     if (!collider.id || discovered.has(collider.id)) continue;
-    if (position.distanceTo(collider.center) <= collider.surfaceRadius * factor) return collider.id;
+    if (position.distanceTo(collider.center) <= Math.max(collider.surfaceRadius * factor, minDistance)) return collider.id;
   }
   return null;
 }

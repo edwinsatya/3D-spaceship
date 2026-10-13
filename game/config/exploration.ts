@@ -12,10 +12,13 @@ export const EXPLORATION = {
   arrivalDistance: 2.7,
   /** Arrival at the Sun is further out (it is huge and very bright). */
   sunArrivalDistance: 3.1,
-  /** Free flight: guide the player back beyond this many radii. */
+  /** Free flight: guide the player back beyond this many radii… */
   returnDistance: 9,
-  /** First visit counts once the ship is within this many radii. */
+  /** …but never closer than this (u): small bodies such as Ceres sit inside wide rock fields. */
+  minReturnDistance: 1200,
+  /** First visit counts once the ship is within this many radii (or this many units for tiny bodies). */
   discoveryDistance: 4.2,
+  minDiscoveryDistance: 250,
 
   warp: {
     charge: 0.9,

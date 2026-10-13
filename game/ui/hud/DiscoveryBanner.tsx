@@ -31,6 +31,8 @@ export function DiscoveryBanner() {
       ? t("hud.discoveredStar")
       : body.kind === "moon"
         ? t("hud.discoveredMoon")
+        : body.kind === "dwarf"
+          ? t("hud.discoveredDwarf")
         : t("hud.discovered");
 
   return (

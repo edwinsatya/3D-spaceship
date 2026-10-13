@@ -64,7 +64,7 @@ export function createCoursePath(params: RingCourseParams, sunDirection: Vec3Tup
   const pointAt = (theta: number, target = new Vector3()): Vector3 => {
     const rel = theta - theta0;
     const radius = params.baseRadius + params.radialWobble * Math.sin(params.radialWobbleFrequency * rel);
-    const height = params.heightWave * Math.sin(params.heightWaveFrequency * rel);
+    const height = (params.heightOffset ?? 0) + params.heightWave * Math.sin(params.heightWaveFrequency * rel);
     return target
       .copy(frame.center)
       .addScaledVector(frame.e1, radius * Math.cos(theta))

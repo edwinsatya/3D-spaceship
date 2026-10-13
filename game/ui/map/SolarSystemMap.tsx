@@ -65,6 +65,16 @@ export function SolarSystemMap() {
             </radialGradient>
           </defs>
           <circle r="0.22" fill="url(#map-sun-glow)" />
+          {/* The asteroid belt between Mars and Jupiter, where Ceres orbits. */}
+          <ellipse
+            rx={MAP_LAYOUT.ceres.orbitRadius}
+            ry={MAP_LAYOUT.ceres.orbitRadius * TILT}
+            fill="none"
+            stroke="#c9b89a"
+            strokeOpacity={0.22}
+            strokeWidth={0.035}
+            strokeDasharray="0.003 0.011"
+          />
           {LOCATION_ORDER.filter((id) => id !== "sun").map((id) => (
             <ellipse
               key={`orbit-${id}`}

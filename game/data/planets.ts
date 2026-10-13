@@ -9,6 +9,7 @@ export type BodyId =
   | "earth"
   | "moon"
   | "mars"
+  | "ceres"
   | "jupiter"
   | "saturn"
   | "uranus"
@@ -103,7 +104,7 @@ export type LandingInfo = { landable: true } | { landable: false; reason: Locali
 export interface CelestialBody {
   id: BodyId;
   name: Localized;
-  kind: "star" | "planet" | "moon";
+  kind: "star" | "planet" | "dwarf" | "moon";
   /** Artistic radius in world units (not real scale; ordering matches reality). */
   radius: number;
   /** Position inside its location scene (the location's primary sits at the origin). */
@@ -354,6 +355,39 @@ export const MARS: CelestialBody = {
   },
 };
 
+/** Dwarf planet in the asteroid belt; its location is the asteroid-belt route. */
+export const CERES: CelestialBody = {
+  id: "ceres",
+  name: { en: "Ceres", id: "Ceres" },
+  kind: "dwarf",
+  radius: 40,
+  position: [0, 0, 0],
+  axialTilt: 4,
+  rotationSpeed: 0.02,
+  surface: { type: "rocky", palette: ["#6d6964", "#9c978f", "#46433f"], craters: 0.9, maria: 0.1 },
+  seed: 57,
+  solid: true,
+  landing: {
+    landable: false,
+    reason: {
+      en: "No spacecraft has ever landed on Ceres. NASA's Dawn probe studied it from orbit (2015–2018), and its gravity is so weak — about 3% of Earth's — that you could jump very high.",
+      id: "Belum ada wahana yang pernah mendarat di Ceres. Wahana Dawn milik NASA mempelajarinya dari orbit (2015–2018), dan gravitasinya sangat lemah — sekitar 3% gravitasi Bumi — sampai kamu bisa melompat sangat tinggi.",
+    },
+  },
+  diameterKm: 940,
+  distanceAu: 2.77,
+  iconColors: ["#b8b3aa", "#5c5852"],
+  facts: {
+    diameter: { en: "About 940 km", id: "Sekitar 940 km" },
+    distance: { en: "414 million km from the Sun", id: "414 juta km dari Matahari" },
+    temperature: { en: "About −105°C", id: "Sekitar −105°C" },
+    funFact: {
+      en: "Ceres is the biggest object in the asteroid belt. Real asteroids are millions of kilometres apart — in this game we packed them close together so there is something to dodge!",
+      id: "Ceres adalah benda terbesar di sabuk asteroid. Asteroid sungguhan berjarak jutaan kilometer satu sama lain — di game ini kami merapatkannya supaya ada yang bisa dihindari!",
+    },
+  },
+};
+
 export const JUPITER: CelestialBody = {
   id: "jupiter",
   name: { en: "Jupiter", id: "Jupiter" },
@@ -529,6 +563,7 @@ export const BODIES: Record<BodyId, CelestialBody> = {
   earth: EARTH,
   moon: MOON,
   mars: MARS,
+  ceres: CERES,
   jupiter: JUPITER,
   saturn: SATURN,
   uranus: URANUS,
@@ -543,6 +578,7 @@ export const BODY_ORDER: readonly BodyId[] = [
   "earth",
   "moon",
   "mars",
+  "ceres",
   "jupiter",
   "saturn",
   "uranus",
@@ -555,6 +591,7 @@ export const LOCATION_ORDER: readonly LocationId[] = [
   "venus",
   "earth",
   "mars",
+  "ceres",
   "jupiter",
   "saturn",
   "uranus",

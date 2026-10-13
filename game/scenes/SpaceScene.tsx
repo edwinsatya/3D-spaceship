@@ -7,6 +7,7 @@ import { Earth } from "@/game/entities/Earth";
 import { EnergyStars } from "@/game/entities/EnergyStars";
 import { Moon } from "@/game/entities/Moon";
 import { Rings } from "@/game/entities/Rings";
+import { Station } from "@/game/entities/Station";
 import { Ship } from "@/game/entities/ship/Ship";
 import { PlanetBody } from "@/game/entities/planet/PlanetBody";
 import { SunBody } from "@/game/entities/planet/SunBody";
@@ -52,6 +53,7 @@ function LocationContent({ location }: { location: LocationId }) {
         <>
           <Earth />
           <Moon />
+          <Station />
         </>
       ) : (
         LOCATION_BODIES[location].map((id) => <PlanetBody key={id} body={BODIES[id]} />)

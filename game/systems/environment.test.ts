@@ -26,6 +26,9 @@ describe("location environments", () => {
     for (const collider of environment.colliders) {
       expect(position.distanceTo(collider.center)).toBeGreaterThan(collider.radius + 5);
     }
+    for (const asteroid of environment.asteroids) {
+      expect(position.distanceTo(asteroid.position)).toBeGreaterThan(asteroid.radius + 8);
+    }
     const toPlanet = environment.colliders[0].center.clone().sub(position).normalize();
     expect(forward.dot(toPlanet)).toBeGreaterThan(0.8);
     expect(Math.abs(up.dot(forward))).toBeLessThan(1e-6);

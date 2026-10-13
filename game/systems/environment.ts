@@ -4,9 +4,20 @@ import { EXPLORATION } from "@/game/config/exploration";
 import { BODIES, type BodyId, type CelestialBody, type LocationId } from "@/game/data/planets";
 import { LOCATION_BODIES, sunDirectionFor, sunlightFor } from "@/game/data/solarSystem";
 import { SURFACES, type SurfaceId } from "@/game/data/surfaces";
-import { toVector, type AsteroidSpec, type PickupSpec } from "./course";
+import { BELT_SLALOM_COURSE } from "@/game/data/missions";
+import { generateCourse, toVector, type AsteroidSpec, type PickupSpec } from "./course";
 import { homeEnergyStars } from "./missionLayout";
 import { locationAsteroids } from "./scenery";
+import { stationLayout } from "./station";
+
+function stationObstacles(): BodyCollider[] {
+  return stationLayout().spheres.map((sphere) => ({
+    id: null,
+    center: sphere.center,
+    radius: sphere.radius,
+    surfaceRadius: sphere.radius,
+  }));
+}
 import { createRandom } from "./random";
 import type { Terrain } from "./terrain";
 
@@ -33,6 +44,8 @@ export interface Environment {
   pickups: PickupSpec[];
   /** Rocks that belong to the place (collide in free flight and missions). */
   asteroids: AsteroidSpec[];
+  /** Man-made props to bump into (the station); not planets, so no orbit/landing/auto-level. */
+  obstacles: BodyCollider[];
 }
 
 const PICKUPS_PER_LOCATION = 10;
@@ -113,6 +126,7 @@ export function buildEnvironment(location: LocationId): Environment {
     sunIntensity: sunlight.intensity,
     pickups: location === "earth" ? homeEnergyStars() : locationPickups(location),
     asteroids: locationAsteroids(location),
+    obstacles: location === "earth" ? stationObstacles() : [],
   };
 }
 
@@ -140,6 +154,7 @@ export function buildSurfaceEnvironment(location: LocationId, surface: SurfaceId
     sunIntensity: definition.sunIntensity / 2.5,
     pickups: terrain.pickups,
     asteroids: [],
+    obstacles: [],
   };
 }
 
@@ -150,6 +165,14 @@ const WORLD_UP = new Vector3(0, 1, 0);
  * the planet filling the right half of the view.
  */
 export function arrivalFor(location: LocationId): { position: Vector3; forward: Vector3; up: Vector3 } {
+  // Ceres sits inside the belt: arrive at the start of the slalom (kept clear of rocks), facing Ceres.
+  if (location === "ceres") {
+    const { spawn } = generateCourse(BELT_SLALOM_COURSE, sunDirectionFor("ceres"));
+    const position = spawn.position.clone();
+    const forward = toVector(BODIES.ceres.position).sub(position).normalize();
+    const up = spawn.up.clone().addScaledVector(forward, -spawn.up.dot(forward)).normalize();
+    return { position, forward, up };
+  }
   const primary = BODIES[location];
   const center = toVector(primary.position);
   const sun = location === "sun" ? new Vector3(0.3, 0.2, 1).normalize() : toVector(sunDirectionFor(location));

@@ -12,6 +12,8 @@ export interface RingCourseParams {
   radialWobbleFrequency: number;
   heightWave: number;
   heightWaveFrequency: number;
+  /** Constant height above the orbital plane (e.g. skimming over Saturn's rings). */
+  heightOffset?: number;
   /** Start angle (rad) measured from the sub-solar direction, in travel direction. */
   startAngleFromSun: number;
   ringCount: number;
@@ -111,6 +113,68 @@ export const EARTH_ASTEROID_FIELD: AsteroidFieldParams = {
   corridorClearance: 12,
   nearLineCount: 10,
   nearLineDistance: 6,
+};
+
+/** Weaving loop through the asteroid belt around Ceres. */
+export const BELT_SLALOM_COURSE: RingCourseParams = {
+  center: [0, 0, 0],
+  planeNormal: [0.1, 1, 0.05],
+  baseRadius: 380,
+  radialWobble: 90,
+  radialWobbleFrequency: 3,
+  heightWave: 70,
+  heightWaveFrequency: 2,
+  startAngleFromSun: 0.4,
+  ringCount: 14,
+  ringRadius: 9,
+  arc: 0.75,
+};
+
+/** The belt itself: crowded on purpose (the real one is mostly empty space). */
+export const BELT_ASTEROID_FIELD: AsteroidFieldParams = {
+  seed: 77,
+  count: 240,
+  minRadius: 2.5,
+  maxRadius: 12,
+  radialMin: -260,
+  radialMax: 420,
+  heightSpread: 140,
+  corridorClearance: 10,
+  nearLineCount: 40,
+  nearLineDistance: 5,
+};
+
+/** Saturn's pole: the planet group is tilted about Z by its axial tilt (26.73°). */
+const SATURN_POLE: Vec3Tuple = [-Math.sin((26.73 * Math.PI) / 180), Math.cos((26.73 * Math.PI) / 180), 0];
+
+/** Low pass over the B ring, weaving across the Cassini division. */
+export const SATURN_RUN_COURSE: RingCourseParams = {
+  center: [0, 0, 0],
+  planeNormal: SATURN_POLE,
+  baseRadius: 1080,
+  radialWobble: 70,
+  radialWobbleFrequency: 4,
+  heightWave: 10,
+  heightWaveFrequency: 3,
+  heightOffset: 30,
+  startAngleFromSun: -0.6,
+  ringCount: 12,
+  ringRadius: 10,
+  arc: 0.27,
+};
+
+/** Ring boulders just around the ring plane, clear of the run's racing line. */
+export const SATURN_BOULDER_FIELD: AsteroidFieldParams = {
+  seed: 91,
+  count: 60,
+  minRadius: 3,
+  maxRadius: 9,
+  radialMin: -250,
+  radialMax: 300,
+  heightSpread: 18,
+  corridorClearance: 11,
+  nearLineCount: 14,
+  nearLineDistance: 4,
 };
 
 export const ORBIT_RINGS: MissionDefinition = {

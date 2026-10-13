@@ -310,6 +310,12 @@ function handleCollisions(dt: number): void {
     const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, planet.center, planet.radius, COLLISION, runtime.flight.maxSpeed);
     impact = Math.max(impact, hit);
   }
+  const obstacles = runtime.environment.obstacles;
+  for (let i = 0; i < obstacles.length; i++) {
+    const prop = obstacles[i];
+    const hit = resolveShipSphere(ship, runtime.flight.collisionRadius, prop.center, prop.radius, COLLISION, runtime.flight.maxSpeed);
+    impact = Math.max(impact, hit);
+  }
   if (impact > 0 && runtime.collisionCooldown <= 0) onCollision(impact);
 }
 
@@ -429,6 +435,7 @@ function handleDiscovery(mode: GameMode): void {
     runtime.environment.colliders,
     runtime.discovered,
     EXPLORATION.discoveryDistance,
+    EXPLORATION.minDiscoveryDistance,
   );
   if (!found) return;
   runtime.discovered.add(found);
@@ -555,7 +562,8 @@ function updateTargetIndicator(mode: GameMode, camera: PerspectiveCamera, dt: nu
   } else {
     const environment = runtime.environment;
     const primary = environment.colliders[0];
-    const far = ship.position.distanceTo(primary.center) > primary.surfaceRadius * EXPLORATION.returnDistance;
+    const returnDistance = Math.max(primary.surfaceRadius * EXPLORATION.returnDistance, EXPLORATION.minReturnDistance);
+    const far = ship.position.distanceTo(primary.center) > returnDistance;
     const secondary = environment.location === "earth" ? environment.colliders[1] : null;
     const goal = far || !secondary ? primary : secondary;
     if (!far && !secondary) {
