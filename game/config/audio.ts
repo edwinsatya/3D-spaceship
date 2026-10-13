@@ -11,4 +11,6 @@ export const AUDIO = {
   /** Synthesis sample rate for procedural sounds. */
   sampleRate: 44100,
   musicFadeIn: 2.5,
+  /** Hangar: rev of the picked ship's engine (seconds held, seconds to fade in/out). */
+  enginePreview: { duration: 1.1, fade: 0.25 },
 } as const;

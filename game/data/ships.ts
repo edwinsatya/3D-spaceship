@@ -48,6 +48,27 @@ export interface ShipCustomization {
   trail: string;
 }
 
+/**
+ * Synthesized engine hum (see game/audio/synth.ts). Frequencies must complete
+ * whole cycles in the 2 s loop (value × 2 is an integer) so it loops seamlessly.
+ */
+export interface EngineVoice {
+  /** Fundamental (Hz). */
+  base: number;
+  /** Levels of the fundamental and its 2nd and 3rd harmonics. */
+  partials: readonly [number, number, number];
+  /** Buzzy sawtooth layer 0..1. */
+  saw: number;
+  /** Pulsing of the hum (Hz). */
+  throb: number;
+  throbDepth: number;
+  /** Rushing-air noise: low-pass cutoff (Hz) and level. */
+  noiseCutoff: number;
+  noise: number;
+  /** Saturation: higher = grittier. */
+  drive: number;
+}
+
 export interface ShipDefinition {
   id: ShipId;
   name: Localized;
@@ -56,6 +77,7 @@ export interface ShipDefinition {
   modifiers: ShipModifiers;
   design: ShipDesign;
   defaults: ShipCustomization;
+  engine: EngineVoice;
 }
 
 const BASE_MODIFIERS: ShipModifiers = {
@@ -130,6 +152,7 @@ export const SHIPS: readonly ShipDefinition[] = [
       collisionRadius: 1.4,
     },
     defaults: { body: "#cfd8e6", accent: "#ff6b3d", decal: "none", trail: "#5fe6ff" },
+    engine: { base: 55, partials: [0.38, 0.24, 0.1], saw: 0.1, throb: 6, throbDepth: 0.14, noiseCutoff: 520, noise: 1.6, drive: 1.3 },
   },
   {
     id: "swift",
@@ -185,6 +208,7 @@ export const SHIPS: readonly ShipDefinition[] = [
       collisionRadius: 1.4,
     },
     defaults: { body: "#e2463b", accent: "#ffd24d", decal: "stripe", trail: "#ffb347" },
+    engine: { base: 82.5, partials: [0.3, 0.26, 0.16], saw: 0.28, throb: 9, throbDepth: 0.1, noiseCutoff: 1100, noise: 1.3, drive: 1.6 },
   },
   {
     id: "nova",
@@ -247,6 +271,7 @@ export const SHIPS: readonly ShipDefinition[] = [
       collisionRadius: 1.3,
     },
     defaults: { body: "#4fd17a", accent: "#3d8bff", decal: "chevron", trail: "#6dff8a" },
+    engine: { base: 70, partials: [0.44, 0.12, 0.2], saw: 0.02, throb: 4, throbDepth: 0.2, noiseCutoff: 700, noise: 0.9, drive: 1.1 },
   },
   {
     id: "titan",
@@ -311,6 +336,7 @@ export const SHIPS: readonly ShipDefinition[] = [
       collisionRadius: 1.6,
     },
     defaults: { body: "#2b2f3a", accent: "#ff8a3d", decal: "star", trail: "#ffd84d" },
+    engine: { base: 41, partials: [0.46, 0.3, 0.12], saw: 0.16, throb: 3, throbDepth: 0.22, noiseCutoff: 360, noise: 2.1, drive: 1.9 },
   },
 ];
 

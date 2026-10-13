@@ -14,6 +14,7 @@ import {
 } from "@/game/data/ships";
 import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
+import { audio } from "@/game/audio/audioManager";
 import { useGameStore } from "@/game/stores/gameStore";
 import { DECAL_UNLOCKS, SHIP_UNLOCKS } from "@/game/data/unlocks";
 import { totalStars, useProgressStore } from "@/game/stores/progressStore";
@@ -259,7 +260,9 @@ function ShipList() {
             selected={ship.id === selected}
             locked={locked}
             onSelect={() => {
-              if (locked === 0) selectShip(ship.id);
+              if (locked > 0) return;
+              selectShip(ship.id);
+              audio.previewEngine(ship.id);
             }}
           />
         );

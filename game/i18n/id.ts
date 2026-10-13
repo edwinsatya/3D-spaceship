@@ -159,6 +159,8 @@ export const id: Dictionary = {
     tabs: { audio: "Suara", display: "Tampilan", controls: "Kontrol", accessibility: "Aksesibilitas", language: "Bahasa" },
     languageHint: "Pilih bahasa untuk menu, HUD, dan semua fakta planet.",
     sound: "Suara",
+    volume: { master: "Volume utama", music: "Musik", effects: "Efek", engine: "Mesin" },
+    engineHint: "Setiap pesawat punya suara mesin sendiri — pilih di Hangar untuk mendengarnya.",
   },
   account: {
     title: "Akun",

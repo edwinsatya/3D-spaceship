@@ -157,6 +157,8 @@ export const en = {
     tabs: { audio: "Sound", display: "Display", controls: "Controls", accessibility: "Accessibility", language: "Language" },
     languageHint: "Choose the language for menus, the HUD and all planet facts.",
     sound: "Sound",
+    volume: { master: "Master volume", music: "Music", effects: "Effects", engine: "Engine" },
+    engineHint: "Every ship has its own engine sound — pick one in the Hangar to hear it.",
   },
   account: {
     title: "Account",

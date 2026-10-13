@@ -11,10 +11,10 @@ import {
   StateVariableFilter,
   TAU,
 } from "./dsp";
+import type { EngineVoice } from "@/game/data/ships";
 import { createRandom } from "@/game/systems/random";
 
 export type SoundId =
-  | "engine"
   | "boost"
   | "ring"
   | "pickup"
@@ -39,7 +39,7 @@ const SFX_RATE = 44100;
 const MUSIC_RATE = 32000;
 
 /** Seamless 2 s engine hum. All partials complete whole cycles in the loop. */
-function engine(): SynthesizedSound {
+export function engineSound(voice: EngineVoice): SynthesizedSound {
   const sr = SFX_RATE;
   const duration = 2;
   const out = seconds(duration, sr);
@@ -47,7 +47,7 @@ function engine(): SynthesizedSound {
   const raw = new Float32Array(out.length);
   for (let i = 0; i < raw.length; i++) raw[i] = noise();
   // Run the low-pass twice so the filter state wraps around: no click at the loop point.
-  const a = onePoleCoefficient(520, sr);
+  const a = onePoleCoefficient(voice.noiseCutoff, sr);
   let y = 0;
   for (let pass = 0; pass < 2; pass++) {
     for (let i = 0; i < raw.length; i++) {
@@ -55,16 +55,15 @@ function engine(): SynthesizedSound {
       if (pass === 1) raw[i] = y;
     }
   }
+  const [p1, p2, p3] = voice.partials;
+  const f = voice.base;
   for (let i = 0; i < out.length; i++) {
     const t = i / sr;
-    const saw = 2 * ((55 * t) % 1) - 1;
+    const saw = 2 * ((f * t) % 1) - 1;
     const tone =
-      0.38 * Math.sin(TAU * 55 * t) +
-      0.24 * Math.sin(TAU * 110 * t + 0.3) +
-      0.1 * Math.sin(TAU * 165 * t + 1.1) +
-      0.1 * saw;
-    const throb = 1 + 0.14 * Math.sin(TAU * 6 * t);
-    out[i] = Math.tanh((tone * throb + raw[i] * 1.6) * 1.3);
+      p1 * Math.sin(TAU * f * t) + p2 * Math.sin(TAU * 2 * f * t + 0.3) + p3 * Math.sin(TAU * 3 * f * t + 1.1) + voice.saw * saw;
+    const throb = 1 + voice.throbDepth * Math.sin(TAU * voice.throb * t);
+    out[i] = Math.tanh((tone * throb + raw[i] * voice.noise) * voice.drive);
   }
   return { samples: normalize(out, 0.85), sampleRate: sr };
 }
@@ -333,7 +332,6 @@ function music(): SynthesizedSound {
 }
 
 export const SOUND_BUILDERS: Record<SoundId, () => SynthesizedSound> = {
-  engine,
   boost,
   ring: () =>
     bell(

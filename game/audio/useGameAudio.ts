@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useGameStore } from "@/game/stores/gameStore";
+import { useProgressStore } from "@/game/stores/progressStore";
 import { useSettingsStore } from "@/game/stores/settingsStore";
 import { gameEvents } from "@/game/systems/events";
 import { audio } from "./audioManager";
@@ -9,10 +10,15 @@ import { audio } from "./audioManager";
 /** Maps gameplay events and phase changes to sound. */
 export function useGameAudio() {
   const muted = useSettingsStore((state) => state.muted);
+  const volume = useSettingsStore((state) => state.volume);
 
   useEffect(() => {
     audio.setMuted(muted);
   }, [muted]);
+
+  useEffect(() => {
+    audio.setMix(volume);
+  }, [volume]);
 
   useEffect(() => {
     const unsubscribers = [
@@ -44,7 +50,7 @@ export function useGameAudio() {
     () =>
       useGameStore.subscribe((state, previous) => {
         if (state.runId !== previous.runId) {
-          audio.startEngine();
+          audio.startEngine(useProgressStore.getState().ships.selected);
           audio.setMusicDucked(false);
           return;
         }
@@ -55,9 +61,9 @@ export function useGameAudio() {
         } else if (state.phase === "playing" && previous.phase === "paused") {
           audio.setEngineMuted(false);
           audio.setMusicDucked(false);
-        } else if (state.phase === "map") {
+        } else if (state.phase === "map" || state.phase === "photo") {
           audio.setEngineMuted(true);
-        } else if (state.phase === "playing" && previous.phase === "map") {
+        } else if (state.phase === "playing" && (previous.phase === "map" || previous.phase === "photo")) {
           audio.setEngineMuted(false);
         } else if (state.phase === "menu" || state.phase === "hangar") {
           audio.stopEngine();

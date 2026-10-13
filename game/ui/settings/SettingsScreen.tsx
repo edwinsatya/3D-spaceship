@@ -4,10 +4,10 @@ import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { LOCALES, type Locale } from "@/game/i18n/types";
 import { useT } from "@/game/i18n/useT";
-import { useSettingsStore } from "@/game/stores/settingsStore";
+import { useSettingsStore, type VolumeChannel } from "@/game/stores/settingsStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { GameButton, Panel } from "../primitives";
-import { SettingRow, Toggle } from "./fields";
+import { SettingRow, Slider, Toggle } from "./fields";
 
 export type SettingsTab = "audio" | "display" | "controls" | "accessibility" | "language";
 const TABS: readonly SettingsTab[] = ["audio", "display", "controls", "accessibility", "language"];
@@ -43,15 +43,24 @@ function LanguageSection() {
   );
 }
 
+const VOLUME_CHANNELS: readonly VolumeChannel[] = ["master", "music", "effects", "engine"];
+
 function AudioSection() {
   const t = useT();
   const muted = useSettingsStore((state) => state.muted);
+  const volume = useSettingsStore((state) => state.volume);
   const setMuted = useSettingsStore((state) => state.setMuted);
+  const setVolume = useSettingsStore((state) => state.setVolume);
   return (
     <div>
       <SettingRow label={t("settings.sound")}>
         <Toggle checked={!muted} onChange={(on) => setMuted(!on)} label={t("settings.sound")} />
       </SettingRow>
+      {VOLUME_CHANNELS.map((channel) => (
+        <SettingRow key={channel} label={t(`settings.volume.${channel}`)} hint={channel === "engine" ? t("settings.engineHint") : undefined}>
+          <Slider value={volume[channel]} onChange={(value) => setVolume(channel, value)} label={t(`settings.volume.${channel}`)} />
+        </SettingRow>
+      ))}
     </div>
   );
 }
