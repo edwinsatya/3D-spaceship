@@ -27,9 +27,9 @@ import {
   updateResultCamera,
 } from "./cameraRig";
 import { resolveShipSphere, spheresOverlap } from "./collision";
-import { segmentCrossesDisc } from "./course";
-import { arrivalFor, buildEnvironment } from "./environment";
-import { EMPTY_PAYLOAD, gameEvents } from "./events";
+import { segmentCrossesDisc, type RingSpec } from "./course";
+import { arrivalFor, buildEnvironment, referenceUpAt } from "./environment";
+import { EMPTY_PAYLOAD, gameEvents, type ObjectiveKind } from "./events";
 import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
 import { disengageOrbit, orbitCandidate } from "./orbit";
 import { endOrbit, flyOrbit, toggleOrbit } from "./orbitControl";
@@ -48,7 +48,8 @@ import { findDiscovery } from "./discovery";
 import { createHintState, updateHints } from "./hints";
 import { damp } from "./math";
 import { canFly, completeObjective, createMissionState, startCountdown, tickMission } from "./mission";
-import { getMissionLayout, homeSpawn, type MissionLayout } from "./missionLayout";
+import { getMissionLayout, homeSpawn, objectiveTotal, type MissionLayout } from "./missionLayout";
+import { createObjectiveState, nearestOpen } from "./objectives";
 import { runtime } from "./runtime";
 import { rateMission } from "./scoring";
 import { createWarpState, isWarping, startWarp, tickWarp } from "./warp";
@@ -69,20 +70,10 @@ const _ndc = new Vector3();
 const _toTarget = new Vector3();
 const _cameraForward = new Vector3();
 
-/** Nearest body's radial "up" for auto-level (keeps the horizon level in orbit). */
+/** Auto-level "up": away from the nearest body (the rings' pole over Saturn's rings), flat on a surface. */
 function referenceUp(ship: ShipState): Vector3 {
   if (runtime.environment.surface) return _referenceUp.set(0, 1, 0);
-  let best = Infinity;
-  const colliders = runtime.environment.colliders;
-  for (let i = 0; i < colliders.length; i++) {
-    const collider = colliders[i];
-    const altitude = ship.position.distanceTo(collider.center) - collider.surfaceRadius;
-    if (altitude < best) {
-      best = altitude;
-      _referenceUp.subVectors(ship.position, collider.center);
-    }
-  }
-  return _referenceUp.normalize();
+  return referenceUpAt(runtime.environment, ship.position, _referenceUp);
 }
 
 /** Loads the selected ship's tuning and design into the runtime. */
@@ -169,11 +160,6 @@ export function placeShipForMenu(): void {
   updateMenuCamera(runtime.camera, runtime.ship, runtime.clock);
 }
 
-/** Number of objectives a mission layout asks for. */
-function objectiveTotal(layout: MissionLayout): number {
-  return layout.gates.length;
-}
-
 export function beginRun(mode: GameMode, introFromMenu: boolean): void {
   applySelectedShip();
   const layout = mode === "mission" ? getMissionLayout(useGameStore.getState().missionId) : null;
@@ -197,6 +183,8 @@ export function beginRun(mode: GameMode, introFromMenu: boolean): void {
   }
 
   runtime.gatePassedAt = layout ? layout.gates.map(() => -1) : [];
+  runtime.objective = createObjectiveState(layout?.collectibles.length ?? 0);
+  session.setCarrying(false);
   applyLocation(layout?.mission.location ?? "earth");
   resetPickups(currentPickups());
   runtime.timeScale = 1;
@@ -359,24 +347,72 @@ function finishMission(layout: MissionLayout, value: number): void {
 }
 
 /** Records one finished objective; ends the mission after the last one. */
-function objectiveDone(layout: MissionLayout): void {
+function objectiveDone(layout: MissionLayout, kind: ObjectiveKind): void {
   const mission = runtime.mission;
   const finished = completeObjective(mission);
   useSessionStore.getState().setObjectiveDone(mission.completed);
-  gameEvents.emit("objectiveProgress", { kind: "ring", done: mission.completed, total: mission.total });
+  gameEvents.emit("objectiveProgress", { kind, done: mission.completed, total: mission.total });
   if (finished) finishMission(layout, mission.elapsedMs);
+}
+
+function crossesGate(gate: RingSpec): boolean {
+  const ship = runtime.ship;
+  return segmentCrossesDisc(ship.previousPosition, ship.position, gate.position, gate.normal, gate.radius);
+}
+
+/** Index of the first not-yet-collected item the ship is touching, or -1. */
+function touchedCollectible(layout: MissionLayout, radius: number): number {
+  const { collected } = runtime.objective;
+  const items = layout.collectibles;
+  for (let index = 0; index < items.length; index++) {
+    if (collected[index]) continue;
+    if (spheresOverlap(runtime.ship.position, runtime.flight.collisionRadius, items[index].position, radius)) return index;
+  }
+  return -1;
+}
+
+function collect(index: number): void {
+  runtime.objective.collected[index] = true;
+  runtime.objective.collectedAt[index] = runtime.clock;
 }
 
 function handleObjectives(): void {
   const layout = runtime.layout;
   const mission = runtime.mission;
   if (!layout || mission.status !== "running") return;
-  const gate = layout.gates[mission.completed];
-  if (!gate) return;
-  const ship = runtime.ship;
-  if (!segmentCrossesDisc(ship.previousPosition, ship.position, gate.position, gate.normal, gate.radius)) return;
-  runtime.gatePassedAt[gate.index] = runtime.clock;
-  objectiveDone(layout);
+  const objective = runtime.objective;
+  switch (layout.mission.objective.type) {
+    case "rings": {
+      const gate = layout.gates[mission.completed];
+      if (!gate || !crossesGate(gate)) return;
+      runtime.gatePassedAt[gate.index] = runtime.clock;
+      objectiveDone(layout, "ring");
+      return;
+    }
+    case "collect": {
+      const index = touchedCollectible(layout, MISSION.crystalPickupRadius);
+      if (index < 0) return;
+      collect(index);
+      objectiveDone(layout, "crystal");
+      return;
+    }
+    case "delivery": {
+      if (objective.carrying < 0) {
+        const index = touchedCollectible(layout, MISSION.podPickupRadius);
+        if (index < 0) return;
+        collect(index);
+        objective.carrying = index;
+        useSessionStore.getState().setCarrying(true);
+        gameEvents.emit("cargoLoaded", { index });
+        return;
+      }
+      if (!crossesGate(layout.gates[0])) return;
+      objective.carrying = -1;
+      runtime.gatePassedAt[0] = runtime.clock;
+      useSessionStore.getState().setCarrying(false);
+      objectiveDone(layout, "delivery");
+    }
+  }
 }
 
 function handleMissionClock(dt: number): void {
@@ -401,6 +437,7 @@ function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): vo
     isExploring(mode) || mission.status === "countdown" || mission.status === "running";
   tutorial.timeSinceStart = mode === "mission" ? mission.elapsedMs / 1000 : runtime.freeFlightTime;
   tutorial.objectivesDone = mission.completed;
+  tutorial.carrying = runtime.objective.carrying >= 0;
   tutorial.steerAmount += (Math.abs(input.pitch) + Math.abs(input.yaw)) * realDt;
   tutorial.throttleRaised ||= input.throttle > runtime.startThrottle + 0.12;
   tutorial.rollUsed ||= Math.abs(input.roll) > 0.5;
@@ -533,6 +570,23 @@ function stepFlight(
   updateFov(camera, ship, realDt);
 }
 
+/** Where the mission wants you next: the next ring, the nearest crystal or pod, or the dock. */
+function missionGoal(): Vector3 | null {
+  const layout = runtime.layout;
+  if (!layout) return null;
+  const objective = runtime.objective;
+  switch (layout.mission.objective.type) {
+    case "rings":
+      return layout.gates[runtime.mission.completed]?.position ?? null;
+    case "collect":
+      return nearestOpen(layout.collectibles, objective.collected, runtime.ship.position);
+    case "delivery":
+      return objective.carrying >= 0
+        ? layout.gates[0].position
+        : nearestOpen(layout.collectibles, objective.collected, runtime.ship.position);
+  }
+}
+
 function updateTargetIndicator(mode: GameMode, camera: PerspectiveCamera, dt: number): void {
   const target = runtime.target;
   const mission = runtime.mission;
@@ -540,13 +594,13 @@ function updateTargetIndicator(mode: GameMode, camera: PerspectiveCamera, dt: nu
   let surface = 0;
 
   if (mode === "mission") {
-    const gate = runtime.layout?.gates[mission.completed];
-    if (!gate || mission.status === "finished") {
+    const goal = missionGoal();
+    if (!goal || mission.status === "finished") {
       target.visible = false;
       runtime.targetOffscreenTime = 0;
       return;
     }
-    _targetUniverse.copy(gate.position);
+    _targetUniverse.copy(goal);
     target.kind = "ring";
     target.bodyId = null;
     target.returning = false;

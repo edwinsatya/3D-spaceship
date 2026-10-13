@@ -13,6 +13,7 @@ import { createOrbitState } from "./orbit";
 import type { Terrain } from "./terrain";
 import { createWarpState } from "./warp";
 import type { MissionLayout } from "./missionLayout";
+import { createObjectiveState } from "./objectives";
 
 export type TargetKind = "ring" | "body" | "poi";
 
@@ -128,6 +129,8 @@ export const runtime = {
   gatePassedAt: [] as number[],
   /** Layout of the mission being flown (null outside missions). */
   layout: null as MissionLayout | null,
+  /** Crystals / pods picked up and the pod being towed. */
+  objective: createObjectiveState(0),
   pickups: { active: [], respawnIn: [], collectedAt: [] } as PickupRuntime,
   target: {
     visible: false,
@@ -148,6 +151,7 @@ export const runtime = {
     timeSinceStart: 0,
     objective: null,
     objectivesDone: 0,
+    carrying: false,
     steerAmount: 0,
     throttleRaised: false,
     boostUsed: false,

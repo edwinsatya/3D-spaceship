@@ -11,6 +11,11 @@ export const MISSION = {
   ringPassFadeDuration: 0.55,
   /** Energy star pickup sphere radius (u). */
   pickupRadius: 4.5,
+  /** Crystal (collect missions) and cargo pod (delivery missions) pickup radii (u). */
+  crystalPickupRadius: 5,
+  podPickupRadius: 6.5,
+  /** A towed cargo pod hangs under the ship (below, behind; u) so it never blocks the chase camera. */
+  podTow: { below: 4.2, behind: 1.2 },
   /** Free flight: seconds before a collected energy star respawns. */
   pickupRespawn: 12,
   /** HUD: ring/target marker shows on-screen inside this NDC margin. */

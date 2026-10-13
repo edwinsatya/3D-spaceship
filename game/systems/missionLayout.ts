@@ -1,14 +1,21 @@
 import type { Vector3 } from "three";
 import { MISSIONS, type MissionDefinition, type MissionId } from "@/game/data/missions";
+import { BODIES } from "@/game/data/planets";
 import { sunDirectionFor } from "@/game/data/solarSystem";
-import { generateCourse, generateEnergyStars, type PickupSpec, type RingSpec, type SpawnPoint } from "./course";
+import { generateCourse, generateEnergyStars, toVector, type PickupSpec, type RingSpec, type SpawnPoint } from "./course";
+import { arrivalFor, buildEnvironment } from "./environment";
+import { generateCrystals, greedyRoute } from "./objectives";
+import { locationAsteroids } from "./scenery";
+import { stationLayout } from "./station";
 
 export interface MissionLayout {
   mission: MissionDefinition;
   spawn: SpawnPoint;
-  /** Gates to fly through in order (race rings). */
+  /** Gates to fly through: race rings in order, or the station's docking gate. */
   gates: RingSpec[];
-  /** Suggested route from the spawn (racing line; used by balance tests). */
+  /** Crystals to collect, or cargo pods to deliver. */
+  collectibles: PickupSpec[];
+  /** Suggested route from the spawn (racing line / visiting order; used by balance tests). */
   path: Vector3[];
   energyStars: PickupSpec[];
 }
@@ -16,16 +23,43 @@ export interface MissionLayout {
 const cache = new Map<MissionId, MissionLayout>();
 
 function buildLayout(mission: MissionDefinition): MissionLayout {
-  const sun = sunDirectionFor(mission.location);
-  const objective = mission.objective;
-  const course = generateCourse(objective.course, sun);
-  return {
-    mission,
-    spawn: course.spawn,
-    gates: course.rings,
-    path: course.path,
-    energyStars: generateEnergyStars(objective.energyStars, objective.course, sun),
-  };
+  const { location, objective } = mission;
+  const sun = sunDirectionFor(location);
+  switch (objective.type) {
+    case "rings": {
+      const course = generateCourse(objective.course, sun);
+      return {
+        mission,
+        spawn: course.spawn,
+        gates: course.rings,
+        collectibles: [],
+        path: course.path,
+        energyStars: generateEnergyStars(objective.energyStars, objective.course, sun),
+      };
+    }
+    case "collect": {
+      const spawn = arrivalFor(location);
+      const crystals = generateCrystals(objective.crystals, locationAsteroids(location), toVector(BODIES[location].position));
+      return {
+        mission,
+        spawn,
+        gates: [],
+        collectibles: crystals,
+        path: greedyRoute(spawn.position, crystals.map((crystal) => crystal.position)),
+        energyStars: buildEnvironment(location).pickups,
+      };
+    }
+    case "delivery": {
+      const spawn = homeSpawn();
+      const dock = stationLayout().dock;
+      const pods = objective.pods.map((pod) => ({ position: toVector(pod) }));
+      // Pod, then line up in front of the dock and fly through it, nearest pod first.
+      const approach = dock.position.clone().addScaledVector(dock.normal, 30);
+      const path = [spawn.position.clone()];
+      for (const pod of greedyRoute(approach, pods.map((p) => p.position)).slice(1)) path.push(pod, approach, dock.position);
+      return { mission, spawn, gates: [dock], collectibles: pods, path, energyStars: buildEnvironment(location).pickups };
+    }
+  }
 }
 
 /** Deterministic layout, generated once and shared by rendering and gameplay. */
@@ -43,7 +77,7 @@ export function homeSpawn(): SpawnPoint {
   return getMissionLayout("orbit-rings").spawn;
 }
 
-/** Earth's free-flight energy stars are the ones along the Orbit Rings course. */
-export function homeEnergyStars(): PickupSpec[] {
-  return getMissionLayout("orbit-rings").energyStars;
+/** How many objectives finish the mission (rings, crystals or deliveries). */
+export function objectiveTotal(layout: MissionLayout): number {
+  return layout.mission.objective.type === "rings" ? layout.gates.length : layout.collectibles.length;
 }

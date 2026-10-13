@@ -3,7 +3,7 @@ import type { MissionId } from "@/game/data/missions";
 import type { SurfaceId } from "@/game/data/surfaces";
 
 /** What a mission objective step was (drives sounds and toasts). */
-export type ObjectiveKind = "ring";
+export type ObjectiveKind = "ring" | "crystal" | "delivery";
 
 /** Discrete gameplay events (rare; safe to allocate payloads). */
 export interface GameEventMap {
@@ -12,6 +12,8 @@ export interface GameEventMap {
   /** One objective done: `done` counts from 1 up to `total`. */
   objectiveProgress: { kind: ObjectiveKind; done: number; total: number };
   missionComplete: { mission: MissionId };
+  /** A cargo pod was picked up (delivery missions). */
+  cargoLoaded: { index: number };
   pickup: { amount: number };
   collision: { strength: number };
   boostStart: Record<string, never>;

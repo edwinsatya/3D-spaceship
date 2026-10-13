@@ -19,6 +19,8 @@ export const EXPLORATION = {
   /** First visit counts once the ship is within this many radii (or this many units for tiny bodies). */
   discoveryDistance: 4.2,
   minDiscoveryDistance: 250,
+  /** Over a ring disc (within this height, between inner×innerFactor and outer×outerFactor) the rings become the floor. */
+  ringZone: { height: 180, innerFactor: 0.85, outerFactor: 1.15 },
 
   warp: {
     charge: 0.9,

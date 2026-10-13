@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { useRef } from "react";
+import { MISSIONS } from "@/game/data/missions";
 import { BODIES } from "@/game/data/planets";
 import { SURFACES } from "@/game/data/surfaces";
 import { useProgressStore } from "@/game/stores/progressStore";
@@ -39,6 +40,15 @@ export function TopBar() {
   const mode = useGameStore((state) => state.mode);
   const done = useSessionStore((state) => state.objectiveDone);
   const total = useSessionStore((state) => state.objectiveTotal);
+  const carrying = useSessionStore((state) => state.carrying);
+  const missionId = useGameStore((state) => state.missionId);
+  const objective = MISSIONS[missionId].objective.type;
+  const missionText =
+    objective === "collect"
+      ? t("hud.objectiveCollect", { done, total })
+      : objective === "delivery"
+        ? t(carrying ? "hud.objectiveDock" : "hud.objectivePickup", { done, total })
+        : t("hud.objectiveRings", { current: Math.min(done + 1, total), total });
   const endTestFlight = useGameStore((state) => state.endTestFlight);
   const location = useGameStore((state) => state.location);
   const surface = useGameStore((state) => state.surface);
@@ -95,7 +105,7 @@ export function TopBar() {
                 animate={{ scale: 1, color: "#ffffff" }}
                 className="font-display text-xs font-bold tracking-widest sm:text-sm"
               >
-                {t("hud.objectiveRings", { current: Math.min(done + 1, total), total })}
+                {missionText}
               </motion.span>
               <RingPips passed={done} total={total} />
             </div>

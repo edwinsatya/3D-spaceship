@@ -18,9 +18,14 @@ export function useFeedback() {
     };
     const toast = useSessionStore.getState().pushToast;
     const unsubscribers = [
-      gameEvents.on("objectiveProgress", ({ done, total }) => {
-        toast("ring", translate(locale(), "hud.toastRing", { current: done, total }));
+      gameEvents.on("objectiveProgress", ({ kind, done, total }) => {
+        const key = kind === "crystal" ? "hud.toastCrystal" : kind === "delivery" ? "hud.toastDelivered" : "hud.toastRing";
+        toast("ring", translate(locale(), key, { current: done, total }));
         vibrate("ring");
+      }),
+      gameEvents.on("cargoLoaded", () => {
+        toast("energy", translate(locale(), "hud.toastCargo"));
+        vibrate("pickup");
       }),
       gameEvents.on("pickup", () => {
         toast("energy", translate(locale(), "hud.toastEnergy"));

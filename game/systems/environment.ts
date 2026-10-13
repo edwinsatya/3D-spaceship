@@ -4,9 +4,8 @@ import { EXPLORATION } from "@/game/config/exploration";
 import { BODIES, type BodyId, type CelestialBody, type LocationId } from "@/game/data/planets";
 import { LOCATION_BODIES, sunDirectionFor, sunlightFor } from "@/game/data/solarSystem";
 import { SURFACES, type SurfaceId } from "@/game/data/surfaces";
-import { BELT_SLALOM_COURSE } from "@/game/data/missions";
-import { generateCourse, toVector, type AsteroidSpec, type PickupSpec } from "./course";
-import { homeEnergyStars } from "./missionLayout";
+import { BELT_SLALOM_COURSE, ORBIT_RINGS_COURSE, ORBIT_RINGS_STARS } from "@/game/data/missions";
+import { generateCourse, generateEnergyStars, toVector, type AsteroidSpec, type PickupSpec } from "./course";
 import { locationAsteroids } from "./scenery";
 import { stationLayout } from "./station";
 
@@ -18,6 +17,7 @@ function stationObstacles(): BodyCollider[] {
     surfaceRadius: sphere.radius,
   }));
 }
+import { smoothstep } from "./math";
 import { createRandom } from "./random";
 import type { Terrain } from "./terrain";
 
@@ -46,6 +46,61 @@ export interface Environment {
   asteroids: AsteroidSpec[];
   /** Man-made props to bump into (the station); not planets, so no orbit/landing/auto-level. */
   obstacles: BodyCollider[];
+  /** The primary's ring disc (Saturn…): near it, "up" is the planet's pole, so the rings are the floor. */
+  ringPlane: RingPlane | null;
+}
+
+export interface RingPlane {
+  center: Vector3;
+  normal: Vector3;
+  inner: number;
+  outer: number;
+}
+
+function ringPlaneFor(body: CelestialBody): RingPlane | null {
+  if (!body.rings) return null;
+  const tilt = (body.axialTilt * Math.PI) / 180;
+  // Same tilt as the planet group: the pole is +Y rotated about Z.
+  return {
+    center: toVector(body.position),
+    normal: new Vector3(-Math.sin(tilt), Math.cos(tilt), 0),
+    inner: Math.min(...body.rings.bands.map((band) => band.from)) * body.radius,
+    outer: Math.max(...body.rings.bands.map((band) => band.to)) * body.radius,
+  };
+}
+
+const _relative = new Vector3();
+const _pole = new Vector3();
+
+/**
+ * Auto-level "up" at a position: away from the nearest body, blending into
+ * the ring plane's normal while you fly low over a ring disc. Allocation-free.
+ */
+export function referenceUpAt(environment: Environment, position: Vector3, target: Vector3): Vector3 {
+  let best = Infinity;
+  const colliders = environment.colliders;
+  for (let i = 0; i < colliders.length; i++) {
+    const collider = colliders[i];
+    const altitude = position.distanceTo(collider.center) - collider.surfaceRadius;
+    if (altitude < best) {
+      best = altitude;
+      target.subVectors(position, collider.center);
+    }
+  }
+  target.normalize();
+  const plane = environment.ringPlane;
+  if (!plane) return target;
+  _relative.subVectors(position, plane.center);
+  const height = _relative.dot(plane.normal);
+  const radial = Math.sqrt(Math.max(0, _relative.lengthSq() - height * height));
+  const { ringZone } = EXPLORATION;
+  const weight =
+    (1 - smoothstep(ringZone.height * 0.6, ringZone.height, Math.abs(height))) *
+    smoothstep(plane.inner * ringZone.innerFactor, plane.inner, radial) *
+    (1 - smoothstep(plane.outer, plane.outer * ringZone.outerFactor, radial));
+  if (weight <= 0) return target;
+  _pole.copy(plane.normal).multiplyScalar(height >= 0 ? 1 : -1);
+  return target.lerp(_pole, weight).normalize();
 }
 
 const PICKUPS_PER_LOCATION = 10;
@@ -75,6 +130,14 @@ export function moonletPosition(planet: CelestialBody, index: number, target = n
   const x = target.x * Math.cos(tilt) - target.y * Math.sin(tilt);
   const y = target.x * Math.sin(tilt) + target.y * Math.cos(tilt);
   return target.set(x, y, target.z).add(toVector(planet.position));
+}
+
+let earthStars: PickupSpec[] | null = null;
+
+/** Earth's free-flight energy stars are the ones along the Orbit Rings course. */
+export function homeEnergyStars(): PickupSpec[] {
+  earthStars ??= generateEnergyStars(ORBIT_RINGS_STARS, ORBIT_RINGS_COURSE, sunDirectionFor("earth"));
+  return earthStars;
 }
 
 /** Energy stars scattered in a loose shell around the location's planet. */
@@ -127,6 +190,7 @@ export function buildEnvironment(location: LocationId): Environment {
     pickups: location === "earth" ? homeEnergyStars() : locationPickups(location),
     asteroids: locationAsteroids(location),
     obstacles: location === "earth" ? stationObstacles() : [],
+    ringPlane: ringPlaneFor(primary),
   };
 }
 
@@ -155,6 +219,7 @@ export function buildSurfaceEnvironment(location: LocationId, surface: SurfaceId
     pickups: terrain.pickups,
     asteroids: [],
     obstacles: [],
+    ringPlane: null,
   };
 }
 

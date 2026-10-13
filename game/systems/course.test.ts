@@ -2,7 +2,7 @@ import { Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { COLLISION, FLIGHT } from "@/game/config/flight";
 import { WORLD } from "@/game/config/world";
-import { EARTH_ASTEROID_FIELD, ORBIT_RINGS, ORBIT_RINGS_COURSE } from "@/game/data/missions";
+import { EARTH_ASTEROID_FIELD, ORBIT_RINGS_COURSE, ORBIT_RINGS_STARS } from "@/game/data/missions";
 import { EARTH } from "@/game/data/planets";
 import {
   distanceToPolyline,
@@ -38,7 +38,7 @@ describe("segmentCrossesDisc", () => {
 });
 
 describe("orbit ring course", () => {
-  const STARS = ORBIT_RINGS.objective.energyStars;
+  const STARS = ORBIT_RINGS_STARS;
   const layout = generateCourse(ORBIT_RINGS_COURSE, WORLD.sunDirection);
 
   it("has 12 rings whose openings clear the planet's collision sphere", () => {

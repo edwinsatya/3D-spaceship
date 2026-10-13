@@ -6,6 +6,7 @@ import { Asteroids } from "@/game/entities/Asteroids";
 import { Earth } from "@/game/entities/Earth";
 import { EnergyStars } from "@/game/entities/EnergyStars";
 import { Moon } from "@/game/entities/Moon";
+import { CargoPods, Crystals, DockPortal } from "@/game/entities/MissionProps";
 import { Rings } from "@/game/entities/Rings";
 import { Station } from "@/game/entities/Station";
 import { Ship } from "@/game/entities/ship/Ship";
@@ -73,10 +74,18 @@ function MissionContent({ location, layout }: { location: LocationId; layout: Mi
     [layout, location],
   );
   const here = layout && layout.mission.location === location ? layout : null;
+  const type = here?.mission.objective.type;
   return (
     <>
       <EnergyStars pickups={pickups} />
-      {here && here.gates.length > 0 && <Rings rings={here.gates} />}
+      {here && type === "rings" && <Rings rings={here.gates} />}
+      {here && type === "collect" && <Crystals crystals={here.collectibles} />}
+      {here && type === "delivery" && (
+        <>
+          <CargoPods pods={here.collectibles} />
+          <DockPortal gate={here.gates[0]} />
+        </>
+      )}
     </>
   );
 }

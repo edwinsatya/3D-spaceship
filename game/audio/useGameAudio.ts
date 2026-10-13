@@ -16,7 +16,10 @@ export function useGameAudio() {
 
   useEffect(() => {
     const unsubscribers = [
-      gameEvents.on("objectiveProgress", ({ done }) => audio.play("ring", { rate: 1 + (done - 1) * 0.035 })),
+      gameEvents.on("objectiveProgress", ({ kind, done }) =>
+        kind === "delivery" ? audio.play("go") : audio.play("ring", { rate: 1 + (done - 1) * (kind === "crystal" ? 0.06 : 0.035) }),
+      ),
+      gameEvents.on("cargoLoaded", () => audio.play("pickup", { rate: 0.8 })),
       gameEvents.on("pickup", () => audio.play("pickup")),
       gameEvents.on("collision", ({ strength }) => audio.play("collision", { volume: 0.55 + strength * 0.45 })),
       gameEvents.on("boostStart", () => audio.play("boost")),

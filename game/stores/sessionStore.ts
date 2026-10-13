@@ -31,6 +31,8 @@ interface SessionStore {
   /** Mission objectives done / to do (rings, crystals, deliveries…). */
   objectiveDone: number;
   objectiveTotal: number;
+  /** Delivery missions: a cargo pod is being towed. */
+  carrying: boolean;
   /** 3, 2, 1, 0 (= GO) or null when hidden. */
   countdown: number | null;
   hint: HintId | null;
@@ -41,6 +43,7 @@ interface SessionStore {
   setStatus: (status: MissionStatus) => void;
   setCountdown: (value: number | null) => void;
   setObjectiveDone: (count: number) => void;
+  setCarrying: (carrying: boolean) => void;
   setHint: (hint: HintId | null) => void;
   setResult: (result: MissionResult) => void;
   pushToast: (kind: ToastKind, text: string) => void;
@@ -54,16 +57,20 @@ export const useSessionStore = create<SessionStore>()((set) => ({
   status: "idle",
   objectiveDone: 0,
   objectiveTotal: 0,
+  carrying: false,
   countdown: null,
   hint: null,
   result: null,
   toasts: [],
 
   reset: (objectiveTotal) =>
-    set({ status: "idle", objectiveDone: 0, objectiveTotal, countdown: null, hint: null, result: null, toasts: [] }),
+    set({ status: "idle", objectiveDone: 0, objectiveTotal, carrying: false, countdown: null, hint: null, result: null, toasts: [] }),
   setStatus: (status) => set({ status }),
   setCountdown: (countdown) => set({ countdown }),
   setObjectiveDone: (objectiveDone) => set({ objectiveDone }),
+  setCarrying: (carrying) => {
+    if (useSessionStore.getState().carrying !== carrying) set({ carrying });
+  },
   setHint: (hint) => set({ hint }),
   setResult: (result) => set({ result }),
   pushToast: (kind, text) =>

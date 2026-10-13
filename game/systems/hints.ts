@@ -13,6 +13,9 @@ export type HintId =
   | "steer"
   | "throttle"
   | "ring"
+  | "crystal"
+  | "cargoPickup"
+  | "cargoDock"
   | "followArrow"
   | "boost"
   | "energy"
@@ -30,6 +33,8 @@ export interface HintContext {
   /** Objective type of the current mission (null in free flight). */
   objective: ObjectiveType | null;
   objectivesDone: number;
+  /** Delivery missions: towing a cargo pod. */
+  carrying: boolean;
   steerAmount: number;
   throttleRaised: boolean;
   boostUsed: boolean;
@@ -97,6 +102,33 @@ export const HINTS: readonly HintDefinition[] = [
     done: (c) => c.objectivesDone > 0,
     minShow: 1,
     maxShow: 8,
+  },
+  {
+    id: "crystal",
+    text: { desktop: "hints.crystal", touch: "hints.crystal" },
+    modes: ["mission"],
+    trigger: (c) => c.objective === "collect" && c.timeSinceStart > 2 && c.objectivesDone === 0,
+    done: (c) => c.objectivesDone > 0,
+    minShow: 1,
+    maxShow: 8,
+  },
+  {
+    id: "cargoPickup",
+    text: { desktop: "hints.cargoPickup", touch: "hints.cargoPickup" },
+    modes: ["mission"],
+    trigger: (c) => c.objective === "delivery" && c.timeSinceStart > 2 && !c.carrying && c.objectivesDone === 0,
+    done: (c) => c.carrying || c.objectivesDone > 0,
+    minShow: 1,
+    maxShow: 8,
+  },
+  {
+    id: "cargoDock",
+    text: { desktop: "hints.cargoDock", touch: "hints.cargoDock" },
+    modes: ["mission"],
+    trigger: (c) => c.objective === "delivery" && c.carrying && c.objectivesDone === 0,
+    done: (c) => c.objectivesDone > 0,
+    minShow: 1,
+    maxShow: 9,
   },
   {
     id: "boost",

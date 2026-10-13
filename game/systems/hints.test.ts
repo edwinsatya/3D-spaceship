@@ -9,6 +9,7 @@ function context(overrides: Partial<HintContext> = {}): HintContext {
     timeSinceStart: 0,
     objective: "rings",
     objectivesDone: 0,
+    carrying: false,
     steerAmount: 0,
     throttleRaised: false,
     boostUsed: false,
