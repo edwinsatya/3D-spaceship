@@ -48,10 +48,11 @@ export const SoundOffIcon = (props: IconProps) => (
   </Icon>
 );
 
+/** Switch view (chase ⇄ cockpit): swap arrows, so it can't be mistaken for the photo camera. */
 export const CameraIcon = (props: IconProps) => (
   <Icon {...props}>
-    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-    <circle cx="12" cy="13" r="3.5" />
+    <path d="M4 8h14m-4-4 4 4-4 4" />
+    <path d="M20 16H6m4-4-4 4 4 4" />
   </Icon>
 );
 
