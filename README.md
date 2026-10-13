@@ -112,9 +112,10 @@ Prinsip penting:
    seret untuk memutar 360°. **Uji Terbang** → 45 detik terbang → kembali ke Hangar. Pilihan tetap setelah reload.
 2. **Terbang Bebas** → dekati Bulan → banner "Moon discovered!"; tekan **F** → orbit sinematik + kartu info;
    **F** lagi untuk keluar.
-3. Dekat Bulan tekan **L** → turun (guncangan), layar gelap, muncul Laut Ketenangan. Terbang ke pilar hijau:
-   situs Apollo 11 (pendarat + bendera), kawah, dan titik Earthrise (Bumi terlihat di langit hitam). Tiap situs
-   memunculkan kartu fakta; objektif di atas menghitung situs. **L** → lepas landas kembali ke orbit Bulan.
+3. Dekat Bulan tekan **L** → turun (guncangan), layar gelap, muncul Laut Ketenangan dan pesawat mendarat pelan di
+   landasan lalu diam. Tahan **W** untuk terbang ke pilar hijau: situs Apollo 11 (pendarat + bendera), kawah, dan
+   titik Earthrise (Bumi terlihat di langit hitam). Tiap situs memunculkan kartu fakta; objektif di atas menghitung
+   situs. **L** → lepas landas, langsung mengorbit Bulan di atas titik tempat kamu turun (**F** untuk keluar orbit).
 4. **Tab** → peta Tata Surya → pilih Mars → **Warp** (terowongan warp) → tiba di Mars. **L** → masuk atmosfer
    (pinggir layar menyala oranye) → Kawah Jezero dengan langit Mars: Perseverance, Ingenuity, delta sungai.
 5. Warp ke Jupiter/Saturnus/Venus/Matahari, dekati, tekan **L** → kartu penjelasan ilmiah kenapa tidak bisa mendarat.

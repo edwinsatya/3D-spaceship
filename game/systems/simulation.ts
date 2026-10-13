@@ -429,7 +429,9 @@ function updatePrompts(mode: GameMode, controllable: boolean): void {
   const colliders = runtime.environment.colliders;
   prompts.orbit =
     available && !orbit.active ? (orbitCandidate(runtime.ship.position, colliders, EXPLORATION.orbit)?.id ?? null) : null;
-  prompts.land = available ? (landingCandidate(runtime.ship.position, colliders)?.id ?? null) : null;
+  const land = available ? (landingCandidate(runtime.ship.position, colliders)?.id ?? null) : null;
+  // The free-flight course circles Earth: a permanent "Can we land on Earth?" button would be noise (L still answers).
+  prompts.land = land === "earth" ? null : land;
   prompts.takeOff = controllable && runtime.landing.phase === "surface";
 }
 

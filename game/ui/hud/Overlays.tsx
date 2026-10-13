@@ -47,34 +47,42 @@ export function Countdown() {
   );
 }
 
-export function HintBanner({ placement }: { placement: "bottom" | "top" }) {
+/**
+ * "bottom": above the gauges (desktop). "abovePrompts": just above the context
+ * buttons (landscape phones). "stack": inline in the HUD's top banner column (tablets).
+ */
+export function HintBanner({ placement }: { placement: "bottom" | "abovePrompts" | "stack" }) {
   const t = useT();
   const hint = useSessionStore((state) => state.hint);
   const device = useGameStore((state) => state.device);
+  const banner = (
+    <AnimatePresence mode="wait">
+      {hint && (
+        <motion.div
+          key={hint}
+          role="status"
+          initial={{ y: 16, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -10, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24 }}
+          className="hud-panel flex items-center gap-3 rounded-2xl border-star/50 px-5 py-3 short:px-4 short:py-2"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-star font-display text-sm font-black text-slate-900">
+            !
+          </span>
+          <span className="text-base font-semibold sm:text-lg short:text-sm">{t(getHintText(hint, device))}</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+  if (placement === "stack") return banner;
   return (
     <div
       className={`absolute left-1/2 flex w-full max-w-xl -translate-x-1/2 justify-center px-4 ${
-        placement === "bottom" ? "bottom-28 sm:bottom-32" : "top-24"
+        placement === "bottom" ? "bottom-28 sm:bottom-32" : "bottom-[4.5rem]"
       }`}
     >
-      <AnimatePresence mode="wait">
-        {hint && (
-          <motion.div
-            key={hint}
-            role="status"
-            initial={{ y: 16, opacity: 0, scale: 0.96 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -10, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="hud-panel flex items-center gap-3 rounded-2xl border-star/50 px-5 py-3"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-star font-display text-sm font-black text-slate-900">
-              !
-            </span>
-            <span className="text-base font-semibold sm:text-lg">{t(getHintText(hint, device))}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {banner}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function PlanetInfoCard() {
 
   const data = body ? BODIES[body] : null;
   return (
-    <div className="absolute top-16 left-0 w-80 max-w-[42vw] sm:top-20 short:top-14">
+    <div className="absolute top-16 left-0 w-80 max-w-[42vw] sm:top-20 short:top-[4.5rem] short:max-w-[30vw]">
       <AnimatePresence>
         {data && (
           <motion.aside

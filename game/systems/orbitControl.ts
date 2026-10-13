@@ -6,6 +6,7 @@ import { EMPTY_PAYLOAD, gameEvents } from "./events";
 import { getShipForward, orientationFromForwardUp } from "./flight";
 import { damp, dampFactor } from "./math";
 import { advanceOrbit, disengageOrbit, engageOrbit, orbitCandidate, orbitPose } from "./orbit";
+import type { BodyCollider } from "./environment";
 import { runtime } from "./runtime";
 
 const _forward = new Vector3();
@@ -28,10 +29,16 @@ export function toggleOrbit(): void {
   }
   const candidate = orbitCandidate(runtime.ship.position, runtime.environment.colliders, EXPLORATION.orbit);
   if (!candidate?.id) return;
-  getShipForward(runtime.ship, _forward);
-  engageOrbit(runtime.orbit, runtime.ship.position, _forward, candidate, EXPLORATION.orbit);
+  orbitAround(candidate);
   runtime.tutorial.orbited = true;
-  gameEvents.emit("orbitStart", { body: candidate.id });
+}
+
+/** Starts orbiting `body` from the ship's current position and heading. */
+export function orbitAround(body: BodyCollider): void {
+  if (!body.id) return;
+  getShipForward(runtime.ship, _forward);
+  engageOrbit(runtime.orbit, runtime.ship.position, _forward, body, EXPLORATION.orbit);
+  gameEvents.emit("orbitStart", { body: body.id });
 }
 
 /** Autopilot: ease onto the orbit path, face along it, belly to the planet. */

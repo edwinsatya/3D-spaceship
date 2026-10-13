@@ -35,6 +35,8 @@ export const VISUALS = {
     size: 3400,
     /** Scale of the procedural props (lander, rover, helicopter). */
     propScale: 1.6,
+    /** Main-thread time (ms per frame) spent building the ground during the descent. */
+    prebuildBudgetMs: 3,
     beacon: { height: 90, radius: 1.3, visitedOpacity: 0.25 },
     /** Earth in the lunar sky: distance from the camera (u) and radius (~7° wide; really ~2°). */
     earthInSky: { distance: 6000, radius: 380 },

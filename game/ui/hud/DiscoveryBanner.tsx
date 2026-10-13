@@ -34,29 +34,32 @@ export function DiscoveryBanner() {
         : t("hud.discovered");
 
   return (
-    <div className="absolute inset-x-0 top-[20%] flex justify-center px-4">
-      <AnimatePresence>
-        {body && (
+    <AnimatePresence>
+      {body && (
+        <motion.div
+          key={body.id}
+          initial={{ y: -20, opacity: 0, scale: 0.85 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -12, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="hud-panel flex items-center gap-4 rounded-3xl border-star/60 px-6 py-4 shadow-[0_0_40px_rgba(255,216,77,0.25)] short:max-w-[36vw] short:gap-3 short:px-4 short:py-2"
+          role="status"
+        >
           <motion.div
-            key={body.id}
-            initial={{ y: -20, opacity: 0, scale: 0.85 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -12, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="hud-panel flex items-center gap-4 rounded-3xl border-star/60 px-6 py-4 shadow-[0_0_40px_rgba(255,216,77,0.25)]"
-            role="status"
+            initial={{ rotate: -30, scale: 0.4 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.15 }}
+            className="shrink-0 short:*:size-10"
           >
-            <motion.div initial={{ rotate: -30, scale: 0.4 }} animate={{ rotate: 0, scale: 1 }} transition={{ delay: 0.15 }}>
-              <PlanetIcon id={body.id} size={64} />
-            </motion.div>
-            <div>
-              <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-star">{title}</p>
-              <p className="hud-text font-display text-3xl font-black tracking-wider">{localize(body.name, locale)}</p>
-              <p className="text-xs text-cyan-100/80">{t("hud.newEntry")}</p>
-            </div>
+            <PlanetIcon id={body.id} size={64} />
           </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          <div>
+            <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-star">{title}</p>
+            <p className="hud-text font-display text-3xl font-black tracking-wider short:text-lg">{localize(body.name, locale)}</p>
+            <p className="text-xs text-cyan-100/80 short:hidden">{t("hud.newEntry")}</p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

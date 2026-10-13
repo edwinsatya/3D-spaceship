@@ -29,7 +29,7 @@ import { SpaceDust } from "./SpaceDust";
 import { SpeedLines } from "./SpeedLines";
 import { StarLayers } from "./StarLayers";
 import { WarpTunnel } from "./WarpTunnel";
-import { EarthInSky, MarsSky, SurfaceFog, SurfaceLight, SurfaceScene } from "./surface/SurfaceScene";
+import { EarthInSky, MarsSky, SurfaceFog, SurfaceLight, SurfaceScene, TerrainPrebuilder } from "./surface/SurfaceScene";
 import { SURFACES } from "@/game/data/surfaces";
 import { useQualitySettings } from "./useQualitySettings";
 
@@ -109,6 +109,7 @@ export function SpaceScene() {
       <SpaceDust />
       {speedLines && <SpeedLines />}
       <WarpTunnel />
+      <TerrainPrebuilder />
       <GameLoop />
       {loaded && <QualityManager />}
       <Effects />

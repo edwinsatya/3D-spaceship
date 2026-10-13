@@ -8,6 +8,7 @@ import { BODIES, type BodyId } from "@/game/data/planets";
 import { SURFACES, type PointOfInterest, type SurfaceId } from "@/game/data/surfaces";
 import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
+import { useGameStore } from "@/game/stores/gameStore";
 import { gameEvents } from "@/game/systems/events";
 import { landingFade, landingHeat } from "@/game/systems/landing";
 import { runtime } from "@/game/systems/runtime";
@@ -94,38 +95,36 @@ export function LandingBanner() {
   }, [landed]);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[20%] flex justify-center px-4">
-      <AnimatePresence>
-        {landed && (
-          <motion.div
-            key={landed.body}
-            initial={{ y: -20, opacity: 0, scale: 0.85 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -12, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="hud-panel flex items-center gap-4 rounded-3xl border-emerald-300/60 px-6 py-4 shadow-[0_0_40px_rgba(110,255,170,0.2)] short:gap-3 short:px-4 short:py-2"
-            role="status"
-          >
-            <div className="shrink-0">
-              <PlanetIcon id={landed.body} size={56} />
-            </div>
-            <div>
-              {landed.first && (
-                <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-star">
-                  {t("landing.firstLanding")}
-                </p>
-              )}
-              <p className="hud-text font-display text-2xl font-black tracking-wider sm:text-3xl short:text-lg">
-                {t("landing.landed", { name: localize(BODIES[landed.body].name, locale) })}
+    <AnimatePresence>
+      {landed && (
+        <motion.div
+          key={landed.body}
+          initial={{ y: -20, opacity: 0, scale: 0.85 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -12, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="hud-panel flex items-center gap-4 rounded-3xl border-emerald-300/60 px-6 py-4 shadow-[0_0_40px_rgba(110,255,170,0.2)] short:max-w-[36vw] short:gap-3 short:px-4 short:py-2"
+          role="status"
+        >
+          <div className="shrink-0 short:*:size-10">
+            <PlanetIcon id={landed.body} size={56} />
+          </div>
+          <div>
+            {landed.first && (
+              <p className="font-display text-xs font-bold uppercase tracking-[0.3em] text-star">
+                {t("landing.firstLanding")}
               </p>
-              <p className="text-sm text-cyan-100/80 short:hidden">
-                {t("landing.welcome", { place: localize(SURFACES[landed.body].place, locale) })}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            )}
+            <p className="hud-text font-display text-2xl font-black tracking-wider sm:text-3xl short:text-lg">
+              {t("landing.landed", { name: localize(BODIES[landed.body].name, locale) })}
+            </p>
+            <p className="text-sm text-cyan-100/80 short:hidden">
+              {t("landing.welcome", { place: localize(SURFACES[landed.body].place, locale) })}
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -145,38 +144,36 @@ export function LandingRefusedCard() {
   const data = body ? BODIES[body] : null;
   const reason = data && !data.landing.landable ? localize(data.landing.reason, locale) : "";
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[18%] flex justify-center px-4 short:top-[12%]">
-      <AnimatePresence>
-        {data && (
-          <motion.div
-            key={data.id}
-            initial={{ y: 20, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 12, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="hud-panel pointer-events-auto flex max-w-md items-start gap-4 rounded-3xl border-star/60 p-5 short:p-3"
-            role="alert"
-          >
-            <div className="shrink-0">
-              <PlanetIcon id={data.id} size={52} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="font-display text-base font-black tracking-wide text-star sm:text-lg">
-                {t("landing.refusedTitle", { name: localize(data.name, locale) })}
-              </p>
-              <p className="text-sm leading-relaxed text-white/90">{reason}</p>
-              <button
-                type="button"
-                onClick={() => setBody(null)}
-                className="self-end rounded-xl border border-cyan-200/40 bg-white/10 px-4 py-1.5 font-display text-xs font-bold tracking-wider hover:bg-white/20 active:scale-95"
-              >
-                {t("landing.ok")}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <AnimatePresence>
+      {data && (
+        <motion.div
+          key={data.id}
+          initial={{ y: 20, opacity: 0, scale: 0.9 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 12, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+          className="hud-panel pointer-events-auto flex max-w-md items-start gap-4 rounded-3xl border-star/60 p-5 short:max-w-[44vw] short:gap-3 short:p-3"
+          role="alert"
+        >
+          <div className="shrink-0 short:hidden">
+            <PlanetIcon id={data.id} size={52} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-display text-base font-black tracking-wide text-star sm:text-lg">
+              {t("landing.refusedTitle", { name: localize(data.name, locale) })}
+            </p>
+            <p className="text-sm leading-relaxed text-white/90 short:text-xs">{reason}</p>
+            <button
+              type="button"
+              onClick={() => setBody(null)}
+              className="self-end rounded-xl border border-cyan-200/40 bg-white/10 px-4 py-1.5 font-display text-xs font-bold tracking-wider hover:bg-white/20 active:scale-95"
+            >
+              {t("landing.ok")}
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -185,6 +182,7 @@ export function PointOfInterestCard() {
   const t = useT();
   const locale = useLocale();
   const [visit, setVisit] = useState<{ id: string; first: boolean } | null>(null);
+  const onSurface = useGameStore((state) => state.surface !== null);
 
   useEffect(() => {
     const offVisit = gameEvents.on("pointOfInterest", (payload) => setVisit(payload));
@@ -200,9 +198,9 @@ export function PointOfInterestCard() {
     return () => clearTimeout(timer);
   }, [visit]);
 
-  const poi = visit ? POINTS_OF_INTEREST.get(visit.id) : undefined;
+  const poi = visit && onSurface ? POINTS_OF_INTEREST.get(visit.id) : undefined;
   return (
-    <div className="absolute top-16 left-0 w-80 max-w-[42vw] sm:top-20 short:top-14">
+    <div className="absolute top-16 left-0 w-80 max-w-[42vw] sm:top-20 short:top-[4.5rem] short:max-w-[30vw]">
       <AnimatePresence>
         {poi && visit && (
           <motion.aside
@@ -210,7 +208,7 @@ export function PointOfInterestCard() {
             initial={{ x: -40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -40, opacity: 0 }}
-            className="hud-panel pointer-events-auto flex flex-col gap-2 rounded-2xl p-4 short:gap-1 short:p-3"
+            className="hud-panel pointer-events-none flex flex-col gap-2 rounded-2xl p-4 short:gap-1 short:p-3"
             aria-live="polite"
           >
             <div className="flex items-center justify-between gap-2">

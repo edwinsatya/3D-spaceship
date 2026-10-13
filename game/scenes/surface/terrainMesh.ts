@@ -16,21 +16,28 @@ import type { Terrain } from "@/game/systems/terrain";
 
 const ROCK_COUNT = 260;
 
+export interface TerrainBuilder {
+  readonly done: boolean;
+  /** Does work until `deadline` (performance.now() ms); returns true once finished. */
+  step: (deadline: number) => boolean;
+  /** Completes any remaining work synchronously and returns the geometry. */
+  finish: () => BufferGeometry;
+}
+
+/** Vertices processed between deadline checks. */
+const CHUNK = 256;
+
 /**
  * Landing-site ground: a displaced grid with vertex colours (maria/highlands
  * or dark sand/bright dust patches, rock on slopes). Flat-shaded, low-poly look.
+ * Built incrementally so the work can be spread over the descent.
  */
-export function createTerrainGeometry(terrain: Terrain, segments: number): BufferGeometry {
+export function createTerrainBuilder(terrain: Terrain, segments: number): TerrainBuilder {
   const { palette, terrain: shape } = terrain.surface;
   const geometry = new PlaneGeometry(VISUALS.surface.size, VISUALS.surface.size, segments, segments);
   geometry.rotateX(-Math.PI / 2);
   const position = geometry.attributes.position;
-  for (let i = 0; i < position.count; i++) {
-    position.setY(i, terrain.heightAt(position.getX(i), position.getZ(i)));
-  }
-  geometry.computeVertexNormals();
-
-  const normal = geometry.attributes.normal;
+  const count = position.count;
   const random = createRandom(shape.seed + 101);
   const noise = new SimplexNoise({ random: random.next });
   const low = new Color(palette.low);
@@ -38,24 +45,94 @@ export function createTerrainGeometry(terrain: Terrain, segments: number): Buffe
   const rock = new Color(palette.rock);
   const accent = new Color(palette.accent);
   const color = new Color();
-  const colors = new Float32Array(position.count * 3);
-  for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    const z = position.getZ(i);
-    const patch = noise.noise(x * 0.0024, z * 0.0024) * 0.5 + 0.5;
-    const height = smoothstep(-25, shape.rimHeight * 0.6, y);
-    color.copy(low).lerp(high, Math.min(1, patch * 0.65 + height * 0.55));
-    const slope = 1 - normal.getY(i);
-    color.lerp(rock, smoothstep(0.08, 0.32, slope) * 0.85);
-    const streak = noise.noise(x * 0.011 + 40, z * 0.011);
-    if (streak > 0.55) color.lerp(accent, (streak - 0.55) * 1.4);
-    color.multiplyScalar(0.92 + random.next() * 0.16);
-    colors.set([color.r, color.g, color.b], i * 3);
+  const colors = new Float32Array(count * 3);
+  let stage: "heights" | "normals" | "colors" | "done" = "heights";
+  let index = 0;
+
+  const heights = (end: number) => {
+    for (; index < end; index++) position.setY(index, terrain.heightAt(position.getX(index), position.getZ(index)));
+  };
+
+  const shade = (end: number) => {
+    const normal = geometry.attributes.normal;
+    for (; index < end; index++) {
+      const x = position.getX(index);
+      const y = position.getY(index);
+      const z = position.getZ(index);
+      const patch = noise.noise(x * 0.0024, z * 0.0024) * 0.5 + 0.5;
+      const height = smoothstep(-25, shape.rimHeight * 0.6, y);
+      color.copy(low).lerp(high, Math.min(1, patch * 0.65 + height * 0.55));
+      const slope = 1 - normal.getY(index);
+      color.lerp(rock, smoothstep(0.08, 0.32, slope) * 0.85);
+      const streak = noise.noise(x * 0.011 + 40, z * 0.011);
+      if (streak > 0.55) color.lerp(accent, (streak - 0.55) * 1.4);
+      color.multiplyScalar(0.92 + random.next() * 0.16);
+      colors[index * 3] = color.r;
+      colors[index * 3 + 1] = color.g;
+      colors[index * 3 + 2] = color.b;
+    }
+  };
+
+  const step = (deadline: number): boolean => {
+    while (stage !== "done") {
+      if (stage === "heights") {
+        heights(Math.min(count, index + CHUNK));
+        if (index === count) {
+          stage = "normals";
+          index = 0;
+        }
+      } else if (stage === "normals") {
+        geometry.computeVertexNormals();
+        stage = "colors";
+      } else {
+        shade(Math.min(count, index + CHUNK));
+        if (index === count) {
+          geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+          geometry.computeBoundingSphere();
+          stage = "done";
+        }
+      }
+      if (performance.now() >= deadline) break;
+    }
+    return stage === "done";
+  };
+
+  return {
+    get done() {
+      return stage === "done";
+    },
+    step,
+    finish: () => {
+      step(Infinity);
+      return geometry;
+    },
+  };
+}
+
+export function createTerrainGeometry(terrain: Terrain, segments: number): BufferGeometry {
+  return createTerrainBuilder(terrain, segments).finish();
+}
+
+const builders = new Map<string, TerrainBuilder>();
+const builderKey = (terrain: Terrain, segments: number) => `${terrain.surface.id}:${segments}`;
+
+/** Starts (or continues) building a site's ground ahead of time, e.g. during the descent. */
+export function prebuildTerrain(terrain: Terrain, segments: number, deadline: number): void {
+  const key = builderKey(terrain, segments);
+  let builder = builders.get(key);
+  if (!builder) {
+    builder = createTerrainBuilder(terrain, segments);
+    builders.set(key, builder);
   }
-  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-  geometry.computeBoundingSphere();
-  return geometry;
+  if (!builder.done) builder.step(deadline);
+}
+
+/** Hands over the (pre)built ground geometry; the caller owns and disposes it. */
+export function takeTerrainGeometry(terrain: Terrain, segments: number): BufferGeometry {
+  const key = builderKey(terrain, segments);
+  const builder = builders.get(key) ?? createTerrainBuilder(terrain, segments);
+  builders.delete(key);
+  return builder.finish();
 }
 
 /** Instance transforms for boulders scattered around the site (clear of the pad and props). */

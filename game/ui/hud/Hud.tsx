@@ -45,8 +45,6 @@ export function Hud() {
       <Toasts />
       {mode === "mission" && <Countdown />}
       <WarpLabel />
-      <DiscoveryBanner />
-      <LandingBanner />
 
       <div className={`absolute inset-0 ${SAFE_AREA}`}>
         <div className="relative h-full w-full">
@@ -94,8 +92,25 @@ export function Hud() {
           <PointOfInterestCard />
         </div>
       </div>
-      <LandingRefusedCard />
-      <HintBanner placement={touch ? "top" : "bottom"} />
+      {/* One column, so simultaneous banners stack instead of overlapping. */}
+      <div className="pointer-events-none absolute inset-x-0 top-[20%] flex flex-col items-center gap-2 px-4 short:top-[15%]">
+        <DiscoveryBanner />
+        <LandingBanner />
+        <LandingRefusedCard />
+        {touch && (
+          <div className="short:hidden">
+            <HintBanner placement="stack" />
+          </div>
+        )}
+      </div>
+      {touch ? (
+        // Landscape phones have no room under the banners: sit just above the context buttons.
+        <div className="hidden short:block">
+          <HintBanner placement="abovePrompts" />
+        </div>
+      ) : (
+        <HintBanner placement="bottom" />
+      )}
       <LandingOverlay />
     </motion.div>
   );

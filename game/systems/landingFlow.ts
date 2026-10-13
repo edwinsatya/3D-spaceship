@@ -11,7 +11,7 @@ import { getShipForward, orientationFromForwardUp, type ShipState } from "./flig
 import { beginAscent, beginDescent, landingHeat, tickLanding } from "./landing";
 import { damp, dampFactor } from "./math";
 import type { MissionLayout } from "./missionLayout";
-import { endOrbit } from "./orbitControl";
+import { endOrbit, orbitAround } from "./orbitControl";
 import { currentPickups, resetPickups } from "./pickups";
 import { runtime } from "./runtime";
 import { createTerrain, type Terrain } from "./terrain";
@@ -52,6 +52,10 @@ const _quaternion = new Quaternion();
 const WORLD_UP = new Vector3(0, 1, 0);
 const _landingCenter = new Vector3();
 let landingRadius = 0;
+/** Where (radially) and heading which way you went down, so take-off brings you back there. */
+const _siteDirection = new Vector3();
+const _siteForward = new Vector3();
+let siteBody: SurfaceId | null = null;
 
 /** L: land (Moon/Mars), explain why not (other bodies), or take off from a surface. */
 export function requestLanding(): void {
@@ -101,6 +105,20 @@ function flyDescent(dt: number): void {
   addTrauma(runtime.camera, landingHeat(runtime.landing, config) * 0.9 * dt);
 }
 
+/** Revealing the site: the ship settles gently onto the landing pad. */
+function flyTouchdown(dt: number): void {
+  const ship = runtime.ship;
+  const terrain = runtime.terrain;
+  if (!terrain) return;
+  const pad = terrain.heightAt(ship.position.x, ship.position.z) + EXPLORATION.surface.clearance;
+  ship.previousPosition.copy(ship.position);
+  ship.position.y = damp(ship.position.y, pad, EXPLORATION.surface.touchdownRate, dt);
+  ship.speed = 0;
+  ship.velocity.set(0, 0, 0);
+  ship.knockback.set(0, 0, 0);
+  ship.angularVelocity.set(0, 0, 0);
+}
+
 function flyAscent(dt: number): void {
   const ship = runtime.ship;
   getShipForward(ship, _forward);
@@ -129,7 +147,18 @@ function placeShip(position: Vector3, forward: Vector3, up: Vector3, speed: numb
   updateChaseCamera(runtime.camera, ship, 0, true);
 }
 
+function rememberSite(surface: SurfaceId): void {
+  const ship = runtime.ship;
+  _siteDirection.subVectors(ship.position, _landingCenter).normalize();
+  getShipForward(ship, _siteForward);
+  _siteForward.addScaledVector(_siteDirection, -_siteForward.dot(_siteDirection));
+  if (_siteForward.lengthSq() < 1e-4) _siteForward.crossVectors(_siteDirection, WORLD_UP);
+  _siteForward.normalize();
+  siteBody = surface;
+}
+
 function enterSurface(surface: SurfaceId, restoreShip: () => void): void {
+  rememberSite(surface);
   const terrain = terrainFor(surface);
   const definition = SURFACES[surface];
   runtime.terrain = terrain;
@@ -142,10 +171,12 @@ function enterSurface(surface: SurfaceId, restoreShip: () => void): void {
   applySurfaceTuning();
 
   const [x, z] = definition.spawn;
-  const position = new Vector3(x, terrain.heightAt(x, z) + EXPLORATION.surface.spawnAltitude, z);
+  const position = new Vector3(x, terrain.heightAt(x, z) + EXPLORATION.surface.touchdownAltitude, z);
   const firstPoi = terrain.pointsOfInterest[0]?.position ?? new Vector3(0, 0, 0);
   const forward = new Vector3(firstPoi.x - x, 0, firstPoi.z - z).normalize();
-  placeShip(position, forward, WORLD_UP, EXPLORATION.surface.entrySpeed);
+  // Touch down on the pad and wait there: the player throttles up to explore.
+  placeShip(position, forward, WORLD_UP, 0);
+  runtime.input?.setThrottle(0);
   resetPickups(terrain.pickups);
   runtime.prompts.pointOfInterest = null;
   useGameStore.getState().setSurface(surface);
@@ -161,12 +192,17 @@ function leaveSurface(surface: SurfaceId, layout: MissionLayout, restoreShip: ()
   restoreShip();
 
   const body = environment.colliders.find((collider) => collider.id === surface) ?? environment.colliders[0];
-  const direction = environment.sunDirection.clone().addScaledVector(WORLD_UP, 0.5).normalize();
+  const backToSite = siteBody === surface;
+  const direction = backToSite
+    ? _siteDirection.clone()
+    : environment.sunDirection.clone().addScaledVector(WORLD_UP, 0.5).normalize();
   const position = body.center.clone().addScaledVector(direction, body.surfaceRadius * EXPLORATION.landing.exitDistance);
-  const forward = new Vector3().crossVectors(direction, WORLD_UP);
+  const forward = backToSite ? _siteForward.clone() : new Vector3().crossVectors(direction, WORLD_UP);
   if (forward.lengthSq() < 1e-4) forward.set(1, 0, 0);
   forward.normalize();
   placeShip(position, forward, direction, EXPLORATION.landing.ascentSpeed * 0.6);
+  // Back "to orbit" literally: the orbit camera frames the world you just left.
+  orbitAround(body);
   resetPickups(currentPickups(layout));
   useGameStore.getState().setSurface(null);
 }
@@ -181,6 +217,7 @@ export function stepLandingFlow(dt: number, layout: MissionLayout, restoreShip: 
   const event = tickLanding(landing, dt, EXPLORATION.landing);
   if (body && event === "enterSurface") enterSurface(body, restoreShip);
   else if (body && event === "landed") {
+    addTrauma(runtime.camera, EXPLORATION.surface.touchdownTrauma);
     const first = useProgressStore.getState().markLanded(body);
     gameEvents.emit("landed", { body, first });
   } else if (body && event === "enterSpace") leaveSurface(body, layout, restoreShip);
@@ -189,6 +226,9 @@ export function stepLandingFlow(dt: number, layout: MissionLayout, restoreShip: 
     case "descent":
     case "fadeToSurface":
       flyDescent(dt);
+      return true;
+    case "revealSurface":
+      flyTouchdown(dt);
       return true;
     case "ascent":
     case "fadeToSpace":

@@ -66,8 +66,10 @@ export const EXPLORATION = {
     ceiling: 240,
     /** Soft wall: pushed back towards the centre beyond this radius (u). */
     boundary: 620,
-    spawnAltitude: 26,
-    entrySpeed: 18,
+    /** The scene fades in with the ship this high over the pad, then it settles down. */
+    touchdownAltitude: 9,
+    touchdownRate: 6,
+    touchdownTrauma: 0.25,
     bounce: 0.55,
   },
 } as const;

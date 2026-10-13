@@ -21,12 +21,12 @@ import { useQualitySettings } from "@/game/scenes/useQualitySettings";
 import { useAssetStore } from "@/game/stores/assetStore";
 import { terrainFor } from "@/game/systems/landingFlow";
 import { runtime } from "@/game/systems/runtime";
-import { createRockGeometry, createRockMatrices, createTerrainGeometry } from "./terrainMesh";
+import { createRockGeometry, createRockMatrices, prebuildTerrain, takeTerrainGeometry } from "./terrainMesh";
 
 function Ground({ surface }: { surface: SurfaceId }) {
   const { terrainSegments } = useQualitySettings();
   const terrain = terrainFor(surface);
-  const geometry = useMemo(() => createTerrainGeometry(terrain, terrainSegments), [terrain, terrainSegments]);
+  const geometry = useMemo(() => takeTerrainGeometry(terrain, terrainSegments), [terrain, terrainSegments]);
   const material = useMemo(
     () => new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 }),
     [],
@@ -60,6 +60,20 @@ function Rocks({ surface }: { surface: SurfaceId }) {
     [mesh],
   );
   return <primitive object={mesh} />;
+}
+
+/**
+ * Builds the ground of the site you are descending to a few ms per frame, so
+ * swapping scenes behind the fade doesn't freeze slower phones.
+ */
+export function TerrainPrebuilder() {
+  const { terrainSegments } = useQualitySettings();
+  useFrame(() => {
+    const landing = runtime.landing;
+    if (!landing.body || (landing.phase !== "descent" && landing.phase !== "fadeToSurface")) return;
+    prebuildTerrain(terrainFor(landing.body), terrainSegments, performance.now() + VISUALS.surface.prebuildBudgetMs);
+  });
+  return null;
 }
 
 /** The landing site in universe coordinates (lives inside the floating-origin root). */
