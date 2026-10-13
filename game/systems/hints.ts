@@ -24,6 +24,9 @@ export type HintId =
   | "roll"
   | "camera";
 
+/** The core lessons: once these are done the tutorial counts as finished (analytics). */
+export const TUTORIAL_HINTS: readonly HintId[] = ["steer", "throttle", "boost"];
+
 export interface HintContext {
   device: InputDevice;
   mode: "mission" | "freeflight";

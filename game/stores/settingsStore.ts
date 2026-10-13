@@ -28,6 +28,8 @@ export interface SettingsData {
     gyroSensitivity: number;
   };
   accessibility: { motion: MotionPreference; colorVision: ColorVision; textSize: TextSize };
+  /** Anonymous usage statistics (off by default when the browser asks not to be tracked). */
+  privacy: { analytics: boolean };
 }
 
 interface SettingsStore extends SettingsData {
@@ -41,6 +43,7 @@ interface SettingsStore extends SettingsData {
   bindKey: (action: KeyAction, code: string | null) => void;
   resetBindings: () => void;
   setAccessibility: (patch: Partial<SettingsData["accessibility"]>) => void;
+  setAnalytics: (enabled: boolean) => void;
 }
 
 export const SETTINGS_STORAGE_KEY = "jelajah-angkasa:settings";
@@ -61,7 +64,15 @@ export function defaultSettings(): SettingsData {
       gyroSensitivity: SETTINGS.controls.gyroSensitivity.default,
     },
     accessibility: { motion: "system", colorVision: "standard", textSize: "normal" },
+    privacy: { analytics: !browserAsksNotToTrack() },
   };
+}
+
+/** Do Not Track or Global Privacy Control. */
+function browserAsksNotToTrack(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+  return nav.doNotTrack === "1" || nav.globalPrivacyControl === true;
 }
 
 const isOneOf = <T extends string>(value: unknown, options: readonly T[]): value is T =>
@@ -79,6 +90,7 @@ export function sanitizeSettings(stored: unknown): SettingsData {
   const display = (data.display ?? {}) as Record<string, unknown>;
   const controls = (data.controls ?? {}) as Record<string, unknown>;
   const accessibility = (data.accessibility ?? {}) as Record<string, unknown>;
+  const privacy = (data.privacy ?? {}) as Record<string, unknown>;
   const bindings: SettingsData["controls"]["bindings"] = {};
   const storedBindings = (controls.bindings ?? {}) as Record<string, unknown>;
   for (const action of KEY_ACTIONS) {
@@ -113,6 +125,7 @@ export function sanitizeSettings(stored: unknown): SettingsData {
         : base.accessibility.colorVision,
       textSize: isOneOf(accessibility.textSize, Object.keys(SETTINGS.textScale) as TextSize[]) ? accessibility.textSize : base.accessibility.textSize,
     },
+    privacy: { analytics: typeof privacy.analytics === "boolean" ? privacy.analytics : base.privacy.analytics },
   };
 }
 
@@ -177,6 +190,7 @@ export const useSettingsStore = create<SettingsStore>()(
       },
       resetBindings: () => set((state) => ({ controls: { ...state.controls, bindings: {} } })),
       setAccessibility: (patch) => set((state) => ({ accessibility: { ...state.accessibility, ...patch } })),
+      setAnalytics: (analytics) => set({ privacy: { analytics } }),
     }),
     {
       name: SETTINGS_STORAGE_KEY,
@@ -189,6 +203,7 @@ export const useSettingsStore = create<SettingsStore>()(
         display: state.display,
         controls: state.controls,
         accessibility: state.accessibility,
+        privacy: state.privacy,
       }),
       merge: (persisted, current) => ({ ...current, ...sanitizeSettings({ ...current, ...(persisted as object) }) }),
     },

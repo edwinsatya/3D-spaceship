@@ -13,6 +13,12 @@ describe("settings", () => {
     expect(sanitizeSettings(undefined)).toEqual(defaultSettings());
   });
 
+  it("keeps the analytics choice and defaults it to on without Do Not Track", () => {
+    expect(defaultSettings().privacy.analytics).toBe(true);
+    expect(sanitizeSettings({ privacy: { analytics: false } }).privacy.analytics).toBe(false);
+    expect(sanitizeSettings({ privacy: { analytics: "yes" } }).privacy.analytics).toBe(true);
+  });
+
   it("brings sound and language over from older progress saves", () => {
     expect(legacySettings(JSON.stringify({ state: { settings: { muted: true, locale: "id" } }, version: 3 }))).toEqual({ muted: true, locale: "id" });
     // v1 saves predate English as the default.

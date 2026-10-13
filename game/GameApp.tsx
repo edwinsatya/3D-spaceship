@@ -15,6 +15,7 @@ import { useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { useBadgeAwards } from "@/game/ui/useBadgeAwards";
 import { useSettingsEffects } from "@/game/ui/useSettingsEffects";
+import { useAnalytics } from "@/game/ui/useAnalytics";
 import { startAccount } from "@/game/systems/account/service";
 import { photoSubject } from "@/game/systems/simulation";
 import { useQualityStore } from "@/game/stores/qualityStore";
@@ -59,6 +60,7 @@ export default function GameApp() {
   useFeedback();
   useBadgeAwards();
   useSettingsEffects();
+  useAnalytics();
   useEffect(() => {
     // Offline play after the first visit (production only: dev rebuilds files under the same URLs).
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {

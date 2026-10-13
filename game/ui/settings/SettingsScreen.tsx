@@ -22,6 +22,8 @@ function LanguageSection() {
   const t = useT();
   const locale = useSettingsStore((state) => state.locale);
   const setLocale = useSettingsStore((state) => state.setLocale);
+  const analytics = useSettingsStore((state) => state.privacy.analytics);
+  const setAnalytics = useSettingsStore((state) => state.setAnalytics);
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-white/75">{t("settings.languageHint")}</p>
@@ -41,6 +43,11 @@ function LanguageSection() {
             {LANGUAGE_NAMES[option]}
           </button>
         ))}
+      </div>
+      <div className="mt-3">
+        <SettingRow label={t("settings.analytics")} hint={t("settings.analyticsHint")}>
+          <Toggle checked={analytics} onChange={setAnalytics} label={t("settings.analytics")} />
+        </SettingRow>
       </div>
     </div>
   );
