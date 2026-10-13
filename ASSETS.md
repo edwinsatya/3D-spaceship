@@ -40,6 +40,9 @@ menggantikannya begitu selesai dimuat. Kalau file gagal dimuat, tekstur prosedur
 | Medan Bulan & Mars | `game/systems/terrain.ts` + `game/scenes/surface/terrainMesh.ts` | Heightfield deterministik (noise, kawah, bukit), warna per-vertex, batu *instanced* |
 | Pendarat Apollo 11 + bendera, Perseverance, Ingenuity | `game/entities/surface/SurfaceProps.tsx` | Model primitif low-poly; bendera digambar di canvas |
 | Langit Mars & Bumi di langit Bulan | `game/scenes/surface/SurfaceScene.tsx` | Shader gradien + halo matahari; Bumi memakai tekstur siang hasil bake |
+| Stasiun orbit (rangka, modul, panel surya, cincin dok) | `game/entities/Station.tsx` | Primitif three.js; panel surya dari tekstur canvas |
+| Kristal, kontainer kargo, sabuk asteroid, batu cincin Saturnus | `game/entities/MissionProps.tsx`, `game/systems/scenery.ts` | Prosedural, deterministik |
+| Ceres | `game/scenes/procedural/surfaceBakes.ts` (tipe *rocky*) | Belum ada tekstur asli (Solar System Scope menyediakan versi fiktif saja) |
 | Langit (nebula, galaksi, Bima Sakti, bintang jauh) | `game/scenes/procedural/skyBake.ts` | Cube map 1024² (512² di tier rendah) |
 | Efek suara + musik ambient | `game/audio/synth.ts` | Disintesis jadi WAV saat loading, diputar lewat Howler |
 | Font Orbitron & Exo 2 | `app/layout.tsx` (`next/font/google`) | SIL Open Font License 1.1, di-*self-host* oleh Next saat build |

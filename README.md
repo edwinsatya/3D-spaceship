@@ -8,10 +8,14 @@ Spesifikasi lengkap ada di [`PRD.md`](PRD.md); daftar aset dan lisensi di [`ASSE
 
 **Bahasa UI default:** English (`DEFAULT_LOCALE` di `game/i18n/types.ts`); kamus Indonesia tetap lengkap.
 
-**Status:** Fase 2 (Jelajah Planet & Hangar) selesai — di atas Fase 1 (terbang, misi *Cincin Orbit*, menu/HUD,
-onboarding, audio, kualitas otomatis) kini ada peta Tata Surya + warp ke Matahari dan 8 planet, orbit sinematik,
-kartu info planet, "Planet Discovered!" + Ensiklopedia, pendaratan di Bulan & Mars, serta Hangar (4 pesawat,
-cat/decal/jejak mesin, turntable 360°, uji terbang).
+**Status:** Fase 3 (Petualangan, Progres & Akun) selesai.
+- **Fase 1:** terbang, misi *Cincin Orbit*, menu/HUD, onboarding, audio, kualitas otomatis.
+- **Fase 2:** peta Tata Surya + warp, orbit, Ensiklopedia, pendaratan di Bulan/Mars, Hangar.
+- **Fase 3:**
+  - 7 misi di 5 rute: orbit Bumi, stasiun luar angkasa, Jupiter, sabuk asteroid (Ceres), cincin Saturnus.
+  - Mode Foto + Galeri.
+  - Unlock berbasis bintang dan 11 lencana.
+  - Akun opsional (Supabase) dengan sinkronisasi progres antar perangkat.
 
 ## Menjalankan
 
@@ -31,6 +35,24 @@ Buka URL yang dicetak (default http://localhost:3000). Butuh Node.js ≥ 20.9 da
 | `npm run test`      | Vitest untuk logika murni                          |
 | `npm run check`     | typecheck + lint + test                            |
 
+### Akun (opsional, Supabase)
+
+Tanpa konfigurasi, game berjalan sebagai tamu dan progres tersimpan di perangkat. Untuk mengaktifkan akun:
+
+1. Buat project di [supabase.com](https://supabase.com).
+2. Jalankan `supabase/migrations/20261013000000_player_progress.sql` di SQL Editor (atau `supabase db push`).
+   Tabel `player_progress` memakai Row Level Security: setiap pemain hanya bisa membaca/menulis barisnya sendiri.
+3. **Authentication → Providers**: aktifkan *Email* (magic link) dan *Google* (Client ID + Secret dari Google Cloud
+   Console; redirect URI dari halaman provider Supabase).
+4. **Authentication → URL Configuration**: isi *Site URL* dan tambahkan URL game (mis. `http://localhost:3000`) ke
+   *Redirect URLs*.
+5. Salin `.env.example` ke `.env.local`, isi `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   (Project Settings → API), lalu restart `npm run dev`. Nilai `NEXT_PUBLIC_` di-*inline* saat build.
+
+Saat login pertama, progres tamu digabung ke akun (rekor terbaik, bintang, penemuan, lencana; loadout pesawat
+yang paling baru menang). Setelah itu progres diunggah otomatis ±2,5 detik setelah berubah dan ditarik ulang saat
+tab kembali aktif. Suara dan bahasa tetap per perangkat.
+
 ## Kontrol
 
 | Desktop | HP (landscape) | Aksi |
@@ -46,6 +68,7 @@ Buka URL yang dicetak (default http://localhost:3000). Butuh Node.js ≥ 20.9 da
 | Tab | Tombol peta | Peta Tata Surya → warp (hanya Terbang Bebas, tidak saat di permukaan) |
 | F | Tombol **Orbit** (muncul saat dekat planet) | Masuk/keluar orbit + kartu info planet |
 | L | Tombol **Mendarat / Lepas landas** | Mendarat di Bulan/Mars; planet lain menjelaskan kenapa tidak bisa |
+| V | Tombol **kamera foto** (kanan atas) | Mode foto: seret = lihat sekeliling, scroll/cubit = jarak kamera, Spasi = jepret, H = sembunyikan kontrol |
 
 ## Arsitektur singkat
 
@@ -55,19 +78,24 @@ game/
   GameRoot.tsx       next/dynamic(ssr:false) → GameApp (Canvas + lapisan UI)
   config/            SEMUA angka tuning (terbang, kamera, misi, kualitas, audio, HUD, visual)
   data/              planets.ts (Matahari, 8 planet, Bulan: fakta EN/ID), solarSystem.ts (tata letak peta & cahaya),
-                     surfaces.ts (lokasi pendaratan & tempat menarik), ships.ts (4 pesawat + palet), missions.ts, facts.ts
+                     surfaces.ts (lokasi pendaratan & tempat menarik), ships.ts (4 pesawat + palet), missions.ts (rute,
+                     misi, lintasan), station.ts, photoTargets.ts, unlocks.ts, badges.ts, facts.ts
   i18n/              en (default, sumber tipe kamus) + id, t() bertipe; metadata/OG ikut DEFAULT_LOCALE
-  stores/            Zustand: game (state machine), session (UI misi), progress (persist), quality, loading, asset
+  stores/            Zustand: game (state machine), session (UI misi), progress (persist), quality, loading, asset,
+                     ui (overlay), photo (mode foto + galeri), account
   controls/          keyboard+mouse, touch, gamepad (stub) → satu ControlInput
   systems/           logika murni (flight, boost, collision, course, mission, scoring, hints, floating origin,
-                     environment, warp, orbit, discovery, landing, terrain, shipConfig)
+                     environment, warp, orbit, discovery, landing, terrain, shipConfig, objectives, photo, unlocks,
+                     badges, scenery, station, autopilot untuk uji keseimbangan, account/merge+sync)
                      + runtime (state per-frame mutable), simulation, landingFlow/orbitControl, GameLoop (satu useFrame)
   entities/          ship/, planet/ (PlanetBody, SunBody, atmosfer, tekstur on-demand), surface/ (properti lokasi),
                      Earth, Moon, Sun, Rings, EnergyStars, Asteroids
   scenes/            SpaceScene, surface/ (medan + langit Bulan/Mars), warp tunnel, langit berlapis, debu, efek,
                      kualitas, preloader + bake GPU
   audio/             sintesis prosedural + manajer Howler
-  ui/                loading, menu, HUD, pause, hasil, kontrol sentuh, map/, hangar/, encyclopedia/
+  ui/                loading, menu, HUD, pause, hasil, kontrol sentuh, map/, hangar/, encyclopedia/, missions/,
+                     photo/, gallery/, badges/, account/
+supabase/migrations/ skema tabel progres + RLS
 ```
 
 Prinsip penting:
@@ -131,6 +159,30 @@ Prinsip penting:
    tengah bawah saat relevan.
 3. Kartu info/fakta muncul di kiri atas tanpa menutupi joystick dan tuas gas.
 
+## Uji manual Fase 3
+
+**Desktop**
+
+1. Title → **Missions**: 7 misi dikelompokkan per rute; misi yang terkunci menunjukkan bintang yang dibutuhkan.
+   Selesaikan *Orbit Rings* → layar hasil menampilkan **New unlocks!** (mis. *Station Delivery*, pesawat *Swift*)
+   dan toast **Badge earned!** di kiri bawah.
+2. *Station Delivery*: terbang menabrak kontainer oranye (tergantung di bawah pesawat), bawa melewati cincin dok
+   stasiun yang menyala emas; ulangi 3×.
+3. *Storm Portrait*: buka mode foto (**V**), arahkan ke Bintik Merah Besar; meter **Framing** dan bintang berubah
+   langsung. **Spasi** untuk jepret → hasil misi + foto di layar hasil. Coba filter (Vivid, Mono, …).
+4. *Belt Slalom* / *Crystal Hunt* di sabuk asteroid Ceres; *Ring Run* tepat di atas cincin Saturnus (auto-level
+   menjadikan cincin sebagai "lantai"); *Ringed Giant* memotret seluruh Saturnus.
+5. **Gallery** (title/jeda): lihat, unduh, bagikan (jika browser mendukung), hapus foto (ketuk dua kali).
+6. **Badges** (title/jeda): 11 lencana; yang sudah didapat menyala.
+7. **Hangar**: pesawat, warna, decal, dan jejak mesin yang terkunci memakai gembok + jumlah bintang.
+8. **Akun** (ikon orang di kanan atas title): tanpa konfigurasi muncul penjelasan; dengan Supabase → *Continue with
+   Google* atau link email → status sinkron. Login di perangkat lain → bintang/lencana/pesawat ikut.
+
+**HP (landscape)**
+
+1. Tombol kamera foto di kanan atas HUD; di mode foto: seret untuk melihat, cubit untuk jarak, tombol rana bulat.
+2. Toast lencana tidak menutupi judul/HUD; layar Misi, Galeri, Lencana, dan Akun bisa digulir.
+
 ## Pengujian otomatis
 
 `npm run test` mencakup skor & rating bintang, timer misi (termasuk saat jeda), state machine, energi
@@ -139,6 +191,13 @@ hint onboarding, penggabungan progres, sinkronisasi kamus i18n, dan **uji keseim
 menerbangkan lintasan asli dengan model terbang asli untuk menjaga ambang bintang tetap masuk akal.
 Fase 2 menambah uji warp, orbit, penemuan planet, lingkungan per lokasi, konfigurasi pesawat, urutan
 pendaratan/lepas landas, dan medan (deterministik, landasan datar, bukit di tepi peta).
+
+Fase 3 menambah:
+- **Uji keseimbangan semua misi:** autopilot menerbangkan setiap misi dengan setiap pesawat. Pilot rapi mendapat
+  2★, dan 3★ butuh turbo.
+- **Uji tata letak:** batu, kristal, kontainer, dan stasiun.
+- **Uji logika:** skor foto, matriks filter, unlock, lencana, penggabungan progres tamu/akun, dan sinkronisasi
+  (dengan penyimpanan palsu).
 
 Pemeriksaan visual dilakukan dengan Playwright (devDependency) terhadap build produksi yang dibuat dengan
 `NEXT_PUBLIC_E2E=1`: flag itu mengaktifkan `window.__game` di build produksi supaya skrip bisa memajukan

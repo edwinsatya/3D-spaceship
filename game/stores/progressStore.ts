@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { isBadgeId, type BadgeId } from "@/game/data/badges";
 import { isMissionId, MISSIONS, type MissionId } from "@/game/data/missions";
 import { isBodyId, type BodyId } from "@/game/data/planets";
-import { DEFAULT_SHIP, type ShipCustomization, type ShipId } from "@/game/data/ships";
+import { DEFAULT_SHIP, isShipId, type ShipCustomization, type ShipId } from "@/game/data/ships";
 import { DEFAULT_LOCALE, type Locale } from "@/game/i18n/types";
 import type { HintId } from "@/game/systems/hints";
 import { isNewBest, type StarRating } from "@/game/systems/scoring";
@@ -23,11 +23,13 @@ export interface RecordOutcome {
 
 export interface ShipProgress {
   selected: ShipId;
+  /** When the loadout last changed (ms); the newest loadout wins across devices. */
+  updatedAt: number;
   /** Paint per ship; missing ships use their defaults (see resolvePaint). */
   paint: Partial<Record<ShipId, ShipCustomization>>;
 }
 
-interface ProgressData {
+export interface ProgressData {
   missions: Partial<Record<MissionId, MissionProgress>>;
   settings: { muted: boolean; locale: Locale };
   onboarding: { completedHints: HintId[] };
@@ -95,7 +97,7 @@ export const useProgressStore = create<ProgressStore>()(
       missions: {},
       settings: { muted: false, locale: DEFAULT_LOCALE },
       onboarding: { completedHints: [] },
-      ships: { selected: DEFAULT_SHIP, paint: {} },
+      ships: { selected: DEFAULT_SHIP, paint: {}, updatedAt: 0 },
       discovered: [],
       landed: [],
       pointsOfInterest: [],
@@ -116,9 +118,9 @@ export const useProgressStore = create<ProgressStore>()(
             ? state
             : { onboarding: { completedHints: [...state.onboarding.completedHints, id] } },
         ),
-      selectShip: (id) => set((state) => ({ ships: { ...state.ships, selected: id } })),
+      selectShip: (id) => set((state) => ({ ships: { ...state.ships, selected: id, updatedAt: Date.now() } })),
       setPaint: (id, paint) =>
-        set((state) => ({ ships: { ...state.ships, paint: { ...state.ships.paint, [id]: paint } } })),
+        set((state) => ({ ships: { ...state.ships, paint: { ...state.ships.paint, [id]: paint }, updatedAt: Date.now() } })),
       discover: (id) => {
         if (get().discovered.includes(id)) return false;
         set((state) => ({ discovered: [...state.discovered, id] }));
@@ -145,20 +147,25 @@ export const useProgressStore = create<ProgressStore>()(
       version: PROGRESS_VERSION,
       storage: createJSONStorage(() => localStorage),
       migrate: migrateProgress,
-      partialize: (state): ProgressData => ({
-        missions: state.missions,
-        settings: state.settings,
-        onboarding: state.onboarding,
-        ships: state.ships,
-        discovered: state.discovered,
-        landed: state.landed,
-        pointsOfInterest: state.pointsOfInterest,
-        badges: state.badges,
-        photosTaken: state.photosTaken,
-      }),
+      partialize: (state): ProgressData => progressData(state),
     },
   ),
 );
+
+/** The saved part of the store (what goes to localStorage and to the account). */
+export function progressData(state: ProgressData): ProgressData {
+  return {
+    missions: state.missions,
+    settings: state.settings,
+    onboarding: state.onboarding,
+    ships: state.ships,
+    discovered: state.discovered,
+    landed: state.landed,
+    pointsOfInterest: state.pointsOfInterest,
+    badges: state.badges,
+    photosTaken: state.photosTaken,
+  };
+}
 
 /** Pure helper (unit-tested): upgrades persisted progress from older versions. */
 export function migrateProgress(persisted: unknown, version: number): ProgressData {
@@ -170,7 +177,11 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
     settings,
     onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
     // Added in Phase 2 without a version bump: absent in older saves.
-    ships: { selected: data.ships?.selected ?? DEFAULT_SHIP, paint: data.ships?.paint ?? {} },
+    ships: {
+      selected: isShipId(data.ships?.selected) ? data.ships.selected : DEFAULT_SHIP,
+      paint: data.ships?.paint && typeof data.ships.paint === "object" ? data.ships.paint : {},
+      updatedAt: typeof data.ships?.updatedAt === "number" ? data.ships.updatedAt : 0,
+    },
     discovered: (data.discovered ?? []).filter(isBodyId),
     landed: (data.landed ?? []).filter(isBodyId),
     pointsOfInterest: (data.pointsOfInterest ?? []).filter((id) => typeof id === "string"),

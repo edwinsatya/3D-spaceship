@@ -53,7 +53,7 @@ describe("migrateProgress", () => {
       missions: {},
       settings: { muted: false, locale: "en" },
       onboarding: { completedHints: [] },
-      ships: { selected: "comet", paint: {} },
+      ships: { selected: "comet", paint: {}, updatedAt: 0 },
       discovered: [],
       landed: [],
       pointsOfInterest: [],

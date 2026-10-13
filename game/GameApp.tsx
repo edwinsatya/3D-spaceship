@@ -13,6 +13,7 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { usePhotoStore } from "@/game/stores/photoStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { useBadgeAwards } from "@/game/ui/useBadgeAwards";
+import { startAccount } from "@/game/systems/account/service";
 import { photoSubject } from "@/game/systems/simulation";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
@@ -54,6 +55,9 @@ export default function GameApp() {
   useGameAudio();
   useFeedback();
   useBadgeAwards();
+  useEffect(() => {
+    void startAccount();
+  }, []);
 
   useEffect(() => () => useAssetStore.getState().disposeAll(), []);
   useEffect(() => exposeDebugHandle(), []);

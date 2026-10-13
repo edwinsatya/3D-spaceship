@@ -8,6 +8,8 @@ import { HangarScreen } from "./hangar/HangarScreen";
 import { MissionSelect } from "./missions/MissionSelect";
 import { Gallery } from "./gallery/Gallery";
 import { BadgesScreen } from "./badges/BadgesScreen";
+import { AccountPanel } from "./account/AccountPanel";
+import { useAccountStore } from "@/game/stores/accountStore";
 import { BadgeToasts } from "./badges/BadgeToasts";
 import { PhotoModeOverlay } from "./photo/PhotoModeOverlay";
 import { SolarSystemMap } from "./map/SolarSystemMap";
@@ -26,6 +28,7 @@ export function GameUI() {
   const missionsOpen = useUiStore((state) => state.missions.open);
   const galleryOpen = useUiStore((state) => state.gallery);
   const badgesOpen = useUiStore((state) => state.badges);
+  const accountOpen = useAccountStore((state) => state.panelOpen);
   const loading = phase === "boot" || phase === "loading";
 
   return (
@@ -47,6 +50,7 @@ export function GameUI() {
         {missionsOpen && <MissionSelect key="missions" />}
         {galleryOpen && <Gallery key="gallery" />}
         {badgesOpen && <BadgesScreen key="badges" />}
+        {accountOpen && <AccountPanel key="account" />}
       </AnimatePresence>
       <BadgeToasts />
       <OrientationGuard />

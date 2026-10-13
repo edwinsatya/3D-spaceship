@@ -9,6 +9,7 @@ import { totalStars, useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon, TrophyIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
+import { AccountButton } from "./account/AccountButton";
 import { GameButton } from "./primitives";
 
 /** Best effort: fullscreen + landscape lock on phones (needs the click gesture). */
@@ -52,7 +53,10 @@ export function TitleMenu() {
           </h1>
           <p className="mt-2 text-base text-cyan-100/90 sm:text-lg short:mt-0.5 short:text-sm">{t("app.tagline")}</p>
         </motion.div>
-        <MuteButton />
+        <div className="flex gap-2">
+          <AccountButton />
+          <MuteButton />
+        </div>
       </div>
 
       <motion.div
