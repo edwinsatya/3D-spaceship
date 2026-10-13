@@ -3,6 +3,7 @@ import { BOOST, FLIGHT, type BoostConfig, type FlightConfig } from "@/game/confi
 import type { CursorState } from "@/game/controls/keyboardMouse";
 import type { BodyId } from "@/game/data/planets";
 import { SHIPS_BY_ID, DEFAULT_SHIP, type ShipDesign } from "@/game/data/ships";
+import type { GyroSource } from "@/game/controls/gyro";
 import type { InputManager } from "@/game/controls/inputManager";
 import { buildEnvironment } from "./environment";
 import { createShipState } from "./flight";
@@ -186,6 +187,8 @@ export const runtime = {
   startThrottle: 0,
   /** Set once by GameApp; null before the input layer exists (SSR, tests). */
   input: null as InputManager | null,
+  /** Tilt steering source (Settings can recentre it). */
+  gyro: null as GyroSource | null,
   cursor: null as CursorState | null,
   refs: {
     worldRoot: null as Group | null,

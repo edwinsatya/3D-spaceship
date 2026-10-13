@@ -1,5 +1,6 @@
 import { TOUCH } from "@/game/config/controls";
-import { shapeAxis } from "@/game/systems/math";
+import { clamp, shapeAxis } from "@/game/systems/math";
+import { analogPitch, inputTuning } from "./tuning";
 import type { InputSource, SteeringSample } from "./types";
 
 /**
@@ -38,8 +39,9 @@ export class TouchSource implements InputSource {
   sample(_dt: number, out: SteeringSample): void {
     const state = touchControls;
     if (state.stickActive) {
-      out.yaw = shapeAxis(state.stickX, TOUCH.joystickDeadzone, TOUCH.joystickCurve);
-      out.pitch = shapeAxis(state.stickY, TOUCH.joystickDeadzone, TOUCH.joystickCurve);
+      const gain = inputTuning.sensitivity;
+      out.yaw = shapeAxis(clamp(state.stickX * gain, -1, 1), TOUCH.joystickDeadzone, TOUCH.joystickCurve);
+      out.pitch = analogPitch(shapeAxis(clamp(state.stickY * gain, -1, 1), TOUCH.joystickDeadzone, TOUCH.joystickCurve));
       out.active = true;
     }
     if (state.throttle !== null) {

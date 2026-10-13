@@ -13,7 +13,9 @@ import type { ControlAction } from "@/game/controls/types";
 import { useGameStore } from "@/game/stores/gameStore";
 import { overallProgress, useLoadingStore } from "@/game/stores/loadingStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
-import { useSettingsStore } from "@/game/stores/settingsStore";
+import { useSettingsStore, type SettingsData } from "@/game/stores/settingsStore";
+import { GyroSource } from "@/game/controls/gyro";
+import { applyInputSettings } from "@/game/controls/tuning";
 import { runtime } from "./runtime";
 import { isWarping } from "./warp";
 import { togglePhotoMode } from "./photoMode";
@@ -78,9 +80,21 @@ export function useInputSystem() {
       else runtime.pendingActions.add(action);
     };
     const keyboard = new KeyboardMouseSource(window, onAction);
-    const manager = new InputManager([keyboard, new TouchSource(), new GamepadSource()]);
+    const gyro = new GyroSource();
+    const manager = new InputManager([keyboard, new TouchSource(), new GamepadSource(onAction), gyro]);
     runtime.input = manager;
     runtime.cursor = keyboard.cursor;
+    runtime.gyro = gyro;
+
+    // Settings → Controls apply immediately: bindings, sensitivity, invert Y, gyro.
+    const applyControls = (controls: SettingsData["controls"]) => {
+      applyInputSettings(controls);
+      keyboard.setBindings(controls.bindings);
+    };
+    applyControls(useSettingsStore.getState().controls);
+    const unsubscribeSettings = useSettingsStore.subscribe((state, previous) => {
+      if (state.controls !== previous.controls) applyControls(state.controls);
+    });
 
     // Switch HUD/hints between desktop and touch as soon as the player uses the other one.
     const onPointerDown = (event: PointerEvent) => {
@@ -96,6 +110,8 @@ export function useInputSystem() {
       manager.dispose();
       runtime.input = null;
       runtime.cursor = null;
+      runtime.gyro = null;
+      unsubscribeSettings();
       window.removeEventListener("pointerdown", onPointerDown);
       unsubscribeCamera();
     };

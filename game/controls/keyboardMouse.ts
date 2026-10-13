@@ -1,10 +1,15 @@
 import { KEY_BINDINGS, KEYBOARD_STEER, MOUSE, type KeyAction } from "@/game/config/controls";
 import { clamp, moveTowards, shapeAxis } from "@/game/systems/math";
+import { analogPitch, inputTuning } from "./tuning";
 import type { ControlAction, InputSource, SteeringSample } from "./types";
 
-const CODE_TO_ACTION = new Map<string, KeyAction>();
-for (const [action, codes] of Object.entries(KEY_BINDINGS) as [KeyAction, readonly string[]][]) {
-  for (const code of codes) CODE_TO_ACTION.set(code, action);
+/** Key code → action for a set of bindings (remapped actions override the defaults). */
+export function bindingMap(bindings: Partial<Record<KeyAction, readonly string[]>>): Map<string, KeyAction> {
+  const map = new Map<string, KeyAction>();
+  for (const action of Object.keys(KEY_BINDINGS) as KeyAction[]) {
+    for (const code of bindings[action] ?? KEY_BINDINGS[action]) map.set(code, action);
+  }
+  return map;
 }
 
 const EDGE_ACTIONS: Partial<Record<KeyAction, ControlAction>> = {
@@ -34,6 +39,7 @@ export class KeyboardMouseSource implements InputSource {
   readonly cursor: CursorState = { x: 0, y: 0, active: false };
 
   private readonly held = new Set<KeyAction>();
+  private codeToAction = bindingMap({});
   private arrowPitch = 0;
   private arrowYaw = 0;
   private mouseSuspended = false;
@@ -53,6 +59,12 @@ export class KeyboardMouseSource implements InputSource {
     target.addEventListener("blur", this.handleBlur);
     target.addEventListener("pointermove", this.handlePointerMove);
     target.addEventListener("mouseout", this.handleMouseOut);
+  }
+
+  /** Settings → Controls changed the key bindings. */
+  setBindings(bindings: Partial<Record<KeyAction, readonly string[]>>): void {
+    this.codeToAction = bindingMap(bindings);
+    this.held.clear();
   }
 
   /** Whether any steering key is held (used by the hint system). */
@@ -82,7 +94,7 @@ export class KeyboardMouseSource implements InputSource {
       out.yaw = this.arrowYaw;
       out.active = true;
     } else if (this.cursor.active && !this.mouseSuspended && this.mouseArmed) {
-      out.pitch = shapeAxis(this.cursor.y, MOUSE.deadzone, MOUSE.curve);
+      out.pitch = analogPitch(shapeAxis(this.cursor.y, MOUSE.deadzone, MOUSE.curve));
       out.yaw = shapeAxis(this.cursor.x, MOUSE.deadzone, MOUSE.curve);
       out.active = true;
     }
@@ -117,7 +129,9 @@ export class KeyboardMouseSource implements InputSource {
   }
 
   private handleKeyDown = (event: KeyboardEvent) => {
-    const action = CODE_TO_ACTION.get(event.code);
+    // While Settings listens for a new key, nothing else may react to it.
+    if (event.defaultPrevented) return;
+    const action = this.codeToAction.get(event.code);
     if (!action) return;
     if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select")) return;
     // Keep Space/arrows from scrolling or activating focused buttons.
@@ -129,7 +143,7 @@ export class KeyboardMouseSource implements InputSource {
   };
 
   private handleKeyUp = (event: KeyboardEvent) => {
-    const action = CODE_TO_ACTION.get(event.code);
+    const action = this.codeToAction.get(event.code);
     if (action) this.held.delete(action);
   };
 
@@ -143,7 +157,7 @@ export class KeyboardMouseSource implements InputSource {
     const width = this.target.innerWidth;
     const height = this.target.innerHeight;
     const halfShort = Math.min(width, height) / 2;
-    const reach = halfShort * MOUSE.fullDeflection;
+    const reach = (halfShort * MOUSE.fullDeflection) / inputTuning.sensitivity;
     this.cursor.x = clamp((event.clientX - width / 2) / reach, -1, 1);
     this.cursor.y = clamp(-(event.clientY - height / 2) / reach, -1, 1);
     this.cursor.active = true;

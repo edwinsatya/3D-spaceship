@@ -8,6 +8,7 @@ import { useQualityStore } from "@/game/stores/qualityStore";
 import { useSettingsStore, type QualityPreference, type VolumeChannel } from "@/game/stores/settingsStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { GameButton, Panel } from "../primitives";
+import { ControlsSection, keyCapture } from "./ControlsSection";
 import { Segmented, SettingRow, Slider, Toggle } from "./fields";
 
 export type SettingsTab = "audio" | "display" | "controls" | "accessibility" | "language";
@@ -97,6 +98,7 @@ function DisplaySection() {
 const SECTIONS: Partial<Record<SettingsTab, () => ReactNode>> = {
   audio: AudioSection,
   display: DisplaySection,
+  controls: ControlsSection,
   language: LanguageSection,
 };
 
@@ -111,7 +113,7 @@ export function SettingsScreen() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.code === "Escape") {
+      if (event.code === "Escape" && !keyCapture.active) {
         event.stopPropagation();
         close();
       }

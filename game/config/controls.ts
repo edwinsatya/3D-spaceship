@@ -38,6 +38,28 @@ export const MOUSE = {
   armDistancePx: 160,
 } as const;
 
+/** Standard-mapping gamepads (Xbox / PlayStation layout). Button and axis indices per the Gamepad spec. */
+export const GAMEPAD = {
+  deadzone: 0.15,
+  curve: 1.3,
+  /** Triggers past this count as pressed for throttle. */
+  triggerThreshold: 0.1,
+  axes: { steerX: 0, steerY: 1 },
+  buttons: {
+    boost: 0, // A / Cross
+    land: 1, // B / Circle
+    orbit: 2, // X / Square
+    toggleCamera: 3, // Y / Triangle
+    rollLeft: 4, // LB / L1
+    rollRight: 5, // RB / R1
+    brake: 6, // LT / L2
+    throttle: 7, // RT / R2
+    map: 8, // View / Share
+    pause: 9, // Menu / Options
+    photo: 11, // Right stick click
+  },
+} as const;
+
 export const KEYBOARD_STEER = {
   /** Arrow keys ramp to full deflection at this rate (1/s) for an analog feel. */
   rampRate: 5,
