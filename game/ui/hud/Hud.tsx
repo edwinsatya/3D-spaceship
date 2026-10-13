@@ -3,7 +3,8 @@
 import { motion } from "motion/react";
 import { useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
-import { CameraIcon, MapIcon, PauseIcon } from "../icons";
+import { CameraIcon, MapIcon, PauseIcon, PhotoIcon } from "../icons";
+import { togglePhotoMode } from "@/game/systems/photoMode";
 import { MuteButton } from "../MuteButton";
 import { IconButton } from "../primitives";
 import { BoostGauge, SpeedGauge } from "./Gauges";
@@ -52,6 +53,9 @@ export function Hud() {
             <TopBar />
           </div>
           <div className="absolute top-0 right-0 flex gap-2">
+            <IconButton label={t("a11y.photo")} onClick={togglePhotoMode}>
+              <PhotoIcon />
+            </IconButton>
             {mode === "freeflight" && !onSurface && (
               <IconButton label={t("a11y.map")} onClick={openMap}>
                 <MapIcon />

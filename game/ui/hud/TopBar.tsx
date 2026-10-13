@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { useRef } from "react";
 import { MISSIONS } from "@/game/data/missions";
+import { PHOTO_TARGETS } from "@/game/data/photoTargets";
 import { BODIES } from "@/game/data/planets";
 import { SURFACES } from "@/game/data/surfaces";
 import { useProgressStore } from "@/game/stores/progressStore";
@@ -42,17 +43,20 @@ export function TopBar() {
   const total = useSessionStore((state) => state.objectiveTotal);
   const carrying = useSessionStore((state) => state.carrying);
   const missionId = useGameStore((state) => state.missionId);
-  const objective = MISSIONS[missionId].objective.type;
-  const missionText =
-    objective === "collect"
-      ? t("hud.objectiveCollect", { done, total })
-      : objective === "delivery"
-        ? t(carrying ? "hud.objectiveDock" : "hud.objectivePickup", { done, total })
-        : t("hud.objectiveRings", { current: Math.min(done + 1, total), total });
   const endTestFlight = useGameStore((state) => state.endTestFlight);
   const location = useGameStore((state) => state.location);
   const surface = useGameStore((state) => state.surface);
   const locale = useLocale();
+  const objective = MISSIONS[missionId].objective;
+  const timed = MISSIONS[missionId].rating.kind === "time";
+  const missionText =
+    objective.type === "photo"
+      ? t("hud.objectivePhoto", { name: localize(PHOTO_TARGETS[objective.target].name, locale) })
+      : objective.type === "collect"
+        ? t("hud.objectiveCollect", { done, total })
+        : objective.type === "delivery"
+          ? t(carrying ? "hud.objectiveDock" : "hud.objectivePickup", { done, total })
+          : t("hud.objectiveRings", { current: Math.min(done + 1, total), total });
   const placeName = localize(BODIES[location].name, locale);
   const surfaceText = () => {
     if (!surface) return null;
@@ -107,16 +111,20 @@ export function TopBar() {
               >
                 {missionText}
               </motion.span>
-              <RingPips passed={done} total={total} />
+              {timed && <RingPips passed={done} total={total} />}
             </div>
-            <div className="h-8 w-px bg-cyan-200/20" />
-            <span
-              ref={timer}
-              className="hud-text min-w-[5.5ch] font-display text-xl font-bold tabular-nums text-white sm:text-2xl"
-              aria-label={t("hud.time")}
-            >
-              0:00.00
-            </span>
+            {timed && (
+              <>
+                <div className="h-8 w-px bg-cyan-200/20" />
+                <span
+                  ref={timer}
+                  className="hud-text min-w-[5.5ch] font-display text-xl font-bold tabular-nums text-white sm:text-2xl"
+                  aria-label={t("hud.time")}
+                >
+                  0:00.00
+                </span>
+              </>
+            )}
           </>
         ) : (
           <span

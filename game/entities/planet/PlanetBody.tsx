@@ -21,6 +21,7 @@ import { OUTPUT_CHUNKS } from "@/game/scenes/shaders/common";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
 import { useAssetStore } from "@/game/stores/assetStore";
 import { moonletLocalPosition } from "@/game/systems/environment";
+import { spinAngle } from "@/game/systems/bodySpin";
 import { runtime } from "@/game/systems/runtime";
 import { Atmosphere } from "./Atmosphere";
 import { useBodyTextures } from "./textures";
@@ -162,8 +163,8 @@ export function PlanetBody({ body }: { body: CelestialBody }) {
   useEffect(() => () => lods.forEach((geometry) => geometry.dispose()), [lods]);
   useEffect(() => () => material.dispose(), [material]);
 
-  useFrame((_, delta) => {
-    if (spin.current) spin.current.rotation.y += body.rotationSpeed * delta * runtime.timeScale;
+  useFrame(() => {
+    if (spin.current) spin.current.rotation.y = spinAngle(body);
   });
 
   return (

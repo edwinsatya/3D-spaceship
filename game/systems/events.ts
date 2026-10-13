@@ -12,6 +12,8 @@ export interface GameEventMap {
   /** One objective done: `done` counts from 1 up to `total`. */
   objectiveProgress: { kind: ObjectiveKind; done: number; total: number };
   missionComplete: { mission: MissionId };
+  /** A photo was saved; `score` is set during photo missions (0 = subject not in the picture). */
+  photoTaken: { id: string; score: number | null };
   /** A cargo pod was picked up (delivery missions). */
   cargoLoaded: { index: number };
   pickup: { amount: number };

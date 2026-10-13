@@ -15,6 +15,7 @@ export const KEY_BINDINGS = {
   map: ["Tab"],
   orbit: ["KeyF"],
   land: ["KeyL"],
+  photo: ["KeyV"],
 } as const;
 
 export type KeyAction = keyof typeof KEY_BINDINGS;

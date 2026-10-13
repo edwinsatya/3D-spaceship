@@ -7,7 +7,7 @@ import { useT } from "@/game/i18n/useT";
 import { useGameStore, type GameMode } from "@/game/stores/gameStore";
 import { totalStars, useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
-import { BookIcon, HangarIcon, OrbitIcon, RocketIcon } from "./icons";
+import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
 import { GameButton } from "./primitives";
 
@@ -35,6 +35,7 @@ export function TitleMenu() {
   const openMissions = useUiStore((state) => state.openMissions);
   const openHangar = useGameStore((state) => state.openHangar);
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
+  const openGallery = useUiStore((state) => state.openGallery);
 
   return (
     <motion.div
@@ -75,13 +76,11 @@ export function TitleMenu() {
           <GameButton variant="secondary" icon={<HangarIcon />} onClick={openHangar}>
             {t("menu.hangar")}
           </GameButton>
-          <GameButton
-            variant="secondary"
-            icon={<BookIcon />}
-            onClick={() => openEncyclopedia()}
-            className="col-span-2 short:col-span-1"
-          >
+          <GameButton variant="secondary" icon={<BookIcon />} onClick={() => openEncyclopedia()}>
             {t("menu.encyclopedia")}
+          </GameButton>
+          <GameButton variant="secondary" icon={<GalleryIcon />} onClick={openGallery}>
+            {t("menu.gallery")}
           </GameButton>
         </div>
         <p className="text-xs text-white/60 short:hidden">

@@ -1,7 +1,15 @@
 import type { Localized } from "@/game/i18n/types";
+import type { PhotoTargetId } from "./photoTargets";
 import { EARTH, type BodyId, type LocationId, type Vec3Tuple } from "./planets";
 
-export type MissionId = "orbit-rings" | "station-delivery" | "belt-slalom" | "crystal-hunt" | "saturn-ring-run";
+export type MissionId =
+  | "orbit-rings"
+  | "station-delivery"
+  | "red-spot-photo"
+  | "belt-slalom"
+  | "crystal-hunt"
+  | "saturn-ring-run"
+  | "saturn-portrait";
 
 export interface RingCourseParams {
   center: Vec3Tuple;
@@ -47,7 +55,7 @@ export interface EnergyStarParams {
 }
 
 /** Where missions take place; a route unlocks with stars (see game/data/unlocks.ts). */
-export type RouteId = "earth-orbit" | "space-station" | "asteroid-belt" | "saturn-rings";
+export type RouteId = "earth-orbit" | "space-station" | "jupiter" | "asteroid-belt" | "saturn-rings";
 
 export interface RouteDefinition {
   id: RouteId;
@@ -59,11 +67,12 @@ export interface RouteDefinition {
 export const ROUTES: Record<RouteId, RouteDefinition> = {
   "earth-orbit": { id: "earth-orbit", name: { en: "Earth orbit", id: "Orbit Bumi" }, icon: "earth" },
   "space-station": { id: "space-station", name: { en: "Space station", id: "Stasiun luar angkasa" }, icon: "earth" },
+  jupiter: { id: "jupiter", name: { en: "Jupiter", id: "Jupiter" }, icon: "jupiter" },
   "asteroid-belt": { id: "asteroid-belt", name: { en: "Asteroid belt", id: "Sabuk asteroid" }, icon: "ceres" },
   "saturn-rings": { id: "saturn-rings", name: { en: "Saturn's rings", id: "Cincin Saturnus" }, icon: "saturn" },
 };
 
-export const ROUTE_ORDER: readonly RouteId[] = ["earth-orbit", "space-station", "asteroid-belt", "saturn-rings"];
+export const ROUTE_ORDER: readonly RouteId[] = ["earth-orbit", "space-station", "jupiter", "asteroid-belt", "saturn-rings"];
 
 /** Lower is better (seconds) or higher is better (0–100 score, e.g. photos). */
 export type MissionRating =
@@ -87,7 +96,9 @@ export type MissionObjective =
   | { type: "rings"; course: RingCourseParams; energyStars: EnergyStarParams }
   | { type: "collect"; crystals: CrystalFieldParams }
   /** Pick up each pod and fly it through the station's docking gate. */
-  | { type: "delivery"; pods: readonly Vec3Tuple[] };
+  | { type: "delivery"; pods: readonly Vec3Tuple[] }
+  /** Take a picture of a subject in photo mode; rated by how good the shot is. */
+  | { type: "photo"; target: PhotoTargetId };
 
 export type ObjectiveType = MissionObjective["type"];
 
@@ -232,6 +243,32 @@ export const STATION_DELIVERY: MissionDefinition = {
   rating: { kind: "time", three: 62, two: 85 },
 };
 
+export const RED_SPOT_PHOTO: MissionDefinition = {
+  id: "red-spot-photo",
+  route: "jupiter",
+  location: "jupiter",
+  name: { en: "Storm Portrait", id: "Potret Badai" },
+  description: {
+    en: "Take a portrait of Jupiter's Great Red Spot, a storm bigger than Earth. Open photo mode, frame it well and press the shutter!",
+    id: "Potret Bintik Merah Besar di Jupiter, badai yang lebih besar dari Bumi. Buka mode foto, bingkai dengan bagus, lalu tekan tombol rana!",
+  },
+  objective: { type: "photo", target: "red-spot" },
+  rating: { kind: "score", three: 80, two: 55 },
+};
+
+export const SATURN_PORTRAIT: MissionDefinition = {
+  id: "saturn-portrait",
+  route: "saturn-rings",
+  location: "saturn",
+  name: { en: "Ringed Giant", id: "Raksasa Bercincin" },
+  description: {
+    en: "Photograph all of Saturn with its rings wide open, lit by the Sun — like the Cassini spacecraft did.",
+    id: "Foto seluruh Saturnus dengan cincinnya terbuka lebar dan disinari Matahari — seperti yang dilakukan wahana Cassini.",
+  },
+  objective: { type: "photo", target: "saturn" },
+  rating: { kind: "score", three: 80, two: 55 },
+};
+
 export const BELT_SLALOM: MissionDefinition = {
   id: "belt-slalom",
   route: "asteroid-belt",
@@ -285,18 +322,22 @@ export const SATURN_RING_RUN: MissionDefinition = {
 export const MISSIONS: Record<MissionId, MissionDefinition> = {
   "orbit-rings": ORBIT_RINGS,
   "station-delivery": STATION_DELIVERY,
+  "red-spot-photo": RED_SPOT_PHOTO,
   "belt-slalom": BELT_SLALOM,
   "crystal-hunt": CRYSTAL_HUNT,
   "saturn-ring-run": SATURN_RING_RUN,
+  "saturn-portrait": SATURN_PORTRAIT,
 };
 
 /** Mission select order (also the unlock order). */
 export const MISSION_ORDER: readonly MissionId[] = [
   "orbit-rings",
   "station-delivery",
+  "red-spot-photo",
   "belt-slalom",
   "crystal-hunt",
   "saturn-ring-run",
+  "saturn-portrait",
 ];
 
 export function isMissionId(value: unknown): value is MissionId {

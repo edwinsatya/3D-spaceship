@@ -16,6 +16,7 @@ import { useProgressStore } from "@/game/stores/progressStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
 import { runtime } from "./runtime";
 import { isWarping } from "./warp";
+import { togglePhotoMode } from "./photoMode";
 
 
 /** boot → loading: capability checks, device detection, audio synthesis. */
@@ -61,6 +62,7 @@ export function useInputSystem() {
       const game = useGameStore.getState();
       if (action === "pause") {
         if (game.phase === "map") game.closeMap();
+        else if (game.phase === "photo") game.closePhoto();
         else game.togglePause();
       } else if (action === "toggleCamera") game.toggleCamera();
       else if (action === "mute") useProgressStore.getState().toggleMuted();
@@ -70,7 +72,8 @@ export function useInputSystem() {
           game.openMap();
           runtime.tutorial.mapOpened = true;
         }
-      } else runtime.pendingActions.add(action);
+      } else if (action === "photo") togglePhotoMode();
+      else runtime.pendingActions.add(action);
     };
     const keyboard = new KeyboardMouseSource(window, onAction);
     const manager = new InputManager([keyboard, new TouchSource(), new GamepadSource()]);

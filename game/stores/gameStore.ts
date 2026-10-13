@@ -39,6 +39,8 @@ interface GameStore {
   setSurface: (surface: SurfaceId | null) => void;
   openMap: () => void;
   closeMap: () => void;
+  openPhoto: () => void;
+  closePhoto: () => void;
   openHangar: () => void;
   closeHangar: () => void;
   /** Ends a test flight (timer or button) and returns to the hangar. */
@@ -123,6 +125,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
   closeMap: () => {
     if (get().phase === "map") set({ phase: "playing" });
+  },
+  openPhoto: () => {
+    if (get().phase === "playing") set({ phase: "photo" });
+  },
+  closePhoto: () => {
+    if (get().phase === "photo") set({ phase: "playing" });
   },
   openHangar: () => {
     if (get().phase === "menu") set({ phase: "hangar" });

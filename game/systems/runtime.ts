@@ -129,6 +129,19 @@ export const runtime = {
   gatePassedAt: [] as number[],
   /** Layout of the mission being flown (null outside missions). */
   layout: null as MissionLayout | null,
+  /** Photo mode camera (per-frame numbers; UI choices live in the photo store). */
+  photo: {
+    /** Look direction relative to the ship (radians): yaw left/right, pitch up/down. */
+    yaw: 0,
+    pitch: 0,
+    /** Distance behind the ship (u) and vertical field of view (degrees). */
+    distance: 10,
+    fov: 50,
+    /** Set by the shutter; the capture runs right after the next render. */
+    captureRequested: false,
+  },
+  /** Extra spin per body (photo missions turn their subject into the light). */
+  spinOffsets: {} as Partial<Record<BodyId, number>>,
   /** Crystals / pods picked up and the pod being towed. */
   objective: createObjectiveState(0),
   pickups: { active: [], respawnIn: [], collectedAt: [] } as PickupRuntime,
@@ -152,6 +165,7 @@ export const runtime = {
     objective: null,
     objectivesDone: 0,
     carrying: false,
+    photoOpened: false,
     steerAmount: 0,
     throttleRaised: false,
     boostUsed: false,

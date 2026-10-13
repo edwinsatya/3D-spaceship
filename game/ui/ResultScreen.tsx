@@ -87,6 +87,10 @@ export function ResultScreen() {
             </h2>
             <p className="mt-1 font-display text-sm tracking-widest text-cyan-100/80">{localize(mission.name, locale)}</p>
           </div>
+          {result.photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- the mission photo (local object URL)
+            <img src={result.photoUrl} alt="" className="max-h-40 w-full rounded-2xl object-cover short:max-h-24" />
+          )}
           <StarRow count={result.stars} size="text-6xl short:text-4xl" animate label={t("a11y.stars", { count: result.stars })} />
           <div className="flex w-full justify-center gap-8">
             <div>

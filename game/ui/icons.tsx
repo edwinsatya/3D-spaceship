@@ -104,6 +104,21 @@ export const TakeOffIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const PhotoIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Icon>
+);
+
+export const GalleryIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="8.5" cy="10" r="1.5" />
+    <path d="m4 17 5-5 4 4 3-3 4 4" />
+  </Icon>
+);
+
 export const HangarIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 20V9l9-5 9 5v11" />

@@ -12,6 +12,8 @@ export interface MissionResult {
   isNewBest: boolean;
   previousBest: number | null;
   best: number;
+  /** Photo missions: the shot that finished the mission (object URL). */
+  photoUrl?: string;
 }
 
 export type ToastKind = "ring" | "energy" | "collision";

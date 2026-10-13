@@ -24,6 +24,7 @@ import { runtime } from "@/game/systems/runtime";
 import { DebugBridge } from "./DebugBridge";
 import { Effects } from "./Effects";
 import { NebulaGas } from "./NebulaGas";
+import { PhotoCapture } from "./PhotoCapture";
 import { Preloader } from "./Preloader";
 import { QualityManager } from "./QualityManager";
 import { SkyBackground } from "./SkyBackground";
@@ -133,6 +134,7 @@ export function SpaceScene() {
       <GameLoop />
       {loaded && <QualityManager />}
       <Effects />
+      {phase === "photo" && <PhotoCapture />}
       {DEBUG_HANDLE_ENABLED && <DebugBridge />}
     </>
   );

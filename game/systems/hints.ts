@@ -16,6 +16,7 @@ export type HintId =
   | "crystal"
   | "cargoPickup"
   | "cargoDock"
+  | "photo"
   | "followArrow"
   | "boost"
   | "energy"
@@ -35,6 +36,8 @@ export interface HintContext {
   objectivesDone: number;
   /** Delivery missions: towing a cargo pod. */
   carrying: boolean;
+  /** Photo mode has been opened this run. */
+  photoOpened: boolean;
   steerAmount: number;
   throttleRaised: boolean;
   boostUsed: boolean;
@@ -120,6 +123,15 @@ export const HINTS: readonly HintDefinition[] = [
     done: (c) => c.carrying || c.objectivesDone > 0,
     minShow: 1,
     maxShow: 8,
+  },
+  {
+    id: "photo",
+    text: { desktop: "hints.photoDesktop", touch: "hints.photoTouch" },
+    modes: ["mission"],
+    trigger: (c) => c.objective === "photo" && c.timeSinceStart > 1.5,
+    done: (c) => c.photoOpened,
+    minShow: 1,
+    maxShow: 12,
   },
   {
     id: "cargoDock",

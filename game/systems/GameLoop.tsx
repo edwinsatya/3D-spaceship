@@ -6,6 +6,7 @@ import type { PerspectiveCamera } from "three";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { beginIntroBlend } from "./cameraRig";
+import { enterPhotoMode, leavePhotoMode } from "./photoMode";
 import { notifyHud, runtime } from "./runtime";
 import { applySelectedShip, beginRun, enterLocation, placeShipForMenu, stepSimulation } from "./simulation";
 
@@ -36,9 +37,11 @@ export function GameLoop() {
         }
         if (state.phase === previous.phase) return;
         // Back from a menu overlay: the cursor sits on its button, re-arm mouse steering.
-        if (state.phase === "playing" && (previous.phase === "paused" || previous.phase === "map")) {
+        if (state.phase === "playing" && (previous.phase === "paused" || previous.phase === "map" || previous.phase === "photo")) {
           runtime.input?.resetForRun();
         }
+        if (state.phase === "photo") enterPhotoMode();
+        if (previous.phase === "photo") leavePhotoMode();
         const showroom = (phase: string) => phase === "menu" || phase === "hangar";
         // Menu ⇄ hangar: glide between the two framings; from a run: reset to the spawn.
         if (showroom(state.phase) && showroom(previous.phase)) beginIntroBlend(runtime.camera);

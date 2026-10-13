@@ -14,6 +14,7 @@ const EDGE_ACTIONS: Partial<Record<KeyAction, ControlAction>> = {
   map: "map",
   orbit: "orbit",
   land: "land",
+  photo: "photo",
 };
 
 /** Normalized cursor position relative to screen center, y up. Shared with the HUD reticle. */

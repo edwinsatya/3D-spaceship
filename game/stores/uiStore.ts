@@ -6,6 +6,9 @@ import type { BodyId } from "@/game/data/planets";
 interface UiStore {
   encyclopedia: { open: boolean; selected: BodyId | null };
   missions: { open: boolean; selected: MissionId | null };
+  gallery: boolean;
+  openGallery: () => void;
+  closeGallery: () => void;
   openMissions: (selected?: MissionId | null) => void;
   closeMissions: () => void;
   selectMission: (id: MissionId) => void;
@@ -17,6 +20,9 @@ interface UiStore {
 export const useUiStore = create<UiStore>()((set) => ({
   encyclopedia: { open: false, selected: null },
   missions: { open: false, selected: null },
+  gallery: false,
+  openGallery: () => set({ gallery: true }),
+  closeGallery: () => set({ gallery: false }),
   openMissions: (selected = null) => set((state) => ({ missions: { open: true, selected: selected ?? state.missions.selected } })),
   closeMissions: () => set((state) => ({ missions: { ...state.missions, open: false } })),
   selectMission: (id) => set((state) => ({ missions: { ...state.missions, selected: id } })),

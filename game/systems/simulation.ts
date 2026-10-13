@@ -27,7 +27,7 @@ import {
   updateResultCamera,
 } from "./cameraRig";
 import { resolveShipSphere, spheresOverlap } from "./collision";
-import { segmentCrossesDisc, type RingSpec } from "./course";
+import { segmentCrossesDisc, toVector, type RingSpec } from "./course";
 import { arrivalFor, buildEnvironment, referenceUpAt } from "./environment";
 import { EMPTY_PAYLOAD, gameEvents, type ObjectiveKind } from "./events";
 import { decayKnockback, orientationFromForwardUp, resetShip, updateFlight, type ShipState } from "./flight";
@@ -47,7 +47,12 @@ import { rebaseIfNeeded } from "./floatingOrigin";
 import { findDiscovery } from "./discovery";
 import { createHintState, updateHints } from "./hints";
 import { damp } from "./math";
-import { canFly, completeObjective, createMissionState, startCountdown, tickMission } from "./mission";
+import { canFly, completeObjective, createMissionState, startCountdown, startImmediately, tickMission } from "./mission";
+import { featurePlacement, spinToFace } from "./photo";
+import { updatePhotoCamera } from "./photoMode";
+import { spinAngle } from "./bodySpin";
+import { PHOTO_TARGETS } from "@/game/data/photoTargets";
+import { sunDirectionFor } from "@/game/data/solarSystem";
 import { getMissionLayout, homeSpawn, objectiveTotal, type MissionLayout } from "./missionLayout";
 import { createObjectiveState, nearestOpen } from "./objectives";
 import { runtime } from "./runtime";
@@ -173,7 +178,13 @@ export function beginRun(mode: GameMode, introFromMenu: boolean): void {
   const total = layout ? objectiveTotal(layout) : 0;
   runtime.mission = createMissionState(total);
   session.reset(total);
-  if (layout) {
+  runtime.spinOffsets = {};
+  if (layout?.mission.objective.type === "photo") {
+    // No race: the clock just runs while you find a good shot.
+    startImmediately(runtime.mission);
+    session.setStatus("running");
+    turnSubjectIntoView(layout);
+  } else if (layout) {
     const tick = startCountdown(runtime.mission, MISSION);
     session.setStatus("countdown");
     if (tick.type === "countdown") {
@@ -217,6 +228,7 @@ export function beginRun(mode: GameMode, introFromMenu: boolean): void {
   tutorial.timeSinceStart = 0;
   tutorial.orbited = false;
   tutorial.landed = false;
+  tutorial.photoOpened = false;
   tutorial.mapOpened = false;
   runtime.hints = createHintState(useProgressStore.getState().onboarding.completedHints);
   runtime.discovered = new Set(useProgressStore.getState().discovered);
@@ -334,14 +346,14 @@ function handlePickups(mode: GameMode, dt: number): void {
 }
 
 /** `value` is the run's time (ms) or score, matching the mission's rating. */
-function finishMission(layout: MissionLayout, value: number): void {
+function finishMission(layout: MissionLayout, value: number, photoUrl?: string): void {
   const { mission: definition } = layout;
   const stars = rateMission(value, definition.rating);
   const outcome = useProgressStore.getState().recordMissionResult(definition.id, value, stars);
   const session = useSessionStore.getState();
   session.setStatus("finished");
   session.setHint(null);
-  session.setResult({ missionId: definition.id, stars, value, ...outcome });
+  session.setResult({ missionId: definition.id, stars, value, photoUrl, ...outcome });
   runtime.finishTimer = MISSION.finishDelay;
   gameEvents.emit("missionComplete", { mission: definition.id });
 }
@@ -396,6 +408,9 @@ function handleObjectives(): void {
       objectiveDone(layout, "crystal");
       return;
     }
+    case "photo":
+      // Finished by submitMissionPhoto when a shot is taken in photo mode.
+      return;
     case "delivery": {
       if (objective.carrying < 0) {
         const index = touchedCollectible(layout, MISSION.podPickupRadius);
@@ -570,6 +585,45 @@ function stepFlight(
   updateFov(camera, ship, realDt);
 }
 
+const _subject = new Vector3();
+const _subjectNormal = new Vector3();
+
+/** Photo missions: where the subject is right now (a surface feature turns with its planet). */
+export function photoSubject(layout: MissionLayout | null): Vector3 | null {
+  if (layout?.mission.objective.type !== "photo") return null;
+  const target = PHOTO_TARGETS[layout.mission.objective.target];
+  const body = BODIES[target.body];
+  if (target.kind === "planet") return _subject.set(...body.position);
+  featurePlacement(target, body, spinAngle(body), _subject, _subjectNormal);
+  return _subject;
+}
+
+/** Spins the subject's planet so the feature faces between the Sun and where you arrive. */
+function turnSubjectIntoView(layout: MissionLayout): void {
+  if (layout.mission.objective.type !== "photo") return;
+  const target = PHOTO_TARGETS[layout.mission.objective.target];
+  if (target.kind !== "feature") return;
+  const body = BODIES[target.body];
+  const toArrival = layout.spawn.position.clone().sub(_subject.set(...body.position)).normalize();
+  // The location may not be loaded yet when a run starts: use its sun direction directly.
+  const sun = toVector(sunDirectionFor(layout.mission.location));
+  const wanted = toArrival.multiplyScalar(0.85).addScaledVector(sun, 0.55).normalize();
+  runtime.spinOffsets[body.id] = spinToFace(target, body, wanted) - body.rotationSpeed * runtime.clock;
+}
+
+/**
+ * Photo missions end with the first shot that has the subject in it.
+ * Returns false (and the mission goes on) when the subject is not in the picture.
+ */
+export function submitMissionPhoto(score: number, photoUrl: string): boolean {
+  const layout = runtime.layout;
+  if (layout?.mission.objective.type !== "photo" || runtime.mission.status !== "running" || score <= 0) return false;
+  completeObjective(runtime.mission);
+  useSessionStore.getState().setObjectiveDone(1);
+  finishMission(layout, score, photoUrl);
+  return true;
+}
+
 /** Where the mission wants you next: the next ring, the nearest crystal or pod, or the dock. */
 function missionGoal(): Vector3 | null {
   const layout = runtime.layout;
@@ -584,6 +638,8 @@ function missionGoal(): Vector3 | null {
       return objective.carrying >= 0
         ? layout.gates[0].position
         : nearestOpen(layout.collectibles, objective.collected, runtime.ship.position);
+    case "photo":
+      return photoSubject(layout);
   }
 }
 
@@ -661,6 +717,12 @@ export function stepSimulation(camera: PerspectiveCamera, delta: number): void {
   const { phase, mode, cameraMode } = useGameStore.getState();
   if (phase === "boot" || phase === "loading" || phase === "paused" || phase === "map") {
     if (phase !== "paused") writeTransforms(camera, 0);
+    return;
+  }
+  if (phase === "photo") {
+    // The world is frozen (no clock, no physics); only the photo camera moves.
+    updatePhotoCamera();
+    writeTransforms(camera, 0);
     return;
   }
 

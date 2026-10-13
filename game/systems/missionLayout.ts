@@ -59,6 +59,10 @@ function buildLayout(mission: MissionDefinition): MissionLayout {
       for (const pod of greedyRoute(approach, pods.map((p) => p.position)).slice(1)) path.push(pod, approach, dock.position);
       return { mission, spawn, gates: [dock], collectibles: pods, path, energyStars: buildEnvironment(location).pickups };
     }
+    case "photo": {
+      const spawn = arrivalFor(location);
+      return { mission, spawn, gates: [], collectibles: [], path: [spawn.position], energyStars: buildEnvironment(location).pickups };
+    }
   }
 }
 
@@ -79,5 +83,12 @@ export function homeSpawn(): SpawnPoint {
 
 /** How many objectives finish the mission (rings, crystals or deliveries). */
 export function objectiveTotal(layout: MissionLayout): number {
-  return layout.mission.objective.type === "rings" ? layout.gates.length : layout.collectibles.length;
+  switch (layout.mission.objective.type) {
+    case "rings":
+      return layout.gates.length;
+    case "photo":
+      return 1;
+    default:
+      return layout.collectibles.length;
+  }
 }
