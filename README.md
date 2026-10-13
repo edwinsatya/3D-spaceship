@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Buka URL yang dicetak (default http://localhost:3000). Butuh Node.js ≥ 20.9 dan browser dengan WebGL2.
+Buka http://localhost:3001 (port 3001 dipakai `dev` dan `start`; 3000 sering dipakai proyek lain). Butuh Node.js ≥ 20.9 dan browser dengan WebGL2.
 
 | Skrip               | Fungsi                                             |
 | ------------------- | -------------------------------------------------- |
@@ -44,7 +44,7 @@ Tanpa konfigurasi, game berjalan sebagai tamu dan progres tersimpan di perangkat
    Tabel `player_progress` memakai Row Level Security: setiap pemain hanya bisa membaca/menulis barisnya sendiri.
 3. **Authentication → Providers**: aktifkan *Email* (magic link) dan *Google* (Client ID + Secret dari Google Cloud
    Console; redirect URI dari halaman provider Supabase).
-4. **Authentication → URL Configuration**: isi *Site URL* dan tambahkan URL game (mis. `http://localhost:3000`) ke
+4. **Authentication → URL Configuration**: isi *Site URL* dan tambahkan URL game (mis. `http://localhost:3001`) ke
    *Redirect URLs*.
 5. Salin `.env.example` ke `.env.local`, isi `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    (Project Settings → API), lalu restart `npm run dev`. Nilai `NEXT_PUBLIC_` di-*inline* saat build.
