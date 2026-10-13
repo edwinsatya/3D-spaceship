@@ -6,7 +6,7 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { ControlsReference } from "./ControlsReference";
 import { useUiStore } from "@/game/stores/uiStore";
-import { BookIcon, GalleryIcon, HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon } from "./icons";
+import { BookIcon, GalleryIcon, HangarIcon, HomeIcon, PlayIcon, RestartIcon, SoundOffIcon, SoundOnIcon, TrophyIcon } from "./icons";
 import { GameButton, Panel } from "./primitives";
 
 export function PauseMenu() {
@@ -21,6 +21,7 @@ export function PauseMenu() {
   const toggleMuted = useProgressStore((state) => state.toggleMuted);
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
   const openGallery = useUiStore((state) => state.openGallery);
+  const openBadges = useUiStore((state) => state.openBadges);
 
   return (
     <motion.div
@@ -55,6 +56,9 @@ export function PauseMenu() {
           </GameButton>
           <GameButton variant="secondary" icon={<GalleryIcon />} onClick={openGallery}>
             {t("pause.gallery")}
+          </GameButton>
+          <GameButton variant="secondary" icon={<TrophyIcon />} onClick={openBadges}>
+            {t("pause.badges")}
           </GameButton>
           <GameButton variant="secondary" icon={muted ? <SoundOffIcon /> : <SoundOnIcon />} onClick={toggleMuted}>
             {t("pause.sound")}: {muted ? t("pause.off") : t("pause.on")}

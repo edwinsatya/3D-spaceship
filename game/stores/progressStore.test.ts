@@ -57,6 +57,8 @@ describe("migrateProgress", () => {
       discovered: [],
       landed: [],
       pointsOfInterest: [],
+      badges: [],
+      photosTaken: 0,
     });
   });
 

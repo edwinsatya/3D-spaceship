@@ -7,7 +7,7 @@ import { useT } from "@/game/i18n/useT";
 import { useGameStore, type GameMode } from "@/game/stores/gameStore";
 import { totalStars, useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
-import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon } from "./icons";
+import { BookIcon, GalleryIcon, HangarIcon, OrbitIcon, RocketIcon, TrophyIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
 import { GameButton } from "./primitives";
 
@@ -36,6 +36,7 @@ export function TitleMenu() {
   const openHangar = useGameStore((state) => state.openHangar);
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
   const openGallery = useUiStore((state) => state.openGallery);
+  const openBadges = useUiStore((state) => state.openBadges);
 
   return (
     <motion.div
@@ -81,6 +82,9 @@ export function TitleMenu() {
           </GameButton>
           <GameButton variant="secondary" icon={<GalleryIcon />} onClick={openGallery}>
             {t("menu.gallery")}
+          </GameButton>
+          <GameButton variant="secondary" icon={<TrophyIcon />} onClick={openBadges} className="col-span-2 short:col-span-1">
+            {t("menu.badges")}
           </GameButton>
         </div>
         <p className="text-xs text-white/60 short:hidden">

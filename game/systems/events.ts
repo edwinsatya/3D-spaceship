@@ -1,4 +1,5 @@
 import type { BodyId, LocationId } from "@/game/data/planets";
+import type { BadgeId } from "@/game/data/badges";
 import type { MissionId } from "@/game/data/missions";
 import type { SurfaceId } from "@/game/data/surfaces";
 
@@ -14,6 +15,8 @@ export interface GameEventMap {
   missionComplete: { mission: MissionId };
   /** A photo was saved; `score` is set during photo missions (0 = subject not in the picture). */
   photoTaken: { id: string; score: number | null };
+  /** A new badge (achievement) was earned. */
+  badgeEarned: { id: BadgeId };
   /** A cargo pod was picked up (delivery missions). */
   cargoLoaded: { index: number };
   pickup: { amount: number };

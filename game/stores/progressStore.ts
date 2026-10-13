@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { isBadgeId, type BadgeId } from "@/game/data/badges";
 import { isMissionId, MISSIONS, type MissionId } from "@/game/data/missions";
 import { isBodyId, type BodyId } from "@/game/data/planets";
 import { DEFAULT_SHIP, type ShipCustomization, type ShipId } from "@/game/data/ships";
@@ -36,6 +37,10 @@ interface ProgressData {
   /** Surfaces you have landed on and points of interest visited there. */
   landed: BodyId[];
   pointsOfInterest: string[];
+  /** Badges earned, in the order they were earned. */
+  badges: BadgeId[];
+  /** Photos ever taken (the gallery itself lives in IndexedDB). */
+  photosTaken: number;
 }
 
 interface ProgressStore extends ProgressData {
@@ -50,6 +55,8 @@ interface ProgressStore extends ProgressData {
   discover: (id: BodyId) => boolean;
   markLanded: (id: BodyId) => boolean;
   visitPointOfInterest: (id: string) => boolean;
+  awardBadges: (ids: readonly BadgeId[]) => void;
+  countPhoto: () => void;
 }
 
 export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
@@ -92,6 +99,8 @@ export const useProgressStore = create<ProgressStore>()(
       discovered: [],
       landed: [],
       pointsOfInterest: [],
+      badges: [],
+      photosTaken: 0,
 
       recordMissionResult: (id, value, stars) => {
         const lowerIsBetter = MISSIONS[id].rating.kind === "time";
@@ -125,6 +134,11 @@ export const useProgressStore = create<ProgressStore>()(
         set((state) => ({ pointsOfInterest: [...state.pointsOfInterest, id] }));
         return true;
       },
+      awardBadges: (ids) => {
+        const fresh = ids.filter((id) => !get().badges.includes(id));
+        if (fresh.length > 0) set((state) => ({ badges: [...state.badges, ...fresh] }));
+      },
+      countPhoto: () => set((state) => ({ photosTaken: state.photosTaken + 1 })),
     }),
     {
       name: PROGRESS_STORAGE_KEY,
@@ -139,6 +153,8 @@ export const useProgressStore = create<ProgressStore>()(
         discovered: state.discovered,
         landed: state.landed,
         pointsOfInterest: state.pointsOfInterest,
+        badges: state.badges,
+        photosTaken: state.photosTaken,
       }),
     },
   ),
@@ -158,6 +174,9 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
     discovered: (data.discovered ?? []).filter(isBodyId),
     landed: (data.landed ?? []).filter(isBodyId),
     pointsOfInterest: (data.pointsOfInterest ?? []).filter((id) => typeof id === "string"),
+    // Added in Phase 3 without a version bump.
+    badges: (data.badges ?? []).filter(isBadgeId),
+    photosTaken: typeof data.photosTaken === "number" && data.photosTaken >= 0 ? data.photosTaken : 0,
   };
 }
 

@@ -10,7 +10,8 @@ import type { ControlInput } from "@/game/controls/types";
 import { BODIES, type LocationId } from "@/game/data/planets";
 import { SHIPS_BY_ID } from "@/game/data/ships";
 import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
-import { useProgressStore } from "@/game/stores/progressStore";
+import { totalStars, useProgressStore } from "@/game/stores/progressStore";
+import { locationUnlocked, newlyUnlocked } from "./unlocks";
 import { useSessionStore } from "@/game/stores/sessionStore";
 import { addBoostEnergy } from "./boost";
 import {
@@ -105,6 +106,7 @@ export function applyLocation(location: LocationId): void {
 export function beginWarp(target: LocationId): boolean {
   const game = useGameStore.getState();
   if (game.mode !== "freeflight" || game.location === target) return false;
+  if (!locationUnlocked(target, totalStars(useProgressStore.getState().missions))) return false;
   if (!startWarp(runtime.warp, target)) return false;
   // The cursor is still on the Warp button: don't steer towards it on arrival.
   runtime.input?.resetForRun();
@@ -349,11 +351,14 @@ function handlePickups(mode: GameMode, dt: number): void {
 function finishMission(layout: MissionLayout, value: number, photoUrl?: string): void {
   const { mission: definition } = layout;
   const stars = rateMission(value, definition.rating);
-  const outcome = useProgressStore.getState().recordMissionResult(definition.id, value, stars);
+  const progress = useProgressStore.getState();
+  const starsBefore = totalStars(progress.missions);
+  const outcome = progress.recordMissionResult(definition.id, value, stars);
+  const unlocked = newlyUnlocked(starsBefore, totalStars(useProgressStore.getState().missions));
   const session = useSessionStore.getState();
   session.setStatus("finished");
   session.setHint(null);
-  session.setResult({ missionId: definition.id, stars, value, photoUrl, ...outcome });
+  session.setResult({ missionId: definition.id, stars, value, photoUrl, unlocked, ...outcome });
   runtime.finishTimer = MISSION.finishDelay;
   gameEvents.emit("missionComplete", { mission: definition.id });
 }

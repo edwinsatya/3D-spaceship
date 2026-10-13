@@ -9,6 +9,9 @@ interface UiStore {
   gallery: boolean;
   openGallery: () => void;
   closeGallery: () => void;
+  badges: boolean;
+  openBadges: () => void;
+  closeBadges: () => void;
   openMissions: (selected?: MissionId | null) => void;
   closeMissions: () => void;
   selectMission: (id: MissionId) => void;
@@ -23,6 +26,9 @@ export const useUiStore = create<UiStore>()((set) => ({
   gallery: false,
   openGallery: () => set({ gallery: true }),
   closeGallery: () => set({ gallery: false }),
+  badges: false,
+  openBadges: () => set({ badges: true }),
+  closeBadges: () => set({ badges: false }),
   openMissions: (selected = null) => set((state) => ({ missions: { open: true, selected: selected ?? state.missions.selected } })),
   closeMissions: () => set((state) => ({ missions: { ...state.missions, open: false } })),
   selectMission: (id) => set((state) => ({ missions: { ...state.missions, selected: id } })),

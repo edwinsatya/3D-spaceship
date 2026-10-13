@@ -119,6 +119,27 @@ export const GalleryIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const LockIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </Icon>
+);
+
+export const CargoIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3 8l9-4 9 4v8l-9 4-9-4z" />
+    <path d="M3 8l9 4 9-4M12 12v8" />
+  </Icon>
+);
+
+export const TrophyIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+    <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M10 17h4" />
+  </Icon>
+);
+
 export const HangarIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 20V9l9-5 9 5v11" />

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { InputDevice } from "@/game/controls/types";
 import { MISSIONS, type MissionId } from "@/game/data/missions";
+import { missionUnlocked } from "@/game/systems/unlocks";
+import { totalStars, useProgressStore } from "./progressStore";
 import type { LocationId } from "@/game/data/planets";
 import type { SurfaceId } from "@/game/data/surfaces";
 import { canTransition, type GamePhase } from "@/game/systems/stateMachine";
@@ -76,6 +78,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const { phase, runId } = get();
     if (!canTransition(phase, "playing")) return;
     const mission = missionId ?? get().missionId;
+    if (mode === "mission" && !missionUnlocked(mission, totalStars(useProgressStore.getState().missions))) return;
     set({
       phase: "playing",
       mode,

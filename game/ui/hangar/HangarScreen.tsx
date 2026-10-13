@@ -15,10 +15,12 @@ import {
 import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
-import { useProgressStore } from "@/game/stores/progressStore";
+import { DECAL_UNLOCKS, SHIP_UNLOCKS } from "@/game/data/unlocks";
+import { totalStars, useProgressStore } from "@/game/stores/progressStore";
+import { colorUnlockStars, decalUnlocked, shipUnlocked } from "@/game/systems/unlocks";
 import { useSelectedShip } from "@/game/stores/useShip";
 import { runtime } from "@/game/systems/runtime";
-import { RocketIcon } from "../icons";
+import { LockIcon, RocketIcon } from "../icons";
 import { startGame } from "../TitleMenu";
 import { GameButton, Panel } from "../primitives";
 
@@ -40,24 +42,50 @@ function StatBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ShipCard({ ship, selected, onSelect }: { ship: ShipDefinition; selected: boolean; onSelect: () => void }) {
+/** Lock badge: how many stars an item needs. */
+function LockBadge({ stars, compact = false }: { stars: number; compact?: boolean }) {
+  return (
+    <span className={`flex items-center gap-0.5 font-bold text-star ${compact ? "text-[9px]" : "text-[10px] uppercase tracking-widest"}`}>
+      <LockIcon /> {stars}★
+    </span>
+  );
+}
+
+function ShipCard({
+  ship,
+  selected,
+  locked,
+  onSelect,
+}: {
+  ship: ShipDefinition;
+  selected: boolean;
+  /** Stars still needed (0 = can be flown). */
+  locked: number;
+  onSelect: () => void;
+}) {
   const t = useT();
   const locale = useLocale();
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={locked > 0}
       aria-pressed={selected}
+      title={locked > 0 ? t("hangar.unlockAt", { stars: locked }) : undefined}
       className={`pointer-events-auto w-full rounded-2xl border px-4 py-3 text-left transition-colors short:py-2 ${
         selected
           ? "border-hud/80 bg-cyan-400/15 shadow-[0_0_18px_rgba(125,249,255,0.25)]"
-          : "border-white/10 bg-slate-950/40 hover:border-cyan-200/40"
+          : locked > 0
+            ? "cursor-not-allowed border-white/5 bg-slate-950/40 opacity-60"
+            : "border-white/10 bg-slate-950/40 hover:border-cyan-200/40"
       }`}
     >
       <div className="flex items-center justify-between">
         <span className="font-display text-base font-bold tracking-wider">{localize(ship.name, locale)}</span>
         {selected && <span className="text-[10px] font-bold uppercase tracking-widest text-hud">{t("hangar.selected")}</span>}
+        {locked > 0 && <LockBadge stars={locked} />}
       </div>
+      {locked > 0 && <p className="mt-0.5 text-xs font-semibold text-star/90">{t("hangar.unlockAt", { stars: locked })}</p>}
       <p className="mt-0.5 text-xs text-white/70 short:hidden">{localize(ship.description, locale)}</p>
       <div className="mt-2 flex flex-col gap-1 short:mt-1">
         <StatBar label={t("hangar.stats.speed")} value={ship.stats.speed} />
@@ -72,11 +100,14 @@ function Swatches({
   label,
   colors,
   value,
+  lockedAt,
   onChange,
 }: {
   label: string;
   colors: readonly string[];
   value: string;
+  /** Stars still needed for a colour (0 = can be used). */
+  lockedAt: (color: string) => number;
   onChange: (color: string) => void;
 }) {
   const t = useT();
@@ -86,18 +117,29 @@ function Swatches({
       <div className="flex flex-wrap gap-2">
         {colors.map((color, index) => {
           const active = color.toLowerCase() === value.toLowerCase();
+          const locked = lockedAt(color);
+          const name = t("hangar.swatch", { group: label, index: index + 1 });
           return (
             <button
               key={color}
               type="button"
               onClick={() => onChange(color)}
-              aria-label={t("hangar.swatch", { group: label, index: index + 1 })}
+              disabled={locked > 0}
+              aria-label={locked > 0 ? `${name} · ${t("hangar.unlockAt", { stars: locked })}` : name}
+              title={locked > 0 ? t("hangar.unlockAt", { stars: locked }) : undefined}
               aria-pressed={active}
-              className={`pointer-events-auto h-8 w-8 rounded-full border-2 transition-transform active:scale-90 ${
+              className={`pointer-events-auto relative h-8 w-8 rounded-full border-2 transition-transform active:scale-90 ${
                 active ? "scale-110 border-white shadow-[0_0_10px_rgba(255,255,255,0.7)]" : "border-white/20"
-              }`}
+              } ${locked > 0 ? "cursor-not-allowed" : ""}`}
               style={{ background: color }}
-            />
+            >
+              {locked > 0 && (
+                <span className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-slate-950/70 leading-none text-star">
+                  <LockIcon className="text-[10px]" />
+                  <span className="text-[8px] font-bold">{locked}</span>
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
@@ -112,7 +154,15 @@ const DECAL_ICONS: Record<DecalId, ReactNode> = {
   star: <path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" fill="currentColor" />,
 };
 
-function DecalPicker({ value, onChange }: { value: DecalId; onChange: (decal: DecalId) => void }) {
+function DecalPicker({
+  value,
+  lockedAt,
+  onChange,
+}: {
+  value: DecalId;
+  lockedAt: (decal: DecalId) => number;
+  onChange: (decal: DecalId) => void;
+}) {
   const t = useT();
   return (
     <fieldset>
@@ -122,20 +172,27 @@ function DecalPicker({ value, onChange }: { value: DecalId; onChange: (decal: De
       <div className="grid grid-cols-4 gap-2">
         {DECALS.map((decal) => {
           const active = decal === value;
+          const locked = lockedAt(decal);
           return (
             <button
               key={decal}
               type="button"
               onClick={() => onChange(decal)}
+              disabled={locked > 0}
+              title={locked > 0 ? t("hangar.unlockAt", { stars: locked }) : undefined}
               aria-pressed={active}
               className={`pointer-events-auto flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] uppercase tracking-wider ${
-                active ? "border-hud/80 bg-cyan-400/15 text-white" : "border-white/10 text-white/70 hover:border-cyan-200/40"
+                active
+                  ? "border-hud/80 bg-cyan-400/15 text-white"
+                  : locked > 0
+                    ? "cursor-not-allowed border-white/5 text-white/40"
+                    : "border-white/10 text-white/70 hover:border-cyan-200/40"
               }`}
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                 {DECAL_ICONS[decal]}
               </svg>
-              {t(`hangar.decals.${decal}`)}
+              {locked > 0 ? <LockBadge stars={locked} compact /> : t(`hangar.decals.${decal}`)}
             </button>
           );
         })}
@@ -148,13 +205,41 @@ function PaintPanel() {
   const t = useT();
   const { ship, paint } = useSelectedShip();
   const setPaint = useProgressStore((state) => state.setPaint);
+  const stars = useProgressStore((state) => totalStars(state.missions));
   const update = (patch: Partial<ShipCustomization>) => setPaint(ship.id, { ...paint, ...patch });
+  // A ship's own default paint and whatever it wears now always stay available.
+  const kept = (color: string, ...keep: string[]) => keep.some((value) => value.toLowerCase() === color.toLowerCase());
+  const colorLock = (group: "paint" | "trail", ...keep: string[]) => (color: string) => {
+    if (kept(color, ...keep)) return 0;
+    const need = colorUnlockStars(color, group);
+    return stars >= need ? 0 : need;
+  };
+  const decalLock = (decal: DecalId) =>
+    decal === paint.decal || decal === ship.defaults.decal || decalUnlocked(decal, stars) ? 0 : DECAL_UNLOCKS[decal];
   return (
     <div className="flex flex-col gap-4 short:gap-2">
-      <Swatches label={t("hangar.body")} colors={PAINT_COLORS} value={paint.body} onChange={(body) => update({ body })} />
-      <Swatches label={t("hangar.accent")} colors={PAINT_COLORS} value={paint.accent} onChange={(accent) => update({ accent })} />
-      <DecalPicker value={paint.decal} onChange={(decal) => update({ decal })} />
-      <Swatches label={t("hangar.trail")} colors={TRAIL_COLORS} value={paint.trail} onChange={(trail) => update({ trail })} />
+      <Swatches
+        label={t("hangar.body")}
+        colors={PAINT_COLORS}
+        value={paint.body}
+        lockedAt={colorLock("paint", paint.body, ship.defaults.body)}
+        onChange={(body) => update({ body })}
+      />
+      <Swatches
+        label={t("hangar.accent")}
+        colors={PAINT_COLORS}
+        value={paint.accent}
+        lockedAt={colorLock("paint", paint.accent, ship.defaults.accent)}
+        onChange={(accent) => update({ accent })}
+      />
+      <DecalPicker value={paint.decal} lockedAt={decalLock} onChange={(decal) => update({ decal })} />
+      <Swatches
+        label={t("hangar.trail")}
+        colors={TRAIL_COLORS}
+        value={paint.trail}
+        lockedAt={colorLock("trail", paint.trail, ship.defaults.trail)}
+        onChange={(trail) => update({ trail })}
+      />
     </div>
   );
 }
@@ -162,11 +247,23 @@ function PaintPanel() {
 function ShipList() {
   const selected = useProgressStore((state) => state.ships.selected);
   const selectShip = useProgressStore((state) => state.selectShip);
+  const stars = useProgressStore((state) => totalStars(state.missions));
   return (
     <div className="flex flex-col gap-2">
-      {SHIPS.map((ship) => (
-        <ShipCard key={ship.id} ship={ship} selected={ship.id === selected} onSelect={() => selectShip(ship.id)} />
-      ))}
+      {SHIPS.map((ship) => {
+        const locked = ship.id === selected || shipUnlocked(ship.id, stars) ? 0 : SHIP_UNLOCKS[ship.id];
+        return (
+          <ShipCard
+            key={ship.id}
+            ship={ship}
+            selected={ship.id === selected}
+            locked={locked}
+            onSelect={() => {
+              if (locked === 0) selectShip(ship.id);
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -105,6 +105,7 @@ export async function processCapture(frame: Promise<ImageBitmap>, meta: CaptureM
     thumb,
   };
   await usePhotoStore.getState().addPhoto(record);
+  useProgressStore.getState().countPhoto();
   gameEvents.emit("photoTaken", { id: record.id, score: meta.score });
   if (meta.score !== null && submitMissionPhoto(meta.score, URL.createObjectURL(image))) {
     useGameStore.getState().closePhoto();

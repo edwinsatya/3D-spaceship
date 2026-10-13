@@ -11,6 +11,10 @@ import { useGameStore } from "@/game/stores/gameStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
 import { localize } from "@/game/i18n";
 import { useUiStore } from "@/game/stores/uiStore";
+import { BODIES } from "@/game/data/planets";
+import { SHIPS_BY_ID } from "@/game/data/ships";
+import type { UnlockItem } from "@/game/systems/unlocks";
+import { PlanetIcon } from "./PlanetIcon";
 import { formatTime, nextStarGoal } from "@/game/systems/scoring";
 import { HomeIcon, RestartIcon, RocketIcon } from "./icons";
 import { GameButton, Panel, STAR_POP, StarRow } from "./primitives";
@@ -18,6 +22,34 @@ import { GameButton, Panel, STAR_POP, StarRow } from "./primitives";
 const COUNT_UP_SECONDS = HUD.resultCountUp;
 
 const formatScore = (score: number) => String(Math.round(score));
+
+/** One chip per newly unlocked item: a colour dot or icon and a short label. */
+function UnlockChip({ item }: { item: UnlockItem }) {
+  const t = useT();
+  const locale = useLocale();
+  const label =
+    item.kind === "mission"
+      ? t("unlock.mission", { name: localize(MISSIONS[item.id].name, locale) })
+      : item.kind === "ship"
+        ? t("unlock.ship", { name: localize(SHIPS_BY_ID[item.id].name, locale) })
+        : item.kind === "decal"
+          ? t("unlock.decal", { name: t(`hangar.decals.${item.id}`) })
+          : item.kind === "location"
+            ? t("unlock.location", { name: localize(BODIES[item.id].name, locale) })
+            : t(item.kind === "paint" ? "unlock.paint" : "unlock.trail");
+  return (
+    <li className="flex items-center gap-2 rounded-full bg-white/10 py-1 pr-3 pl-1 text-xs font-semibold">
+      {item.kind === "paint" || item.kind === "trail" ? (
+        <span className="h-5 w-5 rounded-full border border-white/40" style={{ background: item.color }} />
+      ) : item.kind === "location" ? (
+        <PlanetIcon id={item.id} size={20} />
+      ) : (
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-star text-[11px] text-slate-900">★</span>
+      )}
+      {label}
+    </li>
+  );
+}
 
 /** Time (or score) counts up from zero for a bit of drama. */
 function AnimatedValue({ value, format }: { value: number; format: (value: number) => string }) {
@@ -117,6 +149,21 @@ export function ResultScreen() {
             >
               {t("result.newBest")}
             </motion.span>
+          )}
+          {result.unlocked.length > 0 && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: COUNT_UP_SECONDS + 0.3, type: "spring", stiffness: 260, damping: 18 }}
+              className="w-full rounded-2xl border border-star/40 bg-star/10 px-4 py-3"
+            >
+              <p className="font-display text-xs font-black uppercase tracking-[0.25em] text-star">{t("result.unlocked")}</p>
+              <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                {result.unlocked.map((item) => (
+                  <UnlockChip key={`${item.kind}:${"id" in item ? item.id : item.color}`} item={item} />
+                ))}
+              </ul>
+            </motion.div>
           )}
           <p className="text-sm text-cyan-100/85">
             {!next

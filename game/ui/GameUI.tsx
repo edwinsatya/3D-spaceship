@@ -7,6 +7,8 @@ import { Encyclopedia } from "./encyclopedia/Encyclopedia";
 import { HangarScreen } from "./hangar/HangarScreen";
 import { MissionSelect } from "./missions/MissionSelect";
 import { Gallery } from "./gallery/Gallery";
+import { BadgesScreen } from "./badges/BadgesScreen";
+import { BadgeToasts } from "./badges/BadgeToasts";
 import { PhotoModeOverlay } from "./photo/PhotoModeOverlay";
 import { SolarSystemMap } from "./map/SolarSystemMap";
 import { Hud } from "./hud/Hud";
@@ -23,6 +25,7 @@ export function GameUI() {
   const encyclopediaOpen = useUiStore((state) => state.encyclopedia.open);
   const missionsOpen = useUiStore((state) => state.missions.open);
   const galleryOpen = useUiStore((state) => state.gallery);
+  const badgesOpen = useUiStore((state) => state.badges);
   const loading = phase === "boot" || phase === "loading";
 
   return (
@@ -43,7 +46,9 @@ export function GameUI() {
         {encyclopediaOpen && <Encyclopedia key="encyclopedia" />}
         {missionsOpen && <MissionSelect key="missions" />}
         {galleryOpen && <Gallery key="gallery" />}
+        {badgesOpen && <BadgesScreen key="badges" />}
       </AnimatePresence>
+      <BadgeToasts />
       <OrientationGuard />
     </div>
   );

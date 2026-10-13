@@ -3,6 +3,7 @@ import type { MissionId } from "@/game/data/missions";
 import type { HintId } from "@/game/systems/hints";
 import type { MissionStatus } from "@/game/systems/mission";
 import type { StarRating } from "@/game/systems/scoring";
+import type { UnlockItem } from "@/game/systems/unlocks";
 
 export interface MissionResult {
   missionId: MissionId;
@@ -14,6 +15,8 @@ export interface MissionResult {
   best: number;
   /** Photo missions: the shot that finished the mission (object URL). */
   photoUrl?: string;
+  /** What this run's new stars unlocked. */
+  unlocked: UnlockItem[];
 }
 
 export type ToastKind = "ring" | "energy" | "collision";

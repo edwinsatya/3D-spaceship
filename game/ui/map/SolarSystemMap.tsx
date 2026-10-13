@@ -8,7 +8,9 @@ import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { beginWarp } from "@/game/systems/simulation";
-import { RocketIcon } from "../icons";
+import { locationUnlocked, locationUnlockStars } from "@/game/systems/unlocks";
+import { totalStars, useProgressStore } from "@/game/stores/progressStore";
+import { LockIcon, RocketIcon } from "../icons";
 import { PlanetIcon } from "../PlanetIcon";
 import { GameButton, Panel } from "../primitives";
 
@@ -28,6 +30,9 @@ export function SolarSystemMap() {
   const [selected, setSelected] = useState<LocationId>(current === "earth" ? "mars" : current);
   const body = BODIES[selected];
   const isHere = selected === current;
+  const stars = useProgressStore((state) => totalStars(state.missions));
+  const lockedAt = (id: LocationId) => (locationUnlocked(id, stars) ? 0 : locationUnlockStars(id));
+  const selectedLock = lockedAt(selected);
 
   return (
     <motion.div
@@ -110,7 +115,7 @@ export function SolarSystemMap() {
                 {active && (
                   <circle r={radius * 1.7} fill="none" stroke="#ffd84d" strokeWidth="0.005" className="animate-pulse" />
                 )}
-                <PlanetIcon id={id} x={-radius * 1.3} y={-radius * 1.3} size={radius * 2.6} />
+                <PlanetIcon id={id} x={-radius * 1.3} y={-radius * 1.3} size={radius * 2.6} dimmed={lockedAt(id) > 0} />
                 {id === current && (
                   <path d={`M 0 ${-radius - 0.02} l -0.016 -0.028 l 0.032 0 z`} fill="#7df9ff">
                     <animateTransform
@@ -156,7 +161,17 @@ export function SolarSystemMap() {
             <dd>{localize(body.facts.diameter, locale)}</dd>
           </dl>
           <p className="text-sm leading-relaxed text-white/85 short:hidden">{localize(body.facts.funFact, locale)}</p>
-          <GameButton icon={<RocketIcon />} onClick={() => beginWarp(selected)} disabled={isHere} className="mt-auto disabled:opacity-40">
+          {selectedLock > 0 && (
+            <p className="flex items-center gap-2 text-sm font-bold text-star">
+              <LockIcon /> {t("map.locked", { stars: selectedLock })}
+            </p>
+          )}
+          <GameButton
+            icon={selectedLock > 0 ? <LockIcon /> : <RocketIcon />}
+            onClick={() => beginWarp(selected)}
+            disabled={isHere || selectedLock > 0}
+            className="mt-auto disabled:opacity-40"
+          >
             {isHere ? t("map.youAreHere") : t("map.warp", { name: localize(body.name, locale) })}
           </GameButton>
         </Panel>

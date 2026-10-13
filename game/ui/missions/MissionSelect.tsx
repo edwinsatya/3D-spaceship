@@ -8,7 +8,9 @@ import { useLocale, useT } from "@/game/i18n/useT";
 import { useProgressStore, totalStars, type MissionProgress } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { formatTime } from "@/game/systems/scoring";
-import { RocketIcon } from "../icons";
+import { LockIcon, RocketIcon } from "../icons";
+import { MISSION_UNLOCKS } from "@/game/data/unlocks";
+import { missionUnlocked } from "@/game/systems/unlocks";
 import { PlanetIcon } from "../PlanetIcon";
 import { GameButton, Panel, StarRow } from "../primitives";
 import { startGame } from "../TitleMenu";
@@ -21,7 +23,7 @@ function formatBest(mission: MissionDefinition, progress: MissionProgress | unde
   return mission.rating.kind === "time" ? formatTime(progress.best) : String(Math.round(progress.best));
 }
 
-function MissionDetail({ mission }: { mission: MissionDefinition }) {
+function MissionDetail({ mission, locked }: { mission: MissionDefinition; locked: number }) {
   const t = useT();
   const locale = useLocale();
   const progress = useProgressStore((state) => state.missions[mission.id]);
@@ -62,16 +64,22 @@ function MissionDetail({ mission }: { mission: MissionDefinition }) {
           <li>{t("missions.goalFinish")}</li>
         </ul>
       </div>
-      <GameButton
-        icon={<RocketIcon />}
-        onClick={() => {
-          close();
-          startGame("mission", mission.id);
-        }}
-        autoFocus
-      >
-        {t("missions.start")}
-      </GameButton>
+      {locked > 0 ? (
+        <p className="flex items-center justify-center gap-2 rounded-2xl border border-star/40 bg-star/10 px-4 py-3 font-display text-sm font-bold text-star">
+          <LockIcon /> {t("missions.unlockAt", { stars: locked })}
+        </p>
+      ) : (
+        <GameButton
+          icon={<RocketIcon />}
+          onClick={() => {
+            close();
+            startGame("mission", mission.id);
+          }}
+          autoFocus
+        >
+          {t("missions.start")}
+        </GameButton>
+      )}
     </motion.div>
   );
 }
@@ -85,6 +93,8 @@ export function MissionSelect() {
   const select = useUiStore((state) => state.selectMission);
   const close = useUiStore((state) => state.closeMissions);
   const current: MissionId = selected ?? MISSION_ORDER[0];
+  const owned = totalStars(progress);
+  const lockOf = (id: MissionId) => (missionUnlocked(id, owned) ? 0 : MISSION_UNLOCKS[id]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -113,7 +123,7 @@ export function MissionSelect() {
             <h2 id="missions-title" className="hud-text font-display text-2xl font-black tracking-[0.15em] short:text-xl">
               {t("missions.title")}
             </h2>
-            <p className="text-sm text-cyan-100/75">{t("missions.stars", { count: totalStars(progress), total: MAX_STARS })}</p>
+            <p className="text-sm text-cyan-100/75">{t("missions.stars", { count: owned, total: MAX_STARS })}</p>
           </div>
           <GameButton variant="secondary" onClick={close}>
             {t("missions.close")}
@@ -133,6 +143,7 @@ export function MissionSelect() {
                   {missions.map((id) => {
                     const active = id === current;
                     const stars = progress[id]?.bestStars ?? 0;
+                    const locked = lockOf(id);
                     return (
                       <button
                         key={id}
@@ -143,8 +154,14 @@ export function MissionSelect() {
                           active ? "border-hud/80 bg-cyan-400/15" : "border-white/10 hover:border-cyan-200/40"
                         }`}
                       >
-                        <span className="font-semibold">{localize(MISSIONS[id].name, locale)}</span>
-                        <StarRow count={stars} size="text-sm" label={t("a11y.stars", { count: stars })} />
+                        <span className={`font-semibold ${locked > 0 ? "text-white/50" : ""}`}>{localize(MISSIONS[id].name, locale)}</span>
+                        {locked > 0 ? (
+                          <span className="flex items-center gap-1 text-xs font-bold text-star">
+                            <LockIcon /> {locked}★
+                          </span>
+                        ) : (
+                          <StarRow count={stars} size="text-sm" label={t("a11y.stars", { count: stars })} />
+                        )}
                       </button>
                     );
                   })}
@@ -153,7 +170,7 @@ export function MissionSelect() {
             })}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <MissionDetail mission={MISSIONS[current]} />
+            <MissionDetail mission={MISSIONS[current]} locked={lockOf(current)} />
           </div>
         </div>
       </Panel>
