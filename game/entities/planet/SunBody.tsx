@@ -2,18 +2,21 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
-import { AdditiveBlending, PlaneGeometry, ShaderMaterial, SphereGeometry } from "three";
+import { AdditiveBlending, PlaneGeometry, ShaderMaterial, SphereGeometry, SRGBColorSpace } from "three";
 import { WORLD } from "@/game/config/world";
 import { SUN } from "@/game/data/planets";
 import { BILLBOARD_VERTEX } from "@/game/scenes/shaders/common";
 import { SIMPLEX_3D } from "@/game/scenes/shaders/noise";
 import { runtime } from "@/game/systems/runtime";
+import { useTextureFile } from "./textures";
 
 const SURFACE_VERTEX = /* glsl */ `
+varying vec2 vUv;
 varying vec3 vObject;
 varying vec3 vNormalW;
 varying vec3 vWorldPosition;
 void main() {
+  vUv = uv;
   vObject = normalize(position);
   vNormalW = normalize(mat3(modelMatrix) * normal);
   vec4 world = modelMatrix * vec4(position, 1.0);
@@ -22,9 +25,16 @@ void main() {
 }
 `;
 
-/** Boiling plasma: granulation, a few sunspots and limb darkening, in HDR for bloom. */
+/**
+ * Boiling plasma: granulation, a few sunspots and limb darkening, in HDR for bloom.
+ * With a photo texture loaded (uMapMix = 1) the photo sets the colour and the
+ * procedural granulation keeps it alive.
+ */
 const SURFACE_FRAGMENT = /* glsl */ `
 uniform float uTime;
+uniform sampler2D uMap;
+uniform float uMapMix;
+varying vec2 vUv;
 varying vec3 vObject;
 varying vec3 vNormalW;
 varying vec3 vWorldPosition;
@@ -40,7 +50,9 @@ void main() {
   vec3 hot = vec3(1.0, 0.72, 0.28);
   vec3 warm = vec3(0.95, 0.3, 0.04);
   vec3 color = mix(warm, hot, cells * 0.7 + granulation * 0.3);
-  color *= 1.0 - spots * 0.6;
+  color *= 1.0 - spots * 0.6 * (1.0 - uMapMix);
+  vec3 photo = texture2D(uMap, vUv).rgb * (0.85 + 0.35 * granulation) * 1.35;
+  color = mix(color, photo, uMapMix);
   color *= 0.45 + 0.55 * limb;
   gl_FragColor = vec4(color * 1.1, 1.0);
 }
@@ -69,7 +81,7 @@ export function SunBody() {
       surface: new ShaderMaterial({
         vertexShader: SURFACE_VERTEX,
         fragmentShader: SURFACE_FRAGMENT,
-        uniforms: { uTime: { value: 0 } },
+        uniforms: { uTime: { value: 0 }, uMap: { value: null }, uMapMix: { value: 0 } },
         toneMapped: false,
       }),
       corona: new ShaderMaterial({
@@ -84,6 +96,12 @@ export function SunBody() {
     }),
     [],
   );
+
+  const photo = useTextureFile(SUN.textures?.color, SRGBColorSpace);
+  useEffect(() => {
+    materials.surface.uniforms.uMap.value = photo;
+    materials.surface.uniforms.uMapMix.value = photo ? 1 : 0;
+  }, [materials, photo]);
 
   useEffect(
     () => () => {

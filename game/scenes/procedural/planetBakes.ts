@@ -1,4 +1,4 @@
-import { NoColorSpace, SRGBColorSpace, type WebGLRenderer, type WebGLRenderTarget } from "three";
+import { NoColorSpace, SRGBColorSpace, type Texture, type WebGLRenderer, type WebGLRenderTarget } from "three";
 import { EQUIRECT_DIRECTION, HASH, SIMPLEX_3D, SRGB_TO_LINEAR } from "@/game/scenes/shaders/noise";
 import { bakeEquirect } from "./bake";
 
@@ -175,6 +175,57 @@ export function bakeEarthNight(renderer: WebGLRenderer, seed: number, size: Plan
     height: size.width / 2,
     fragmentShader: EARTH_NIGHT_FRAGMENT,
     uniforms: { uSeed: { value: seed } },
+    colorSpace: NoColorSpace,
+    anisotropy: size.anisotropy,
+  });
+}
+
+const PACK_HEADER = /* glsl */ `
+precision highp float;
+in vec2 vUv;
+out vec4 fragColor;
+`;
+
+/** Real day map + ocean mask → the layout the Earth shader expects (RGB colour, A = ocean). */
+const EARTH_DAY_PACK = /* glsl */ `${PACK_HEADER}
+uniform sampler2D uColor;
+uniform sampler2D uOcean;
+void main() {
+  vec3 color = texture(uColor, vUv).rgb;
+  float ocean = smoothstep(0.3, 0.7, texture(uOcean, vUv).r);
+  fragColor = vec4(color, ocean);
+}
+`;
+
+/** City lights + cloud cover → R = lights, G = clouds (both stored as raw data). */
+const EARTH_NIGHT_PACK = /* glsl */ `${PACK_HEADER}
+uniform sampler2D uLights;
+uniform sampler2D uClouds;
+void main() {
+  float lights = dot(texture(uLights, vUv).rgb, vec3(0.2126, 0.7152, 0.0722));
+  float city = clamp(smoothstep(0.06, 0.6, lights) * 1.15, 0.0, 1.0);
+  float clouds = texture(uClouds, vUv).r;
+  fragColor = vec4(city, clouds, 0.0, 1.0);
+}
+`;
+
+export function packEarthDay(renderer: WebGLRenderer, color: Texture, ocean: Texture, size: PlanetBakeSize): WebGLRenderTarget {
+  return bakeEquirect(renderer, {
+    width: size.width,
+    height: size.width / 2,
+    fragmentShader: EARTH_DAY_PACK,
+    uniforms: { uColor: { value: color }, uOcean: { value: ocean } },
+    colorSpace: SRGBColorSpace,
+    anisotropy: size.anisotropy,
+  });
+}
+
+export function packEarthNight(renderer: WebGLRenderer, lights: Texture, clouds: Texture, size: PlanetBakeSize): WebGLRenderTarget {
+  return bakeEquirect(renderer, {
+    width: size.width,
+    height: size.width / 2,
+    fragmentShader: EARTH_NIGHT_PACK,
+    uniforms: { uLights: { value: lights }, uClouds: { value: clouds } },
     colorSpace: NoColorSpace,
     anisotropy: size.anisotropy,
   });

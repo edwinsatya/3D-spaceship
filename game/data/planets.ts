@@ -25,14 +25,23 @@ export interface BodyFacts {
 }
 
 /**
- * Optional texture files (place under /public/textures, prefer .ktx2).
- * When a slot is empty the procedural placeholder baked at runtime is used.
+ * Texture files under /public/textures (.webp/.jpg/.png, or .ktx2). The procedural
+ * bake is shown first and replaced once a file has loaded; empty slots keep the bake.
+ * Current files: Solar System Scope, CC BY 4.0 (see ASSETS.md).
  */
 export interface TextureSet {
+  /** Earth only: daytime colour. */
   day?: string;
+  /** Earth only: ocean mask (white = water), packed into the day map's alpha. */
+  ocean?: string;
+  /** Earth only: city lights, packed into the night map's red channel. */
   night?: string;
+  /** Earth only: cloud cover (white = cloud), packed into the night map's green channel. */
   clouds?: string;
+  /** Every other body: surface / cloud-top colour. */
   color?: string;
+  /** Radial ring profile (RGB colour + alpha opacity), inner edge on the left. */
+  rings?: string;
 }
 
 export interface AtmosphereData {
@@ -141,6 +150,7 @@ export const SUN: CelestialBody = {
   axialTilt: 7.25,
   rotationSpeed: 0.004,
   surface: { type: "star" },
+  textures: { color: "/textures/sun.webp" },
   seed: 1,
   solid: true,
   landing: {
@@ -173,6 +183,7 @@ export const MERCURY: CelestialBody = {
   axialTilt: 0.03,
   rotationSpeed: 0.004,
   surface: { type: "rocky", palette: ["#6f6a66", "#aaa49c", "#4d4945"], craters: 1, maria: 0.2 },
+  textures: { color: "/textures/mercury.webp" },
   seed: 31,
   solid: true,
   landing: {
@@ -206,6 +217,7 @@ export const VENUS: CelestialBody = {
   rotationSpeed: 0.003,
   surface: { type: "clouds", palette: ["#e8d29c", "#c9a560", "#f6e8c4"] },
   atmosphere: { dayColor: "#f3d79a", twilightColor: "#ff9a4d", scale: 1.06, intensity: 1.3 },
+  textures: { color: "/textures/venus-clouds.webp" },
   seed: 41,
   solid: true,
   landing: {
@@ -244,7 +256,12 @@ export const EARTH: CelestialBody = {
     scale: 1.075,
     intensity: 1.25,
   },
-  textures: {},
+  textures: {
+    day: "/textures/earth-day.webp",
+    ocean: "/textures/earth-ocean.webp",
+    night: "/textures/earth-lights.webp",
+    clouds: "/textures/earth-clouds.webp",
+  },
   seed: 7,
   solid: true,
   landing: {
@@ -277,7 +294,7 @@ export const MOON: CelestialBody = {
   axialTilt: 6.68,
   rotationSpeed: 0,
   surface: { type: "rocky", palette: ["#8a8a88", "#c4c2bd", "#4f4f50"], craters: 0.8, maria: 0.5 },
-  textures: {},
+  textures: { color: "/textures/moon.webp" },
   seed: 21,
   solid: true,
   landing: { landable: true },
@@ -319,6 +336,7 @@ export const MARS: CelestialBody = {
     { name: { en: "Phobos", id: "Phobos" }, radius: 7, distance: 1.9, angle: 0.8, elevation: 0.1, color: "#7a6a5c", irregular: true },
     { name: { en: "Deimos", id: "Deimos" }, radius: 4.5, distance: 3.1, angle: 3.6, elevation: -0.15, color: "#8c7b6b", irregular: true },
   ],
+  textures: { color: "/textures/mars.webp" },
   seed: 51,
   solid: true,
   landing: { landable: true },
@@ -358,6 +376,7 @@ export const JUPITER: CelestialBody = {
     { name: { en: "Ganymede", id: "Ganimede" }, radius: 42, distance: 3.9, angle: 4.1, elevation: 0.06, color: "#9b8e80" },
     { name: { en: "Callisto", id: "Kalisto" }, radius: 39, distance: 4.9, angle: 5.4, elevation: -0.05, color: "#5f564d" },
   ],
+  textures: { color: "/textures/jupiter.webp" },
   seed: 61,
   solid: true,
   landing: { landable: false, reason: GAS_GIANT_REASON },
@@ -398,6 +417,10 @@ export const SATURN: CelestialBody = {
     { name: { en: "Titan", id: "Titan" }, radius: 40, distance: 3.6, angle: 1.2, elevation: 0.12, color: "#d39a3e" },
     { name: { en: "Enceladus", id: "Enceladus" }, radius: 10, distance: 2.9, angle: 4.5, elevation: -0.08, color: "#f2f4f7" },
   ],
+  textures: {
+    color: "/textures/saturn.webp",
+    rings: "/textures/saturn-rings.webp",
+  },
   seed: 71,
   solid: true,
   landing: { landable: false, reason: GAS_GIANT_REASON },
@@ -437,6 +460,7 @@ export const URANUS: CelestialBody = {
     { name: { en: "Titania", id: "Titania" }, radius: 16, distance: 2.7, angle: 0.9, elevation: 0.2, color: "#b5aca3" },
     { name: { en: "Oberon", id: "Oberon" }, radius: 15, distance: 3.4, angle: 3.9, elevation: -0.2, color: "#a09080" },
   ],
+  textures: { color: "/textures/uranus.webp" },
   seed: 81,
   solid: true,
   landing: { landable: false, reason: ICE_GIANT_REASON },
@@ -480,6 +504,7 @@ export const NEPTUNE: CelestialBody = {
   moonlets: [
     { name: { en: "Triton", id: "Triton" }, radius: 24, distance: 2.7, angle: 2.4, elevation: 0.25, color: "#c7b3a6" },
   ],
+  textures: { color: "/textures/neptune.webp" },
   seed: 91,
   solid: true,
   landing: { landable: false, reason: ICE_GIANT_REASON },

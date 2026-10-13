@@ -3,6 +3,9 @@
 Game web 3D eksplorasi luar angkasa yang langsung jalan di browser (desktop & HP) tanpa install.
 Spesifikasi lengkap ada di [`PRD.md`](PRD.md); daftar aset dan lisensi di [`ASSETS.md`](ASSETS.md).
 
+**Tekstur planet:** [Solar System Scope](https://www.solarsystemscope.com/textures/), lisensi
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (dikonversi ke WebP; detail di `ASSETS.md`).
+
 **Bahasa UI default:** English (`DEFAULT_LOCALE` di `game/i18n/types.ts`); kamus Indonesia tetap lengkap.
 
 **Status:** Fase 2 (Jelajah Planet & Hangar) selesai — di atas Fase 1 (terbang, misi *Cincin Orbit*, menu/HUD,

@@ -34,6 +34,7 @@ export const en = {
     freeFlightDesc: "Explore Earth & the Moon at your own pace.",
     controlsDesktop: "Mouse: steer · W/S: throttle · Shift: boost",
     controlsTouch: "Left stick: steer · Right lever: throttle",
+    textureCredit: "Planet textures:",
   },
   hud: {
     speed: "Speed",

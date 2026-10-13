@@ -104,6 +104,28 @@ export function TitleMenu() {
           {device === "touch" ? t("menu.controlsTouch") : t("menu.controlsDesktop")}
         </p>
       </motion.div>
+      {/* CC BY 4.0 attribution; the full credits page arrives in Phase 4. */}
+      <p className="pointer-events-auto absolute right-4 bottom-3 text-[10px] text-white/50 sm:right-8 sm:bottom-4 lg:right-12">
+        {t("menu.textureCredit")}{" "}
+        <a
+          href="https://www.solarsystemscope.com/textures/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-2 hover:text-white/80 hover:underline"
+        >
+          Solar System Scope
+        </a>{" "}
+        (
+        <a
+          href="https://creativecommons.org/licenses/by/4.0/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-2 hover:text-white/80 hover:underline"
+        >
+          CC BY 4.0
+        </a>
+        )
+      </p>
     </motion.div>
   );
 }

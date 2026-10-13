@@ -36,6 +36,7 @@ export const id: Dictionary = {
     freeFlightDesc: "Jelajahi Bumi & Bulan sesukamu.",
     controlsDesktop: "Mouse: arahkan · W/S: gas · Shift: turbo",
     controlsTouch: "Joystick kiri: arahkan · Tuas kanan: gas",
+    textureCredit: "Tekstur planet:",
   },
   hud: {
     speed: "Kecepatan",

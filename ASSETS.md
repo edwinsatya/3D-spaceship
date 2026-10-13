@@ -1,17 +1,41 @@
 # Aset — Jelajah Angkasa 3D
 
-Fase 1 dan 2 berjalan **100% dengan aset prosedural**: tidak ada file 3D, tekstur, atau audio pihak
-ketiga yang dikirim, jadi tidak ada kewajiban atribusi untuk build saat ini. Semua slot sudah siap
-diganti file asli tanpa mengubah komponen.
+Satu-satunya aset pihak ketiga yang dikirim adalah **tekstur planet dari Solar System Scope (CC BY 4.0,
+wajib atribusi)**. Sisanya (pesawat, medan, langit, suara) masih prosedural, dan semua slot siap diganti file
+asli tanpa mengubah komponen.
 
-## Yang dipakai sekarang (prosedural)
+## Aset pihak ketiga yang dipakai
+
+| Aset | Sumber | Lisensi | Atribusi |
+| --- | --- | --- | --- |
+| Tekstur Matahari, 8 planet, Bulan, cincin Saturnus (2K) | [Solar System Scope — Textures](https://www.solarsystemscope.com/textures/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Baris kredit di title screen (`menu.textureCredit`); halaman kredit lengkap di Fase 4 |
+
+File asli diunduh 2026-10-13 (14 file, ±6,6 MB JPG/TIF/PNG), lalu **dimodifikasi**: dikonversi ke WebP
+(±2,0 MB) dan, untuk Bumi, kanalnya digabung di GPU saat runtime. Hasilnya ada di `public/textures/`:
+
+| File | Asal | Konversi (`cwebp -m 6`) |
+| --- | --- | --- |
+| `sun.webp` | `2k_sun.jpg` | `-q 78` |
+| `mercury.webp`, `mars.webp`, `moon.webp` | `2k_mercury.jpg`, `2k_mars.jpg`, `2k_moon.jpg` | `-q 80` |
+| `venus-clouds.webp` | `2k_venus_atmosphere.jpg` | `-q 80` |
+| `earth-day.webp` | `2k_earth_daymap.jpg` | `-q 82` |
+| `earth-lights.webp` | `2k_earth_nightmap.jpg` | `-q 80` |
+| `earth-clouds.webp` | `2k_earth_clouds.jpg` | `-q 75` |
+| `earth-ocean.webp` | `2k_earth_specular_map.tif` | `-q 60` |
+| `jupiter.webp`, `saturn.webp`, `uranus.webp`, `neptune.webp` | `2k_<planet>.jpg` | `-q 82` |
+| `saturn-rings.webp` | `2k_saturn_ring_alpha.png` | `-lossless -exact` (alpha dipertahankan) |
+
+Cara pakai di game: tekstur prosedural tetap di-*bake* duluan (game tidak menunggu jaringan), lalu file
+menggantikannya begitu selesai dimuat. Kalau file gagal dimuat, tekstur prosedural tetap dipakai.
+
+## Prosedural (dibuat di kode)
 
 | Aset | Dibuat di | Catatan |
 | --- | --- | --- |
 | Pesawat low-poly | `game/entities/ship/shipGeometry.ts` | Lathe + extrude three.js, warna via props (siap kustomisasi Fase 2) |
-| Tekstur Bumi (siang + laut, malam + awan) | `game/scenes/procedural/planetBakes.ts` | Di-*bake* sekali di GPU saat loading (2048×1024 desktop, 1024×512 HP) |
-| Tekstur Bulan (kawah) | `game/scenes/procedural/planetBakes.ts` | Dipakai juga sebagai bump map |
-| Tekstur Matahari & 7 planet lain + cincin | `game/scenes/procedural/surfaceBakes.ts` | Di-*bake* saat lokasinya dimuat, dilepas saat pergi (Bumi/Bulan tetap di memori) |
+| Tekstur Bumi (siang + laut, malam + awan) | `game/scenes/procedural/planetBakes.ts` | Placeholder saat loading (2048×1024 desktop, 1024×512 HP) sampai file asli termuat |
+| Tekstur Bulan (kawah) | `game/scenes/procedural/planetBakes.ts` | Placeholder; file asli juga dipakai sebagai bump map |
+| Tekstur Matahari & 7 planet lain + cincin | `game/scenes/procedural/surfaceBakes.ts` | Placeholder saat lokasi dimuat (Matahari: plasma animasi dicampur foto); dilepas saat pergi, Bumi/Bulan tetap di memori |
 | 4 pesawat Hangar | `game/data/ships.ts` → `shipGeometry.ts` | Desain parametrik (badan, sayap, mesin, decal) |
 | Medan Bulan & Mars | `game/systems/terrain.ts` + `game/scenes/surface/terrainMesh.ts` | Heightfield deterministik (noise, kawah, bukit), warna per-vertex, batu *instanced* |
 | Pendarat Apollo 11 + bendera, Perseverance, Ingenuity | `game/entities/surface/SurfaceProps.tsx` | Model primitif low-poly; bendera digambar di canvas |
@@ -26,7 +50,7 @@ diganti file asli tanpa mengubah komponen.
 | --- | --- | --- |
 | Model pesawat | `SHIP_ASSETS.modelUrl` di `game/config/assets.ts` | `.glb` dengan Draco atau Meshopt (`gltf-transform optimize`) |
 | Pendarat, rover, helikopter | `SURFACE_PROP_ASSETS` di `game/config/assets.ts` | `.glb` terkompresi; atur `scale` ke meter |
-| Tekstur planet | `textures` per planet di `game/data/planets.ts` (`day`, `night`, `clouds`, `color`) | `.ktx2` (UASTC/ETC1S via `toktx` atau `gltf-transform`), fallback `.jpg/.webp` |
+| Tekstur planet | `textures` per planet di `game/data/planets.ts` (Bumi: `day`, `ocean`, `night`, `clouds`; lainnya `color`; Saturnus juga `rings`) | Sekarang `.webp`; `.ktx2` juga didukung loader (butuh `toktx`, belum terpasang) |
 | Audio | `AUDIO_FILES` di `game/audio/audioManager.ts` | `.ogg` + `.m4a`/`.mp3`, ≤ 200 KB per efek |
 
 **Penting untuk KTX2:** salin transcoder Basis ke `public/basis/`:
@@ -35,9 +59,10 @@ diganti file asli tanpa mengubah komponen.
 cp -r node_modules/three/examples/jsm/libs/basis public/basis
 ```
 
-**Catatan kanal tekstur Bumi** (agar cocok dengan shader):
-- `day`: RGB = warna permukaan (sRGB), **A = mask laut** (1 = laut) untuk kilau matahari.
-- `night`: **R = lampu kota**, **G = awan**. Tekstur NASA terpisah perlu digabung dulu (mis. dengan script Sharp/ImageMagick).
+**Catatan kanal tekstur Bumi:** file Bumi dipasok terpisah lalu digabung di GPU (`packEarthDay` /
+`packEarthNight` di `game/scenes/procedural/planetBakes.ts`) menjadi format yang dipakai shader:
+- peta siang: RGB = warna permukaan (sRGB), **A = masker laut** (dari `ocean`, putih = laut) untuk kilau matahari;
+- peta malam: **R = lampu kota** (luminans `night`), **G = awan** (dari `clouds`).
 
 ## Sumber yang direkomendasikan
 
@@ -45,7 +70,7 @@ cp -r node_modules/three/examples/jsm/libs/basis public/basis
 | --- | --- | --- | --- |
 | Pesawat 3D | [Kenney — Space Kit](https://kenney.nl/assets/space-kit) | CC0 1.0 | Tidak ada (kredit opsional) |
 | Pesawat 3D | [Quaternius — Ultimate Spaceships](https://quaternius.com/packs/ultimatespaceships.html) | CC0 1.0 | Tidak ada (kredit opsional) |
-| Tekstur Bumi, Bulan, planet lain (Fase 2) | [Solar System Scope — Textures](https://www.solarsystemscope.com/textures/) | CC BY 4.0 | **Wajib atribusi** di halaman kredit |
+| Tekstur Bumi, Bulan, planet lain (**dipakai**) | [Solar System Scope — Textures](https://www.solarsystemscope.com/textures/) | CC BY 4.0 | **Wajib atribusi** (sudah di title screen) |
 | Bumi siang (Blue Marble) | [NASA Visible Earth](https://visibleearth.nasa.gov/collection/1484/blue-marble) | Citra NASA (umumnya bebas hak cipta) | Ikuti [NASA Media Usage Guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/) |
 | Bumi malam (Black Marble) | [NASA Earth Observatory — Night Lights](https://earthobservatory.nasa.gov/features/NightLights) | Citra NASA | Idem |
 | Bulan | [NASA SVS — CGI Moon Kit](https://svs.gsfc.nasa.gov/4720) | Citra NASA | Idem |
@@ -59,6 +84,6 @@ dan ke tabel di atas.
 ## Anggaran ukuran (target interaktif < 5 detik di 4G)
 
 - JS awal saat ini: ~590 KB gzip (three.js + R3F + drei + postprocessing + UI).
-- Tekstur per planet di-*bake*/dimuat per scene dan dilepas saat pindah lokasi; target ≤ 1,5 MB KTX2 per planet
-  saat tekstur asli dipakai.
+- Tekstur planet: total 2,0 MB WebP, dimuat per lokasi dan dilepas saat pindah. Lokasi Bumi (siang, laut,
+  lampu kota, awan, Bulan) ±1,1 MB dan dimuat di belakang layar setelah loading selesai.
 - Model pesawat ≤ 300 KB per GLB terkompresi.
