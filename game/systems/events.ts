@@ -1,12 +1,17 @@
 import type { BodyId, LocationId } from "@/game/data/planets";
+import type { MissionId } from "@/game/data/missions";
 import type { SurfaceId } from "@/game/data/surfaces";
+
+/** What a mission objective step was (drives sounds and toasts). */
+export type ObjectiveKind = "ring";
 
 /** Discrete gameplay events (rare; safe to allocate payloads). */
 export interface GameEventMap {
   countdown: { value: number };
   go: Record<string, never>;
-  ringPassed: { index: number; total: number };
-  missionComplete: { timeMs: number };
+  /** One objective done: `done` counts from 1 up to `total`. */
+  objectiveProgress: { kind: ObjectiveKind; done: number; total: number };
+  missionComplete: { mission: MissionId };
   pickup: { amount: number };
   collision: { strength: number };
   boostStart: Record<string, never>;

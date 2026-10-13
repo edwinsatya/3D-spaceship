@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { InputDevice } from "@/game/controls/types";
-import type { MissionId } from "@/game/data/missions";
+import { MISSIONS, type MissionId } from "@/game/data/missions";
 import type { LocationId } from "@/game/data/planets";
 import type { SurfaceId } from "@/game/data/surfaces";
 import { canTransition, type GamePhase } from "@/game/systems/stateMachine";
@@ -16,7 +16,7 @@ interface GameStore {
   /** Increments on every (re)start so systems can reset. */
   runId: number;
   device: InputDevice;
-  /** Which planet scene is loaded (missions, menu and hangar are at Earth). */
+  /** Which planet scene is loaded (menu, hangar and free flight start at Earth; missions at their own). */
   location: LocationId;
   /** Landing site currently loaded instead of the space scene (Moon or Mars). */
   surface: SurfaceId | null;
@@ -26,7 +26,8 @@ interface GameStore {
   transition: (to: GamePhase) => boolean;
   setWebGL: (status: WebGLStatus) => void;
   setDevice: (device: InputDevice) => void;
-  startRun: (mode: GameMode) => void;
+  /** Starts a run; missions fly `missionId` (or the selected one). */
+  startRun: (mode: GameMode, missionId?: MissionId) => void;
   restart: () => void;
   pause: () => void;
   resume: () => void;
@@ -42,6 +43,10 @@ interface GameStore {
   closeHangar: () => void;
   /** Ends a test flight (timer or button) and returns to the hangar. */
   endTestFlight: () => void;
+}
+
+function runLocation(mode: GameMode, missionId: MissionId): LocationId {
+  return mode === "mission" ? MISSIONS[missionId].location : "earth";
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -65,15 +70,24 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   setDevice: (device) => {
     if (get().device !== device) set({ device });
   },
-  startRun: (mode) => {
+  startRun: (mode, missionId) => {
     const { phase, runId } = get();
     if (!canTransition(phase, "playing")) return;
-    set({ phase: "playing", mode, runId: runId + 1, cameraMode: "chase", location: "earth", surface: null });
+    const mission = missionId ?? get().missionId;
+    set({
+      phase: "playing",
+      mode,
+      missionId: mission,
+      runId: runId + 1,
+      cameraMode: "chase",
+      location: runLocation(mode, mission),
+      surface: null,
+    });
   },
   restart: () => {
-    const { phase, runId } = get();
+    const { phase, runId, mode, missionId } = get();
     if (!canTransition(phase, "playing")) return;
-    set({ phase: "playing", runId: runId + 1, location: "earth", surface: null });
+    set({ phase: "playing", runId: runId + 1, location: runLocation(mode, missionId), surface: null });
   },
   pause: () => {
     if (get().phase === "playing") set({ phase: "paused" });

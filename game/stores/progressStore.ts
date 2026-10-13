@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { MissionId } from "@/game/data/missions";
+import { isMissionId, MISSIONS, type MissionId } from "@/game/data/missions";
 import { isBodyId, type BodyId } from "@/game/data/planets";
 import { DEFAULT_SHIP, type ShipCustomization, type ShipId } from "@/game/data/ships";
 import { DEFAULT_LOCALE, type Locale } from "@/game/i18n/types";
@@ -8,15 +8,16 @@ import type { HintId } from "@/game/systems/hints";
 import { isNewBest, type StarRating } from "@/game/systems/scoring";
 
 export interface MissionProgress {
-  bestTimeMs: number | null;
+  /** Fastest time (ms) for timed missions, highest score (0–100) for photo missions. */
+  best: number | null;
   bestStars: 0 | StarRating;
   completions: number;
 }
 
 export interface RecordOutcome {
   isNewBest: boolean;
-  previousBestMs: number | null;
-  bestTimeMs: number;
+  previousBest: number | null;
+  best: number;
 }
 
 export interface ShipProgress {
@@ -38,7 +39,8 @@ interface ProgressData {
 }
 
 interface ProgressStore extends ProgressData {
-  recordMissionResult: (id: MissionId, timeMs: number, stars: StarRating) => RecordOutcome;
+  /** `value` is a time in ms or a score, as the mission's rating says. */
+  recordMissionResult: (id: MissionId, value: number, stars: StarRating) => RecordOutcome;
   setMuted: (muted: boolean) => void;
   toggleMuted: () => void;
   completeHint: (id: HintId) => void;
@@ -54,27 +56,29 @@ export const PROGRESS_STORAGE_KEY = "jelajah-angkasa:progress";
 /**
  * v2: default UI language became English. v1 saves only ever stored the old
  * default ("id") — there was no language picker yet — so they move to English.
+ * v3: mission records store a generic `best` (time or score) instead of `bestTimeMs`.
  */
-export const PROGRESS_VERSION = 2;
+export const PROGRESS_VERSION = 3;
 
-export const EMPTY_MISSION_PROGRESS: MissionProgress = { bestTimeMs: null, bestStars: 0, completions: 0 };
+export const EMPTY_MISSION_PROGRESS: MissionProgress = { best: null, bestStars: 0, completions: 0 };
 
 /** Pure helper (unit-tested): merges a finished run into stored progress. */
 export function mergeMissionResult(
   previous: MissionProgress | undefined,
-  timeMs: number,
+  value: number,
   stars: StarRating,
+  lowerIsBetter = true,
 ): { progress: MissionProgress; outcome: RecordOutcome } {
   const current = previous ?? EMPTY_MISSION_PROGRESS;
-  const newBest = isNewBest(timeMs, current.bestTimeMs);
-  const bestTimeMs = newBest ? timeMs : (current.bestTimeMs as number);
+  const newBest = isNewBest(value, current.best, lowerIsBetter);
+  const best = newBest ? value : (current.best as number);
   return {
     progress: {
-      bestTimeMs,
+      best,
       bestStars: Math.max(current.bestStars, stars) as StarRating,
       completions: current.completions + 1,
     },
-    outcome: { isNewBest: newBest, previousBestMs: current.bestTimeMs, bestTimeMs },
+    outcome: { isNewBest: newBest, previousBest: current.best, best },
   };
 }
 
@@ -89,8 +93,9 @@ export const useProgressStore = create<ProgressStore>()(
       landed: [],
       pointsOfInterest: [],
 
-      recordMissionResult: (id, timeMs, stars) => {
-        const { progress, outcome } = mergeMissionResult(get().missions[id], timeMs, stars);
+      recordMissionResult: (id, value, stars) => {
+        const lowerIsBetter = MISSIONS[id].rating.kind === "time";
+        const { progress, outcome } = mergeMissionResult(get().missions[id], value, stars, lowerIsBetter);
         set((state) => ({ missions: { ...state.missions, [id]: progress } }));
         return outcome;
       },
@@ -145,7 +150,7 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
   const settings = { muted: data.settings?.muted ?? false, locale: data.settings?.locale ?? DEFAULT_LOCALE };
   if (version < 2) settings.locale = DEFAULT_LOCALE;
   return {
-    missions: data.missions ?? {},
+    missions: migrateMissions(data.missions),
     settings,
     onboarding: { completedHints: data.onboarding?.completedHints ?? [] },
     // Added in Phase 2 without a version bump: absent in older saves.
@@ -154,6 +159,23 @@ export function migrateProgress(persisted: unknown, version: number): ProgressDa
     landed: (data.landed ?? []).filter(isBodyId),
     pointsOfInterest: (data.pointsOfInterest ?? []).filter((id) => typeof id === "string"),
   };
+}
+
+type StoredMission = Partial<MissionProgress> & { bestTimeMs?: number | null };
+
+/** Keeps known missions only and renames v2's `bestTimeMs` to `best`. */
+function migrateMissions(missions: unknown): ProgressData["missions"] {
+  const result: ProgressData["missions"] = {};
+  if (!missions || typeof missions !== "object") return result;
+  for (const [id, stored] of Object.entries(missions as Record<string, StoredMission | undefined>)) {
+    if (!isMissionId(id) || !stored) continue;
+    result[id] = {
+      best: stored.best ?? stored.bestTimeMs ?? null,
+      bestStars: stored.bestStars ?? 0,
+      completions: stored.completions ?? 0,
+    };
+  }
+  return result;
 }
 
 /** Sum of best stars across missions (drives unlocks from Phase 2 on). */

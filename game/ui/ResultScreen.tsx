@@ -9,28 +9,32 @@ import { MISSIONS } from "@/game/data/missions";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useSessionStore } from "@/game/stores/sessionStore";
-import { formatTime, nextStarTarget } from "@/game/systems/scoring";
-import { HomeIcon, RestartIcon } from "./icons";
+import { localize } from "@/game/i18n";
+import { useUiStore } from "@/game/stores/uiStore";
+import { formatTime, nextStarGoal } from "@/game/systems/scoring";
+import { HomeIcon, RestartIcon, RocketIcon } from "./icons";
 import { GameButton, Panel, STAR_POP, StarRow } from "./primitives";
 
 const COUNT_UP_SECONDS = HUD.resultCountUp;
 
-/** Time counts up from zero for a bit of drama. */
-function AnimatedTime({ timeMs }: { timeMs: number }) {
+const formatScore = (score: number) => String(Math.round(score));
+
+/** Time (or score) counts up from zero for a bit of drama. */
+function AnimatedValue({ value, format }: { value: number; format: (value: number) => string }) {
   const element = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    const controls = animate(0, timeMs, {
+    const controls = animate(0, value, {
       duration: COUNT_UP_SECONDS,
       ease: "easeOut",
-      onUpdate: (value) => {
-        if (element.current) element.current.textContent = formatTime(value);
+      onUpdate: (current) => {
+        if (element.current) element.current.textContent = format(current);
       },
     });
     return () => controls.stop();
-  }, [timeMs]);
+  }, [value, format]);
   return (
     <span ref={element} className="tabular-nums">
-      {formatTime(0)}
+      {format(0)}
     </span>
   );
 }
@@ -41,6 +45,7 @@ export function ResultScreen() {
   const result = useSessionStore((state) => state.result);
   const restart = useGameStore((state) => state.restart);
   const toMenu = useGameStore((state) => state.toMenu);
+  const openMissions = useUiStore((state) => state.openMissions);
 
   useEffect(() => {
     if (!result) return;
@@ -54,9 +59,15 @@ export function ResultScreen() {
   }, [result]);
 
   if (!result) return null;
-  const next = nextStarTarget(result.stars, MISSIONS[result.missionId].starThresholds);
+  const mission = MISSIONS[result.missionId];
+  const timed = mission.rating.kind === "time";
+  const next = nextStarGoal(result.stars, mission.rating);
   // Varies from run to run without impure randomness during render.
-  const fact = SPACE_FACTS[Math.floor(result.timeMs / 10) % SPACE_FACTS.length];
+  const fact = SPACE_FACTS[Math.floor(result.value / 10) % SPACE_FACTS.length];
+  const showMissions = () => {
+    toMenu();
+    openMissions(result.missionId);
+  };
 
   return (
     <motion.div
@@ -70,20 +81,27 @@ export function ResultScreen() {
     >
       <motion.div initial={{ y: 30, scale: 0.94 }} animate={{ y: 0, scale: 1 }} className="w-full max-w-md">
         <Panel className="flex flex-col items-center gap-4 px-6 py-7 text-center short:gap-2 short:py-4">
-          <h2 id="result-title" className="hud-text font-display text-3xl font-black tracking-[0.12em] sm:text-4xl short:text-2xl">
-            {t("result.title")}
-          </h2>
+          <div>
+            <h2 id="result-title" className="hud-text font-display text-3xl font-black tracking-[0.12em] sm:text-4xl short:text-2xl">
+              {t("result.title")}
+            </h2>
+            <p className="mt-1 font-display text-sm tracking-widest text-cyan-100/80">{localize(mission.name, locale)}</p>
+          </div>
           <StarRow count={result.stars} size="text-6xl short:text-4xl" animate label={t("a11y.stars", { count: result.stars })} />
           <div className="flex w-full justify-center gap-8">
             <div>
-              <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">{t("result.time")}</p>
+              <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">
+                {timed ? t("result.time") : t("result.score")}
+              </p>
               <p className="font-display text-3xl font-black">
-                <AnimatedTime timeMs={result.timeMs} />
+                <AnimatedValue value={result.value} format={timed ? formatTime : formatScore} />
               </p>
             </div>
             <div>
               <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">{t("result.best")}</p>
-              <p className="font-display text-3xl font-black text-white/85 tabular-nums">{formatTime(result.bestTimeMs)}</p>
+              <p className="font-display text-3xl font-black text-white/85 tabular-nums">
+                {timed ? formatTime(result.best) : formatScore(result.best)}
+              </p>
             </div>
           </div>
           {result.isNewBest && (
@@ -97,9 +115,11 @@ export function ResultScreen() {
             </motion.span>
           )}
           <p className="text-sm text-cyan-100/85">
-            {next
-              ? t("result.nextStar", { time: formatTime(next.timeMs), stars: next.stars })
-              : t("result.maxStars")}
+            {!next
+              ? t("result.maxStars")
+              : timed
+                ? t("result.nextStar", { time: formatTime(next.value), stars: next.stars })
+                : t("result.nextStarScore", { score: next.value, stars: next.stars })}
           </p>
           <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-left short:hidden">
             <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-star">
@@ -110,6 +130,9 @@ export function ResultScreen() {
           <div className="flex w-full gap-3">
             <GameButton icon={<RestartIcon />} onClick={restart} className="flex-1" autoFocus>
               {t("result.retry")}
+            </GameButton>
+            <GameButton variant="secondary" icon={<RocketIcon />} onClick={showMissions} className="flex-1">
+              {t("result.missions")}
             </GameButton>
             <GameButton variant="secondary" icon={<HomeIcon />} onClick={toMenu} className="flex-1">
               {t("result.menu")}

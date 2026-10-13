@@ -7,7 +7,6 @@ import { HANGAR } from "@/game/config/hangar";
 import { MISSION } from "@/game/config/mission";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
-import { MISSIONS } from "@/game/data/missions";
 import { BODIES, type LocationId } from "@/game/data/planets";
 import { SHIPS_BY_ID } from "@/game/data/ships";
 import { useGameStore, type CameraMode, type GameMode } from "@/game/stores/gameStore";
@@ -48,10 +47,10 @@ import { rebaseIfNeeded } from "./floatingOrigin";
 import { findDiscovery } from "./discovery";
 import { createHintState, updateHints } from "./hints";
 import { damp } from "./math";
-import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
-import type { MissionLayout } from "./missionLayout";
+import { canFly, completeObjective, createMissionState, startCountdown, tickMission } from "./mission";
+import { getMissionLayout, homeSpawn, type MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
-import { rateTime } from "./scoring";
+import { rateMission } from "./scoring";
 import { createWarpState, isWarping, startWarp, tickWarp } from "./warp";
 import { boostConfigFor, flightConfigFor, resolveShipId } from "./shipConfig";
 
@@ -129,7 +128,7 @@ function stepWarp(dt: number): void {
 }
 
 /** Arrive at a location (after a warp): new scene, ship at the arrival point. */
-export function enterLocation(location: LocationId, layout: MissionLayout): void {
+export function enterLocation(location: LocationId): void {
   // Warps never start on a surface; this only guards against a stray location change.
   if (runtime.environment.surface) {
     runtime.landing = createLandingState();
@@ -145,23 +144,24 @@ export function enterLocation(location: LocationId, layout: MissionLayout): void
   ship.knockback.set(0, 0, 0);
   ship.angularVelocity.set(0, 0, 0);
   runtime.origin.copy(arrival.position);
-  resetPickups(currentPickups(layout));
+  resetPickups(currentPickups());
   runtime.camera.intro = 1;
   updateChaseCamera(runtime.camera, ship, 0, true);
 }
 
 /** Ship hovering at the spawn point for the title screen and hangar. */
-export function placeShipForMenu(layout: MissionLayout): void {
+export function placeShipForMenu(): void {
   applySelectedShip();
   runtime.landing = createLandingState();
   runtime.terrain = null;
-  const spawn = layout.course.spawn;
+  runtime.layout = null;
+  const spawn = homeSpawn();
   resetShip(runtime.ship, spawn.position, spawn.forward, spawn.up);
   runtime.origin.copy(spawn.position);
   runtime.mission = createMissionState(0);
-  runtime.ringPassedAt = layout.course.rings.map(() => -1);
+  runtime.gatePassedAt = [];
   applyLocation("earth");
-  resetPickups(layout.energyStars);
+  resetPickups(currentPickups());
   runtime.finishTimer = 0;
   runtime.timeScale = 1;
   runtime.camera.intro = 1;
@@ -169,18 +169,25 @@ export function placeShipForMenu(layout: MissionLayout): void {
   updateMenuCamera(runtime.camera, runtime.ship, runtime.clock);
 }
 
-export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: boolean): void {
+/** Number of objectives a mission layout asks for. */
+function objectiveTotal(layout: MissionLayout): number {
+  return layout.gates.length;
+}
+
+export function beginRun(mode: GameMode, introFromMenu: boolean): void {
   applySelectedShip();
-  const spawn = layout.course.spawn;
+  const layout = mode === "mission" ? getMissionLayout(useGameStore.getState().missionId) : null;
+  runtime.layout = layout;
+  const spawn = layout?.spawn ?? homeSpawn();
   const ship = runtime.ship;
   resetShip(ship, spawn.position, spawn.forward, spawn.up);
   runtime.origin.copy(spawn.position);
 
   const session = useSessionStore.getState();
-  const totalRings = mode === "mission" ? layout.course.rings.length : 0;
-  runtime.mission = createMissionState(totalRings);
-  session.reset(totalRings);
-  if (mode === "mission") {
+  const total = layout ? objectiveTotal(layout) : 0;
+  runtime.mission = createMissionState(total);
+  session.reset(total);
+  if (layout) {
     const tick = startCountdown(runtime.mission, MISSION);
     session.setStatus("countdown");
     if (tick.type === "countdown") {
@@ -189,9 +196,9 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
     }
   }
 
-  runtime.ringPassedAt = layout.course.rings.map(() => -1);
-  applyLocation("earth");
-  resetPickups(layout.energyStars);
+  runtime.gatePassedAt = layout ? layout.gates.map(() => -1) : [];
+  applyLocation(layout?.mission.location ?? "earth");
+  resetPickups(currentPickups());
   runtime.timeScale = 1;
   runtime.finishTimer = 0;
   runtime.freeFlightTime = 0;
@@ -217,7 +224,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   tutorial.cameraToggled = false;
   tutorial.pickupsCollected = 0;
   tutorial.collisions = 0;
-  tutorial.ringsPassed = 0;
+  tutorial.objective = layout?.mission.objective.type ?? null;
+  tutorial.objectivesDone = 0;
   tutorial.timeSinceStart = 0;
   tutorial.orbited = false;
   tutorial.landed = false;
@@ -234,8 +242,8 @@ export function beginRun(mode: GameMode, layout: MissionLayout, introFromMenu: b
   updateChaseCamera(camera, ship, 0, true);
 }
 
-function stepMenu(layout: MissionLayout, realDt: number): void {
-  const spawn = layout.course.spawn;
+function stepMenu(realDt: number): void {
+  const spawn = homeSpawn();
   const ship = runtime.ship;
   const t = runtime.clock;
   ship.position.copy(spawn.position).addScaledVector(spawn.up, Math.sin(t * 0.9) * 0.25);
@@ -252,8 +260,8 @@ function stepMenu(layout: MissionLayout, realDt: number): void {
 }
 
 /** Hangar turntable: the ship spins in place over Earth; drag adds spin. */
-function stepHangar(layout: MissionLayout, realDt: number): void {
-  const spawn = layout.course.spawn;
+function stepHangar(realDt: number): void {
+  const spawn = homeSpawn();
   const ship = runtime.ship;
   const hangar = runtime.hangar;
   hangar.spin *= Math.exp(-HANGAR.spinDecay * realDt);
@@ -286,10 +294,10 @@ function onCollision(strength: number): void {
   gameEvents.emit("collision", { strength });
 }
 
-function handleCollisions(layout: MissionLayout, dt: number): void {
+function handleCollisions(dt: number): void {
   const ship = runtime.ship;
   runtime.collisionCooldown = Math.max(0, runtime.collisionCooldown - dt);
-  const asteroids = runtime.environment.location === "earth" && !runtime.environment.surface ? layout.asteroids : [];
+  const asteroids = runtime.environment.asteroids;
   let impact = 0;
   for (let i = 0; i < asteroids.length; i++) {
     const radius = asteroids[i].radius * COLLISION.asteroidRadiusScale;
@@ -305,10 +313,10 @@ function handleCollisions(layout: MissionLayout, dt: number): void {
   if (impact > 0 && runtime.collisionCooldown <= 0) onCollision(impact);
 }
 
-function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void {
+function handlePickups(mode: GameMode, dt: number): void {
   const ship = runtime.ship;
   const { active, respawnIn, collectedAt } = runtime.pickups;
-  const pickups = currentPickups(layout);
+  const pickups = currentPickups();
   let nearest = Infinity;
   for (let index = 0; index < pickups.length; index++) {
     if (!active[index]) {
@@ -331,32 +339,38 @@ function handlePickups(layout: MissionLayout, mode: GameMode, dt: number): void 
   runtime.tutorial.nearestPickupDistance = nearest;
 }
 
-function finishMission(): void {
-  const { missionId } = useGameStore.getState();
-  const definition = MISSIONS[missionId];
-  const timeMs = runtime.mission.elapsedMs;
-  const stars = rateTime(timeMs, definition.starThresholds);
-  const outcome = useProgressStore.getState().recordMissionResult(missionId, timeMs, stars);
+/** `value` is the run's time (ms) or score, matching the mission's rating. */
+function finishMission(layout: MissionLayout, value: number): void {
+  const { mission: definition } = layout;
+  const stars = rateMission(value, definition.rating);
+  const outcome = useProgressStore.getState().recordMissionResult(definition.id, value, stars);
   const session = useSessionStore.getState();
   session.setStatus("finished");
   session.setHint(null);
-  session.setResult({ missionId, timeMs, stars, ...outcome });
+  session.setResult({ missionId: definition.id, stars, value, ...outcome });
   runtime.finishTimer = MISSION.finishDelay;
-  gameEvents.emit("missionComplete", { timeMs });
+  gameEvents.emit("missionComplete", { mission: definition.id });
 }
 
-function handleRings(layout: MissionLayout): void {
+/** Records one finished objective; ends the mission after the last one. */
+function objectiveDone(layout: MissionLayout): void {
   const mission = runtime.mission;
-  if (mission.status !== "running") return;
-  const ring = layout.course.rings[mission.nextRing];
-  if (!ring) return;
+  const finished = completeObjective(mission);
+  useSessionStore.getState().setObjectiveDone(mission.completed);
+  gameEvents.emit("objectiveProgress", { kind: "ring", done: mission.completed, total: mission.total });
+  if (finished) finishMission(layout, mission.elapsedMs);
+}
+
+function handleObjectives(): void {
+  const layout = runtime.layout;
+  const mission = runtime.mission;
+  if (!layout || mission.status !== "running") return;
+  const gate = layout.gates[mission.completed];
+  if (!gate) return;
   const ship = runtime.ship;
-  if (!segmentCrossesDisc(ship.previousPosition, ship.position, ring.position, ring.normal, ring.radius)) return;
-  runtime.ringPassedAt[ring.index] = runtime.clock;
-  const finished = passRing(mission);
-  useSessionStore.getState().setRingsPassed(mission.nextRing);
-  gameEvents.emit("ringPassed", { index: ring.index, total: mission.totalRings });
-  if (finished) finishMission();
+  if (!segmentCrossesDisc(ship.previousPosition, ship.position, gate.position, gate.normal, gate.radius)) return;
+  runtime.gatePassedAt[gate.index] = runtime.clock;
+  objectiveDone(layout);
 }
 
 function handleMissionClock(dt: number): void {
@@ -380,7 +394,7 @@ function updateTutorial(input: ControlInput, mode: GameMode, realDt: number): vo
   tutorial.active =
     isExploring(mode) || mission.status === "countdown" || mission.status === "running";
   tutorial.timeSinceStart = mode === "mission" ? mission.elapsedMs / 1000 : runtime.freeFlightTime;
-  tutorial.ringsPassed = mission.nextRing;
+  tutorial.objectivesDone = mission.completed;
   tutorial.steerAmount += (Math.abs(input.pitch) + Math.abs(input.yaw)) * realDt;
   tutorial.throttleRaised ||= input.throttle > runtime.startThrottle + 0.12;
   tutorial.rollUsed ||= Math.abs(input.roll) > 0.5;
@@ -436,7 +450,6 @@ function updatePrompts(mode: GameMode, controllable: boolean): void {
 }
 
 function stepFlight(
-  layout: MissionLayout,
   phase: "playing" | "result",
   mode: GameMode,
   cameraMode: CameraMode,
@@ -449,7 +462,7 @@ function stepFlight(
   const finished = mission.status === "finished";
   const warping = isWarping(runtime.warp);
   if (warping && phase === "playing") stepWarp(realDt);
-  const scripted = phase === "playing" && stepLandingFlow(realDt, layout, applySelectedShip);
+  const scripted = phase === "playing" && stepLandingFlow(realDt, applySelectedShip);
   const controllable = phase === "playing" && !finished && !warping && !scripted;
   input?.update(realDt, controllable);
 
@@ -486,11 +499,11 @@ function stepFlight(
     ship.speed = damp(ship.speed, runtime.flight.maxSpeed * 0.6, 1.5, dt);
   }
 
-  if (warpPhase !== "tunnel" && !scripted) handleCollisions(layout, dt);
+  if (warpPhase !== "tunnel" && !scripted) handleCollisions(dt);
   if (phase === "playing") handlePointsOfInterest();
-  handlePickups(layout, mode, dt);
+  handlePickups(mode, dt);
   if (phase === "playing") handleDiscovery(mode);
-  if (mode === "mission") handleRings(layout);
+  if (mode === "mission") handleObjectives();
   if (isExploring(mode) && phase === "playing") runtime.freeFlightTime += dt;
   if (mode === "testflight" && phase === "playing") {
     runtime.testFlightRemaining = Math.max(0, runtime.testFlightRemaining - realDt);
@@ -513,20 +526,20 @@ function stepFlight(
   updateFov(camera, ship, realDt);
 }
 
-function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: PerspectiveCamera, dt: number): void {
+function updateTargetIndicator(mode: GameMode, camera: PerspectiveCamera, dt: number): void {
   const target = runtime.target;
   const mission = runtime.mission;
   const ship = runtime.ship;
   let surface = 0;
 
   if (mode === "mission") {
-    const ring = layout.course.rings[mission.nextRing];
-    if (!ring || mission.status === "finished") {
+    const gate = runtime.layout?.gates[mission.completed];
+    if (!gate || mission.status === "finished") {
       target.visible = false;
       runtime.targetOffscreenTime = 0;
       return;
     }
-    _targetUniverse.copy(ring.position);
+    _targetUniverse.copy(gate.position);
     target.kind = "ring";
     target.bodyId = null;
     target.returning = false;
@@ -582,7 +595,7 @@ function updateTargetIndicator(layout: MissionLayout, mode: GameMode, camera: Pe
 }
 
 /** One simulation frame. Allocation-free; called from GameLoop's useFrame. */
-export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera, delta: number): void {
+export function stepSimulation(camera: PerspectiveCamera, delta: number): void {
   const { phase, mode, cameraMode } = useGameStore.getState();
   if (phase === "boot" || phase === "loading" || phase === "paused" || phase === "map") {
     if (phase !== "paused") writeTransforms(camera, 0);
@@ -595,13 +608,13 @@ export function stepSimulation(layout: MissionLayout, camera: PerspectiveCamera,
   const dt = realDt * runtime.timeScale;
   runtime.clock += dt;
 
-  if (phase === "menu") stepMenu(layout, realDt);
-  else if (phase === "hangar") stepHangar(layout, realDt);
-  else stepFlight(layout, phase, mode, cameraMode, dt, realDt);
+  if (phase === "menu") stepMenu(realDt);
+  else if (phase === "hangar") stepHangar(realDt);
+  else stepFlight(phase, mode, cameraMode, dt, realDt);
 
   rebaseIfNeeded(runtime.ship.position, runtime.origin, WORLD.floatingOriginThreshold);
   writeTransforms(camera, realDt);
-  if (phase === "playing" || phase === "result") updateTargetIndicator(layout, mode, camera, realDt);
+  if (phase === "playing" || phase === "result") updateTargetIndicator(mode, camera, realDt);
   else runtime.target.visible = false;
 
   if (phase !== "menu" && phase !== "hangar") {

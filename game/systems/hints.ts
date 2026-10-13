@@ -1,4 +1,5 @@
 import type { InputDevice } from "@/game/controls/types";
+import type { ObjectiveType } from "@/game/data/missions";
 import type { TranslationKey } from "@/game/i18n/types";
 
 /**
@@ -26,7 +27,9 @@ export interface HintContext {
   active: boolean;
   /** Seconds since the race started (GO) or free flight began. */
   timeSinceStart: number;
-  ringsPassed: number;
+  /** Objective type of the current mission (null in free flight). */
+  objective: ObjectiveType | null;
+  objectivesDone: number;
   steerAmount: number;
   throttleRaised: boolean;
   boostUsed: boolean;
@@ -90,15 +93,15 @@ export const HINTS: readonly HintDefinition[] = [
     id: "ring",
     text: { desktop: "hints.ring", touch: "hints.ring" },
     modes: ["mission"],
-    trigger: (c) => c.timeSinceStart > 2 && c.ringsPassed === 0,
-    done: (c) => c.ringsPassed > 0,
+    trigger: (c) => c.objective === "rings" && c.timeSinceStart > 2 && c.objectivesDone === 0,
+    done: (c) => c.objectivesDone > 0,
     minShow: 1,
     maxShow: 8,
   },
   {
     id: "boost",
     text: { desktop: "hints.boostDesktop", touch: "hints.boostTouch" },
-    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 8 : c.ringsPassed >= 1) && c.boostEnergy > 0.5,
+    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 8 : c.objectivesDone >= 1) && c.boostEnergy > 0.5,
     done: (c) => c.boostUsed,
     minShow: 1.2,
     maxShow: 9,
@@ -124,7 +127,7 @@ export const HINTS: readonly HintDefinition[] = [
     id: "roll",
     text: { desktop: "hints.rollDesktop", touch: "hints.rollDesktop" },
     devices: ["desktop"],
-    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 20 : c.ringsPassed >= 4),
+    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 20 : c.objectivesDone >= 4),
     done: (c) => c.rollUsed,
     minShow: 1.2,
     maxShow: 7,
@@ -159,7 +162,7 @@ export const HINTS: readonly HintDefinition[] = [
   {
     id: "camera",
     text: { desktop: "hints.cameraDesktop", touch: "hints.cameraTouch" },
-    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 30 : c.ringsPassed >= 7),
+    trigger: (c) => (c.mode === "freeflight" ? c.timeSinceStart > 30 : c.objectivesDone >= 7),
     done: (c) => c.cameraToggled,
     minShow: 1.2,
     maxShow: 7,

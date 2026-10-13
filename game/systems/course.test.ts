@@ -2,7 +2,7 @@ import { Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { COLLISION, FLIGHT } from "@/game/config/flight";
 import { WORLD } from "@/game/config/world";
-import { ORBIT_RINGS } from "@/game/data/missions";
+import { EARTH_ASTEROID_FIELD, ORBIT_RINGS, ORBIT_RINGS_COURSE } from "@/game/data/missions";
 import { EARTH } from "@/game/data/planets";
 import {
   distanceToPolyline,
@@ -38,7 +38,8 @@ describe("segmentCrossesDisc", () => {
 });
 
 describe("orbit ring course", () => {
-  const layout = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
+  const STARS = ORBIT_RINGS.objective.energyStars;
+  const layout = generateCourse(ORBIT_RINGS_COURSE, WORLD.sunDirection);
 
   it("has 12 rings whose openings clear the planet's collision sphere", () => {
     expect(layout.rings).toHaveLength(12);
@@ -51,7 +52,7 @@ describe("orbit ring course", () => {
   });
 
   it("is deterministic", () => {
-    const again = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
+    const again = generateCourse(ORBIT_RINGS_COURSE, WORLD.sunDirection);
     expect(again.rings[5].position.toArray()).toEqual(layout.rings[5].position.toArray());
   });
 
@@ -62,19 +63,19 @@ describe("orbit ring course", () => {
   });
 
   it("keeps asteroids out of the racing corridor", () => {
-    const asteroids = generateAsteroids(ORBIT_RINGS.asteroids, ORBIT_RINGS.course, layout, WORLD.sunDirection);
-    expect(asteroids.length).toBeGreaterThan(ORBIT_RINGS.asteroids.count * 0.8);
+    const asteroids = generateAsteroids(EARTH_ASTEROID_FIELD, ORBIT_RINGS_COURSE, layout, WORLD.sunDirection);
+    expect(asteroids.length).toBeGreaterThan(EARTH_ASTEROID_FIELD.count * 0.8);
     for (const asteroid of asteroids) {
       const gap = distanceToPolyline(asteroid.position, layout.path) - asteroid.radius;
-      expect(gap).toBeGreaterThanOrEqual(ORBIT_RINGS.asteroids.corridorClearance);
+      expect(gap).toBeGreaterThanOrEqual(EARTH_ASTEROID_FIELD.corridorClearance);
     }
   });
 
   it("places energy stars near the racing line", () => {
-    const stars = generateEnergyStars(ORBIT_RINGS.energyStars, ORBIT_RINGS.course, WORLD.sunDirection);
-    expect(stars).toHaveLength(ORBIT_RINGS.energyStars.afterRings.length);
+    const stars = generateEnergyStars(STARS, ORBIT_RINGS_COURSE, WORLD.sunDirection);
+    expect(stars).toHaveLength(STARS.afterRings.length);
     for (const star of stars) {
-      expect(distanceToPolyline(star.position, layout.path)).toBeLessThan(ORBIT_RINGS.energyStars.sideOffset + 2);
+      expect(distanceToPolyline(star.position, layout.path)).toBeLessThan(STARS.sideOffset + 2);
     }
   });
 });

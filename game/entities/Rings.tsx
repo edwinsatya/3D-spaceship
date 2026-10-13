@@ -47,7 +47,7 @@ void main() {
 }
 `;
 
-/** The 12 orbit rings: next ring glows gold, the one after previews in cyan. */
+/** Race rings: the next one glows gold, the one after previews in cyan. */
 export function Rings({ rings }: { rings: RingSpec[] }) {
   const radius = rings[0]?.radius ?? 10;
   const torus = useMemo(() => new TorusGeometry(radius, MISSION.ringTubeRadius, 10, 56), [radius]);
@@ -89,7 +89,7 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
 
   useFrame(() => {
     const mission = runtime.mission;
-    const next = mission.status === "finished" ? rings.length : mission.nextRing;
+    const next = mission.status === "finished" ? rings.length : mission.completed;
     const pulse = 0.75 + 0.25 * Math.sin(runtime.clock * 6);
     portalMaterial.uniforms.uTime.value = runtime.clock;
 
@@ -98,7 +98,7 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
       const group = groups.current[index];
       if (!group) continue;
       if (index < next) {
-        const passedAt = runtime.ringPassedAt[index] ?? -1;
+        const passedAt = runtime.gatePassedAt[index] ?? -1;
         const t = passedAt < 0 ? 1 : clamp01((runtime.clock - passedAt) / MISSION.ringPassFadeDuration);
         group.visible = t < 1;
         group.scale.setScalar(1 + easeOutCubic(t) * MISSION.ringPassScaleBoost);

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FLIGHT } from "@/game/config/flight";
 import { WORLD } from "@/game/config/world";
 import type { ControlInput } from "@/game/controls/types";
-import { ORBIT_RINGS } from "@/game/data/missions";
+import { ORBIT_RINGS, ORBIT_RINGS_COURSE } from "@/game/data/missions";
 import { SHIPS, type ShipDefinition } from "@/game/data/ships";
 import { clamp } from "./math";
 import { generateCourse, segmentCrossesDisc } from "./course";
@@ -17,7 +17,7 @@ import { boostConfigFor, flightConfigFor } from "./shipConfig";
 function flyCourse(useBoost: boolean, shipDefinition: ShipDefinition = SHIPS[0]): number {
   const flight = flightConfigFor(shipDefinition);
   const boost = boostConfigFor(shipDefinition);
-  const layout = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
+  const layout = generateCourse(ORBIT_RINGS_COURSE, WORLD.sunDirection);
   const ship = createShipState();
   resetShip(ship, layout.spawn.position, layout.spawn.forward, layout.spawn.up);
   const input: ControlInput = { pitch: 0, yaw: 0, roll: 0, throttle: 1, boost: false };
@@ -44,7 +44,7 @@ function flyCourse(useBoost: boolean, shipDefinition: ShipDefinition = SHIPS[0])
 }
 
 describe("orbit rings balance", () => {
-  const { three, two } = ORBIT_RINGS.starThresholds;
+  const { three, two } = ORBIT_RINGS.rating;
   const cruise = flyCourse(false);
   const boosted = flyCourse(true);
 
@@ -71,7 +71,7 @@ describe("orbit rings balance", () => {
   });
 
   it("uses speeds consistent with the course length", () => {
-    const layout = generateCourse(ORBIT_RINGS.course, WORLD.sunDirection);
+    const layout = generateCourse(ORBIT_RINGS_COURSE, WORLD.sunDirection);
     expect(layout.pathLength / FLIGHT.maxSpeed).toBeLessThan(two);
   });
 });

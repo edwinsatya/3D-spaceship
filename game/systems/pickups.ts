@@ -1,12 +1,12 @@
 import type { PickupSpec } from "./course";
-import type { MissionLayout } from "./missionLayout";
 import { runtime } from "./runtime";
 
-/** Energy stars of the current place (Earth's space scene reuses the mission's stars). */
-export function currentPickups(layout: MissionLayout): readonly PickupSpec[] {
+/** Energy stars of the current place: the mission's own, or the location's in free flight. */
+export function currentPickups(): readonly PickupSpec[] {
   const environment = runtime.environment;
-  if (environment.surface) return environment.pickups;
-  return environment.location === "earth" ? layout.energyStars : environment.pickups;
+  const layout = runtime.layout;
+  if (layout && !environment.surface && layout.mission.location === environment.location) return layout.energyStars;
+  return environment.pickups;
 }
 
 export function resetPickups(pickups: readonly PickupSpec[]): void {

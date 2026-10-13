@@ -16,7 +16,7 @@ export function useGameAudio() {
 
   useEffect(() => {
     const unsubscribers = [
-      gameEvents.on("ringPassed", ({ index }) => audio.play("ring", { rate: 1 + index * 0.035 })),
+      gameEvents.on("objectiveProgress", ({ done }) => audio.play("ring", { rate: 1 + (done - 1) * 0.035 })),
       gameEvents.on("pickup", () => audio.play("pickup")),
       gameEvents.on("collision", ({ strength }) => audio.play("collision", { volume: 0.55 + strength * 0.45 })),
       gameEvents.on("boostStart", () => audio.play("boost")),

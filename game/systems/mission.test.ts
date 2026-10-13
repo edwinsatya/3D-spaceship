@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canFly, createMissionState, passRing, startCountdown, tickMission } from "./mission";
+import { canFly, createMissionState, completeObjective, startCountdown, tickMission } from "./mission";
 
 const config = { countdownFrom: 3, countdownStep: 0.8 };
 
@@ -50,9 +50,9 @@ describe("mission timer", () => {
 
   it("finishes after the last ring and stops the clock", () => {
     const state = runningState();
-    expect(passRing(state)).toBe(false);
-    expect(passRing(state)).toBe(false);
-    expect(passRing(state)).toBe(true);
+    expect(completeObjective(state)).toBe(false);
+    expect(completeObjective(state)).toBe(false);
+    expect(completeObjective(state)).toBe(true);
     expect(state.status).toBe("finished");
     const finalTime = state.elapsedMs;
     tickMission(state, 2, config);
@@ -62,7 +62,7 @@ describe("mission timer", () => {
   it("ignores ring passes before the race starts", () => {
     const state = createMissionState(3);
     startCountdown(state, config);
-    expect(passRing(state)).toBe(false);
-    expect(state.nextRing).toBe(0);
+    expect(completeObjective(state)).toBe(false);
+    expect(state.completed).toBe(0);
   });
 });

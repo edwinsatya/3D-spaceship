@@ -6,11 +6,12 @@ import type { StarRating } from "@/game/systems/scoring";
 
 export interface MissionResult {
   missionId: MissionId;
-  timeMs: number;
   stars: StarRating;
+  /** Time (ms) for timed missions, score (0–100) for photo missions. */
+  value: number;
   isNewBest: boolean;
-  previousBestMs: number | null;
-  bestTimeMs: number;
+  previousBest: number | null;
+  best: number;
 }
 
 export type ToastKind = "ring" | "energy" | "collision";
@@ -27,18 +28,19 @@ export interface Toast {
  */
 interface SessionStore {
   status: MissionStatus;
-  ringsPassed: number;
-  totalRings: number;
+  /** Mission objectives done / to do (rings, crystals, deliveries…). */
+  objectiveDone: number;
+  objectiveTotal: number;
   /** 3, 2, 1, 0 (= GO) or null when hidden. */
   countdown: number | null;
   hint: HintId | null;
   result: MissionResult | null;
   toasts: Toast[];
 
-  reset: (totalRings: number) => void;
+  reset: (objectiveTotal: number) => void;
   setStatus: (status: MissionStatus) => void;
   setCountdown: (value: number | null) => void;
-  setRingsPassed: (count: number) => void;
+  setObjectiveDone: (count: number) => void;
   setHint: (hint: HintId | null) => void;
   setResult: (result: MissionResult) => void;
   pushToast: (kind: ToastKind, text: string) => void;
@@ -50,18 +52,18 @@ let toastId = 0;
 
 export const useSessionStore = create<SessionStore>()((set) => ({
   status: "idle",
-  ringsPassed: 0,
-  totalRings: 0,
+  objectiveDone: 0,
+  objectiveTotal: 0,
   countdown: null,
   hint: null,
   result: null,
   toasts: [],
 
-  reset: (totalRings) =>
-    set({ status: "idle", ringsPassed: 0, totalRings, countdown: null, hint: null, result: null, toasts: [] }),
+  reset: (objectiveTotal) =>
+    set({ status: "idle", objectiveDone: 0, objectiveTotal, countdown: null, hint: null, result: null, toasts: [] }),
   setStatus: (status) => set({ status }),
   setCountdown: (countdown) => set({ countdown }),
-  setRingsPassed: (ringsPassed) => set({ ringsPassed }),
+  setObjectiveDone: (objectiveDone) => set({ objectiveDone }),
   setHint: (hint) => set({ hint }),
   setResult: (result) => set({ result }),
   pushToast: (kind, text) =>

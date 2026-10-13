@@ -10,7 +10,6 @@ import { EMPTY_PAYLOAD, gameEvents } from "./events";
 import { getShipForward, orientationFromForwardUp, type ShipState } from "./flight";
 import { beginAscent, beginDescent, landingHeat, tickLanding } from "./landing";
 import { damp, dampFactor } from "./math";
-import type { MissionLayout } from "./missionLayout";
 import { endOrbit, orbitAround } from "./orbitControl";
 import { currentPickups, resetPickups } from "./pickups";
 import { runtime } from "./runtime";
@@ -182,7 +181,7 @@ function enterSurface(surface: SurfaceId, restoreShip: () => void): void {
   useGameStore.getState().setSurface(surface);
 }
 
-function leaveSurface(surface: SurfaceId, layout: MissionLayout, restoreShip: () => void): void {
+function leaveSurface(surface: SurfaceId, restoreShip: () => void): void {
   runtime.terrain = null;
   const environment = buildEnvironment(runtime.environment.location);
   runtime.environment = environment;
@@ -203,7 +202,7 @@ function leaveSurface(surface: SurfaceId, layout: MissionLayout, restoreShip: ()
   placeShip(position, forward, direction, EXPLORATION.landing.ascentSpeed * 0.6);
   // Back "to orbit" literally: the orbit camera frames the world you just left.
   orbitAround(body);
-  resetPickups(currentPickups(layout));
+  resetPickups(currentPickups());
   useGameStore.getState().setSurface(null);
 }
 
@@ -211,7 +210,7 @@ function leaveSurface(surface: SurfaceId, layout: MissionLayout, restoreShip: ()
  * Runs the scripted parts of landing/take-off. Returns true while the
  * sequence owns the ship (no player control).
  */
-export function stepLandingFlow(dt: number, layout: MissionLayout, restoreShip: () => void): boolean {
+export function stepLandingFlow(dt: number, restoreShip: () => void): boolean {
   const landing = runtime.landing;
   const body = landing.body;
   const event = tickLanding(landing, dt, EXPLORATION.landing);
@@ -220,7 +219,7 @@ export function stepLandingFlow(dt: number, layout: MissionLayout, restoreShip: 
     addTrauma(runtime.camera, EXPLORATION.surface.touchdownTrauma);
     const first = useProgressStore.getState().markLanded(body);
     gameEvents.emit("landed", { body, first });
-  } else if (body && event === "enterSpace") leaveSurface(body, layout, restoreShip);
+  } else if (body && event === "enterSpace") leaveSurface(body, restoreShip);
 
   switch (landing.phase) {
     case "descent":

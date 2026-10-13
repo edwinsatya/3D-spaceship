@@ -2,16 +2,14 @@
 
 import { motion } from "motion/react";
 import { unlockAudioFromGesture } from "@/game/audio/useGameAudio";
-import { ORBIT_RINGS } from "@/game/data/missions";
-import { localize } from "@/game/i18n";
-import { useLocale, useT } from "@/game/i18n/useT";
+import { MISSION_ORDER, type MissionId } from "@/game/data/missions";
+import { useT } from "@/game/i18n/useT";
 import { useGameStore, type GameMode } from "@/game/stores/gameStore";
-import { useProgressStore } from "@/game/stores/progressStore";
-import { formatTime } from "@/game/systems/scoring";
+import { totalStars, useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { BookIcon, HangarIcon, OrbitIcon, RocketIcon } from "./icons";
 import { MuteButton } from "./MuteButton";
-import { GameButton, Panel, StarRow } from "./primitives";
+import { GameButton } from "./primitives";
 
 /** Best effort: fullscreen + landscape lock on phones (needs the click gesture). */
 async function requestImmersive() {
@@ -24,17 +22,17 @@ async function requestImmersive() {
   }
 }
 
-export function startGame(mode: GameMode) {
+export function startGame(mode: GameMode, missionId?: MissionId) {
   unlockAudioFromGesture();
   if (useGameStore.getState().device === "touch") void requestImmersive();
-  useGameStore.getState().startRun(mode);
+  useGameStore.getState().startRun(mode, missionId);
 }
 
 export function TitleMenu() {
   const t = useT();
-  const locale = useLocale();
   const device = useGameStore((state) => state.device);
-  const progress = useProgressStore((state) => state.missions[ORBIT_RINGS.id]);
+  const stars = useProgressStore((state) => totalStars(state.missions));
+  const openMissions = useUiStore((state) => state.openMissions);
   const openHangar = useGameStore((state) => state.openHangar);
   const openEncyclopedia = useUiStore((state) => state.openEncyclopedia);
 
@@ -61,29 +59,15 @@ export function TitleMenu() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <Panel className="pointer-events-auto px-5 py-4 short:py-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">
-                {t("menu.missionLabel")}
-              </p>
-              <h2 className="font-display text-xl font-bold">{localize(ORBIT_RINGS.name, locale)}</h2>
-            </div>
-            <StarRow count={progress?.bestStars ?? 0} label={t("a11y.stars", { count: progress?.bestStars ?? 0 })} />
-          </div>
-          <p className="mt-1 text-sm text-white/80 short:hidden">{localize(ORBIT_RINGS.description, locale)}</p>
-          <p className="mt-2 font-display text-xs tracking-widest text-cyan-100/70 short:mt-1">
-            {t("menu.bestTime")}: {progress?.bestTimeMs != null ? formatTime(progress.bestTimeMs) : t("menu.noBestTime")}
-          </p>
-        </Panel>
         <div className="grid grid-cols-2 gap-3 short:gap-2">
           <GameButton
             icon={<RocketIcon />}
-            onClick={() => startGame("mission")}
+            onClick={() => openMissions()}
             className="col-span-2 short:col-span-1"
             autoFocus
           >
-            {t("menu.startMission")}
+            {t("menu.missions")}
+            <span className="ml-2 text-sm opacity-80">★ {stars}/{MISSION_ORDER.length * 3}</span>
           </GameButton>
           <GameButton variant="secondary" icon={<OrbitIcon />} onClick={() => startGame("freeflight")}>
             {t("menu.freeFlight")}

@@ -4,7 +4,9 @@ import { EXPLORATION } from "@/game/config/exploration";
 import { BODIES, type BodyId, type CelestialBody, type LocationId } from "@/game/data/planets";
 import { LOCATION_BODIES, sunDirectionFor, sunlightFor } from "@/game/data/solarSystem";
 import { SURFACES, type SurfaceId } from "@/game/data/surfaces";
-import { toVector, type PickupSpec } from "./course";
+import { toVector, type AsteroidSpec, type PickupSpec } from "./course";
+import { homeEnergyStars } from "./missionLayout";
+import { locationAsteroids } from "./scenery";
 import { createRandom } from "./random";
 import type { Terrain } from "./terrain";
 
@@ -29,6 +31,8 @@ export interface Environment {
   sunIntensity: number;
   /** Free-flight energy stars around the primary. */
   pickups: PickupSpec[];
+  /** Rocks that belong to the place (collide in free flight and missions). */
+  asteroids: AsteroidSpec[];
 }
 
 const PICKUPS_PER_LOCATION = 10;
@@ -107,7 +111,8 @@ export function buildEnvironment(location: LocationId): Environment {
     sunDirection: toVector(sunDirectionFor(location)),
     sunSize: sunlight.size,
     sunIntensity: sunlight.intensity,
-    pickups: locationPickups(location),
+    pickups: location === "earth" ? homeEnergyStars() : locationPickups(location),
+    asteroids: locationAsteroids(location),
   };
 }
 
@@ -134,6 +139,7 @@ export function buildSurfaceEnvironment(location: LocationId, surface: SurfaceId
     sunSize: surface === "mars" ? 0.66 : 1,
     sunIntensity: definition.sunIntensity / 2.5,
     pickups: terrain.pickups,
+    asteroids: [],
   };
 }
 

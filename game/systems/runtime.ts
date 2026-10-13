@@ -12,6 +12,7 @@ import { createLandingState } from "./landing";
 import { createOrbitState } from "./orbit";
 import type { Terrain } from "./terrain";
 import { createWarpState } from "./warp";
+import type { MissionLayout } from "./missionLayout";
 
 export type TargetKind = "ring" | "body" | "poi";
 
@@ -123,7 +124,10 @@ export const runtime = {
   finishTimer: 0,
   freeFlightTime: 0,
   collisionCooldown: 0,
-  ringPassedAt: [] as number[],
+  /** Clock time each mission gate was passed (-1 = not yet), for the gate visuals. */
+  gatePassedAt: [] as number[],
+  /** Layout of the mission being flown (null outside missions). */
+  layout: null as MissionLayout | null,
   pickups: { active: [], respawnIn: [], collectedAt: [] } as PickupRuntime,
   target: {
     visible: false,
@@ -142,7 +146,8 @@ export const runtime = {
     mode: "mission",
     active: false,
     timeSinceStart: 0,
-    ringsPassed: 0,
+    objective: null,
+    objectivesDone: 0,
     steerAmount: 0,
     throttleRaised: false,
     boostUsed: false,

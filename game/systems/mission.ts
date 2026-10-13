@@ -1,13 +1,15 @@
 /**
- * Pure mission state for the ring race (no three.js, no React).
- * The game loop feeds it time and ring passes; it reports what happened.
+ * Pure mission state (no three.js, no React): countdown, timer and objective
+ * progress (rings passed, crystals collected…). The game loop feeds it time
+ * and completed objectives; it reports what happened.
  */
 export type MissionStatus = "idle" | "countdown" | "running" | "finished";
 
 export interface MissionState {
   status: MissionStatus;
-  totalRings: number;
-  nextRing: number;
+  /** Objectives to complete (rings, crystals, deliveries…). */
+  total: number;
+  completed: number;
   /** Seconds left in the countdown. */
   countdownRemaining: number;
   /** Last countdown number announced (3, 2, 1, then 0 = GO). */
@@ -25,11 +27,11 @@ export type MissionTick =
   | { type: "countdown"; value: number }
   | { type: "go" };
 
-export function createMissionState(totalRings: number): MissionState {
+export function createMissionState(total: number): MissionState {
   return {
     status: "idle",
-    totalRings,
-    nextRing: 0,
+    total,
+    completed: 0,
     countdownRemaining: 0,
     countdownShown: -1,
     elapsedMs: 0,
@@ -38,7 +40,7 @@ export function createMissionState(totalRings: number): MissionState {
 
 export function startCountdown(state: MissionState, config: CountdownConfig): MissionTick {
   state.status = "countdown";
-  state.nextRing = 0;
+  state.completed = 0;
   state.elapsedMs = 0;
   state.countdownRemaining = config.countdownFrom * config.countdownStep;
   state.countdownShown = config.countdownFrom;
@@ -67,11 +69,20 @@ export function tickMission(state: MissionState, dt: number, config: CountdownCo
   return { type: "none" };
 }
 
-/** Registers a pass through the current target ring. Returns true when finished. */
-export function passRing(state: MissionState): boolean {
+/** Missions without a race start (photo missions) begin straight away. */
+export function startImmediately(state: MissionState): void {
+  state.status = "running";
+  state.completed = 0;
+  state.elapsedMs = 0;
+  state.countdownRemaining = 0;
+  state.countdownShown = 0;
+}
+
+/** Registers one completed objective (ring passed, crystal collected…). Returns true when finished. */
+export function completeObjective(state: MissionState): boolean {
   if (state.status !== "running") return false;
-  state.nextRing += 1;
-  if (state.nextRing >= state.totalRings) {
+  state.completed += 1;
+  if (state.completed >= state.total) {
     state.status = "finished";
     return true;
   }

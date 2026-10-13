@@ -37,8 +37,8 @@ function RingPips({ passed, total }: { passed: number; total: number }) {
 export function TopBar() {
   const t = useT();
   const mode = useGameStore((state) => state.mode);
-  const ringsPassed = useSessionStore((state) => state.ringsPassed);
-  const totalRings = useSessionStore((state) => state.totalRings);
+  const done = useSessionStore((state) => state.objectiveDone);
+  const total = useSessionStore((state) => state.objectiveTotal);
   const endTestFlight = useGameStore((state) => state.endTestFlight);
   const location = useGameStore((state) => state.location);
   const surface = useGameStore((state) => state.surface);
@@ -90,14 +90,14 @@ export function TopBar() {
           <>
             <div className="flex flex-col gap-1">
               <motion.span
-                key={ringsPassed}
+                key={done}
                 initial={{ scale: 1.25, color: "#9dffb0" }}
                 animate={{ scale: 1, color: "#ffffff" }}
                 className="font-display text-xs font-bold tracking-widest sm:text-sm"
               >
-                {t("hud.objectiveRings", { current: Math.min(ringsPassed + 1, totalRings), total: totalRings })}
+                {t("hud.objectiveRings", { current: Math.min(done + 1, total), total })}
               </motion.span>
-              <RingPips passed={ringsPassed} total={totalRings} />
+              <RingPips passed={done} total={total} />
             </div>
             <div className="h-8 w-px bg-cyan-200/20" />
             <span

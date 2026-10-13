@@ -1,12 +1,11 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useLayoutEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import type { PerspectiveCamera } from "three";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { beginIntroBlend } from "./cameraRig";
-import { getMissionLayout } from "./missionLayout";
 import { notifyHud, runtime } from "./runtime";
 import { applySelectedShip, beginRun, enterLocation, placeShipForMenu, stepSimulation } from "./simulation";
 
@@ -19,23 +18,21 @@ const SIMULATION_PRIORITY = -1;
  */
 export function GameLoop() {
   const camera = useThree((state) => state.camera) as PerspectiveCamera;
-  const missionId = useGameStore((state) => state.missionId);
-  const layout = useMemo(() => getMissionLayout(missionId), [missionId]);
 
   useLayoutEffect(() => {
-    placeShipForMenu(layout);
-  }, [layout]);
+    placeShipForMenu();
+  }, []);
 
   useEffect(
     () =>
       useGameStore.subscribe((state, previous) => {
         if (state.runId !== previous.runId) {
-          beginRun(state.mode, layout, previous.phase === "menu" || previous.phase === "hangar");
+          beginRun(state.mode, previous.phase === "menu" || previous.phase === "hangar");
           return;
         }
         // Mid-run location change (warp arrival or a debug jump).
         if (state.location !== previous.location && (state.phase === "playing" || state.phase === "paused")) {
-          enterLocation(state.location, layout);
+          enterLocation(state.location);
         }
         if (state.phase === previous.phase) return;
         // Back from a menu overlay: the cursor sits on its button, re-arm mouse steering.
@@ -45,9 +42,9 @@ export function GameLoop() {
         const showroom = (phase: string) => phase === "menu" || phase === "hangar";
         // Menu ⇄ hangar: glide between the two framings; from a run: reset to the spawn.
         if (showroom(state.phase) && showroom(previous.phase)) beginIntroBlend(runtime.camera);
-        else if (showroom(state.phase)) placeShipForMenu(layout);
+        else if (showroom(state.phase)) placeShipForMenu();
       }),
-    [layout],
+    [],
   );
 
   useEffect(
@@ -59,7 +56,7 @@ export function GameLoop() {
   );
 
   useFrame((_, delta) => {
-    stepSimulation(layout, camera, delta);
+    stepSimulation(camera, delta);
     notifyHud();
   }, SIMULATION_PRIORITY);
 

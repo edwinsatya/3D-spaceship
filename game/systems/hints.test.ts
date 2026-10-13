@@ -7,7 +7,8 @@ function context(overrides: Partial<HintContext> = {}): HintContext {
     mode: "mission",
     active: true,
     timeSinceStart: 0,
-    ringsPassed: 0,
+    objective: "rings",
+    objectivesDone: 0,
     steerAmount: 0,
     throttleRaised: false,
     boostUsed: false,
@@ -56,7 +57,7 @@ describe("contextual hints", () => {
   it("skips desktop-only hints on touch devices", () => {
     const all = ["steer", "throttle", "ring", "boost", "energy", "followArrow", "collision", "camera", "orbit", "map"] as const;
     const state = createHintState(all);
-    updateHints(state, context({ device: "touch", ringsPassed: 5 }), 0.1);
+    updateHints(state, context({ device: "touch", objectivesDone: 5 }), 0.1);
     expect(state.active).toBeNull();
   });
 

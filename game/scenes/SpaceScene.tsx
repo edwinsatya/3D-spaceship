@@ -16,7 +16,7 @@ import { LOCATION_BODIES } from "@/game/data/solarSystem";
 import { buildEnvironment } from "@/game/systems/environment";
 import { useGameStore } from "@/game/stores/gameStore";
 import { GameLoop } from "@/game/systems/GameLoop";
-import { getMissionLayout } from "@/game/systems/missionLayout";
+import { getMissionLayout, type MissionLayout } from "@/game/systems/missionLayout";
 import { DEBUG_HANDLE_ENABLED } from "@/game/systems/debug";
 import { runtime } from "@/game/systems/runtime";
 import { DebugBridge } from "./DebugBridge";
@@ -41,36 +41,40 @@ function WorldRoot({ children }: { children: React.ReactNode }) {
   return <group ref={register}>{children}</group>;
 }
 
-/** The planet(s) of the current location; Earth adds the Phase 1 mission props. */
-function LocationContent({ location, showRings }: { location: LocationId; showRings: boolean }) {
-  const missionId = useGameStore((state) => state.missionId);
-  const layout = useMemo(() => getMissionLayout(missionId), [missionId]);
-  const pickups = useMemo(() => buildEnvironment(location).pickups, [location]);
-  if (location === "sun") {
-    return (
-      <>
-        <SunBody />
-        <EnergyStars pickups={pickups} />
-      </>
-    );
-  }
-  if (location === "earth") {
-    return (
-      <>
-        <Earth />
-        <Moon />
-        <Asteroids asteroids={layout.asteroids} />
-        <EnergyStars pickups={layout.energyStars} />
-        {showRings && <Rings rings={layout.course.rings} />}
-      </>
-    );
-  }
+/** The planet(s) of the current location and the rocks that belong to it. */
+function LocationContent({ location }: { location: LocationId }) {
+  const environment = useMemo(() => buildEnvironment(location), [location]);
   return (
     <>
-      {LOCATION_BODIES[location].map((id) => (
-        <PlanetBody key={id} body={BODIES[id]} />
-      ))}
+      {location === "sun" ? (
+        <SunBody />
+      ) : location === "earth" ? (
+        <>
+          <Earth />
+          <Moon />
+        </>
+      ) : (
+        LOCATION_BODIES[location].map((id) => <PlanetBody key={id} body={BODIES[id]} />)
+      )}
+      {environment.asteroids.length > 0 && <Asteroids asteroids={environment.asteroids} />}
+    </>
+  );
+}
+
+/**
+ * Mission props at the current location (the title screen shows the Orbit
+ * Rings course) and the energy stars gameplay is using (see currentPickups).
+ */
+function MissionContent({ location, layout }: { location: LocationId; layout: MissionLayout | null }) {
+  const pickups = useMemo(
+    () => (layout && layout.mission.location === location ? layout.energyStars : buildEnvironment(location).pickups),
+    [layout, location],
+  );
+  const here = layout && layout.mission.location === location ? layout : null;
+  return (
+    <>
       <EnergyStars pickups={pickups} />
+      {here && here.gates.length > 0 && <Rings rings={here.gates} />}
     </>
   );
 }
@@ -83,8 +87,11 @@ export function SpaceScene() {
   const { speedLines } = useQualitySettings();
   const sky = surface ? SURFACES[surface].sky : null;
   const spaceSky = sky?.type !== "atmosphere";
+  const missionId = useGameStore((state) => state.missionId);
   const inRun = phase === "playing" || phase === "paused" || phase === "result";
-  const showRings = phase === "menu" || (mode === "mission" && inRun);
+  const flying = mode === "mission" && inRun ? getMissionLayout(missionId) : null;
+  // The title screen shows off the first course; menus and free flight have no mission.
+  const layout = phase === "menu" ? getMissionLayout("orbit-rings") : flying;
   const loaded = phase !== "boot" && phase !== "loading";
 
   return (
@@ -101,7 +108,9 @@ export function SpaceScene() {
       <WorldRoot>
         {/* Kept mounted (hidden) while landed so its baked textures survive the round trip. */}
         <group visible={!surface}>
-          <LocationContent key={location} location={location} showRings={showRings} />
+          <LocationContent key={location} location={location} />
+          {/* Gameplay starts its run in the same frame; the props must match runtime.layout. */}
+          <MissionContent key={`${location}:${layout?.mission.id ?? "none"}`} location={location} layout={layout} />
         </group>
         {surface && <SurfaceScene key={surface} surface={surface} />}
       </WorldRoot>

@@ -18,8 +18,8 @@ export function useFeedback() {
     };
     const toast = useSessionStore.getState().pushToast;
     const unsubscribers = [
-      gameEvents.on("ringPassed", ({ index, total }) => {
-        toast("ring", translate(locale(), "hud.toastRing", { current: index + 1, total }));
+      gameEvents.on("objectiveProgress", ({ done, total }) => {
+        toast("ring", translate(locale(), "hud.toastRing", { current: done, total }));
         vibrate("ring");
       }),
       gameEvents.on("pickup", () => {

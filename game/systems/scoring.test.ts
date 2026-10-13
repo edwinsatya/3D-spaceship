@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTime, isNewBest, nextStarTarget, rateTime } from "./scoring";
+import { formatTime, isNewBest, nextStarGoal, rateMission, rateTime } from "./scoring";
 
 const thresholds = { three: 30, two: 45 };
 
@@ -20,11 +20,30 @@ describe("rateTime", () => {
   });
 });
 
-describe("nextStarTarget", () => {
-  it("points to the next threshold", () => {
-    expect(nextStarTarget(1, thresholds)).toEqual({ stars: 2, timeMs: 45_000 });
-    expect(nextStarTarget(2, thresholds)).toEqual({ stars: 3, timeMs: 30_000 });
-    expect(nextStarTarget(3, thresholds)).toBeNull();
+describe("rateMission", () => {
+  it("rates timed missions like rateTime", () => {
+    expect(rateMission(30_000, { kind: "time", ...thresholds })).toBe(3);
+    expect(rateMission(45_001, { kind: "time", ...thresholds })).toBe(1);
+  });
+
+  it("rates photo scores: higher is better", () => {
+    const rating = { kind: "score", three: 85, two: 60 } as const;
+    expect(rateMission(90, rating)).toBe(3);
+    expect(rateMission(85, rating)).toBe(3);
+    expect(rateMission(70, rating)).toBe(2);
+    expect(rateMission(10, rating)).toBe(1);
+  });
+});
+
+describe("nextStarGoal", () => {
+  it("points to the next time threshold (ms)", () => {
+    expect(nextStarGoal(1, { kind: "time", ...thresholds })).toEqual({ stars: 2, value: 45_000 });
+    expect(nextStarGoal(2, { kind: "time", ...thresholds })).toEqual({ stars: 3, value: 30_000 });
+    expect(nextStarGoal(3, { kind: "time", ...thresholds })).toBeNull();
+  });
+
+  it("points to the next score threshold", () => {
+    expect(nextStarGoal(1, { kind: "score", three: 85, two: 60 })).toEqual({ stars: 2, value: 60 });
   });
 });
 
