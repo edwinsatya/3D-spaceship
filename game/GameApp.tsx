@@ -11,6 +11,7 @@ import { SpaceScene } from "@/game/scenes/SpaceScene";
 import { useAssetStore } from "@/game/stores/assetStore";
 import { useGameStore } from "@/game/stores/gameStore";
 import { usePhotoStore } from "@/game/stores/photoStore";
+import { useProgressStore } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { useBadgeAwards } from "@/game/ui/useBadgeAwards";
 import { startAccount } from "@/game/systems/account/service";
@@ -39,6 +40,7 @@ function exposeDebugHandle() {
       useSessionStore,
       useQualityStore,
       usePhotoStore,
+      useProgressStore,
       useUiStore,
       photoSubject: () => photoSubject(runtime.layout)?.clone() ?? null,
     },
