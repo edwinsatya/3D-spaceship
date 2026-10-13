@@ -21,9 +21,10 @@ Settings → Language & privacy.
   - Photo mode and a local gallery.
   - Star-based unlocks and 11 badges.
   - Optional Supabase accounts with cross-device progress sync.
+  - Best-time leaderboards for the timed missions, validated on the server.
 - **Phase 4 (settings, sound & polish):**
-  - Settings screen: separate volumes and an engine sound per ship, graphics presets with an FPS counter, key
-    remapping, sensitivity, invert Y, gamepad and tilt steering.
+  - Settings screen: separate volumes and an engine sound per ship, graphics presets (with sun shadows on Medium
+    and High) and an FPS counter, key remapping, sensitivity, invert Y, gamepad and tilt steering.
   - Accessibility: reduce motion, colour-blind friendly colours, text size.
   - Release: language picker, installable PWA with offline play, anonymous analytics, Credits screen.
 
@@ -90,6 +91,24 @@ the API, so you read it from the dashboard. Players can turn sharing off in Sett
 browser sends Do Not Track or Global Privacy Control. Without Supabase, events are only logged to the console in
 development.
 
+### Leaderboards (optional)
+
+Run `supabase/migrations/20261013020000_leaderboard.sql` to turn on best-time leaderboards for the five timed
+missions (photo scores are worked out on the device, so they have no board). In **Missions**, a timed mission has a
+*Leaderboard* tab; guests can look, and signed-in players post their times.
+
+- **Server-side checks.** The game asks for a run ticket when a mission starts and hands it back with the time at
+  the finish (`leaderboard_start_run` / `leaderboard_submit_run`). The server refuses a time that is faster than
+  the mission's plausible minimum (about 55% of the best autopilot run, `game/config/leaderboard.ts`), longer than
+  its own clock says has passed since the ticket, a ticket that is reused, someone else's or over an hour old, and
+  more than 40 tickets in 5 minutes. This stops times typed into the console; like any browser game, it can't fully
+  stop a modified client.
+- **Privacy.** Players appear as a call sign made from word lists ("Swift Comet 42"), stored as three numbers and
+  shown in each player's language. There is no free text and no email or real name on the board. Players can roll a
+  new call sign on the leaderboard or in the Account panel.
+- **Access.** Scores and tickets have no API policies; they are only reached through the functions above, and
+  `leaderboard_top` returns ranks without user ids.
+
 ### Installing / offline
 
 The game is a PWA. Browsers offer "Install" or "Add to Home Screen", and after the first visit it plays offline
@@ -142,9 +161,9 @@ game/
                      quality, photo capture, preloader + GPU bakes
   audio/             procedural synthesis (per-ship engines) + Howler manager with a 4-channel mix
   ui/                loading, menu, HUD, pause, results, touch controls, map/, hangar/, encyclopedia/, missions/,
-                     photo/, gallery/, badges/, account/, settings/, credits/
+                     photo/, gallery/, badges/, account/, leaderboard/, settings/, credits/
 public/              textures/ (WebP), icons/ (PWA), sw.js (offline)
-supabase/migrations/ progress table + RLS, analytics table (insert-only)
+supabase/migrations/ progress table + RLS, analytics table (insert-only), leaderboards (server-checked RPCs)
 ```
 
 Key principles:
@@ -186,12 +205,14 @@ Key principles:
    - Gallery: download, share and delete photos.
 6. **Settings.** Every change applies immediately and survives a reload.
    - **Sound:** volume sliders.
-   - **Display:** Low/Medium/High/Auto, FPS counter.
+   - **Display:** Low/Medium/High/Auto (shadows under the ship on Medium and High, none on Low), FPS counter.
    - **Controls:** rebind a key (Esc cancels), sensitivity, invert Y; a gamepad is detected and shown.
    - **Accessibility:** reduced motion (no shake or FOV kick), colour-blind palette (ring dots turn blue), large text.
    - **Language & privacy:** switch to Indonesian, analytics toggle.
 7. **Account** (person icon on the title screen): sign in with Google or an email link; the sync status appears and
    progress follows you to another device.
+   - **Leaderboard:** Missions → a timed mission → *Leaderboard*. As a guest you see the board and a sign-in prompt;
+     signed in, finish the mission and the result screen shows your rank. *New name* rolls a new call sign.
 8. **Credits** (bottom right of the title screen).
 9. **Lifecycle.** Switching tabs pauses the game. Install the PWA, go offline, reload: the game still starts.
 
@@ -216,6 +237,9 @@ Key principles:
 - **Phase 3 and 4 logic:** photo scoring and filter matrices, unlocks and badges, guest/account progress merge and
   sync (with a fake remote), the settings store (sanitising, migration from old saves, key rebinding), gamepad
   input, accessibility, and per-ship engine sounds (seamless loops).
+- **Leaderboards:** the minimum times and call sign ranges match the SQL migration, the minimums stay below the
+  autopilot's best runs, server responses are parsed safely, and the ticket → submit flow (guests, refusals,
+  offline, restarts) runs against a fake backend.
 - **i18n:** the English and Indonesian dictionaries have exactly the same keys.
 
 Visual checks use Playwright (a devDependency) against a production build made with `NEXT_PUBLIC_E2E=1`. That

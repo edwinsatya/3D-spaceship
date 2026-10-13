@@ -1,18 +1,23 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MISSION_ORDER, MISSIONS, ROUTE_ORDER, ROUTES, type MissionDefinition, type MissionId } from "@/game/data/missions";
 import { localize } from "@/game/i18n";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useProgressStore, totalStars, type MissionProgress } from "@/game/stores/progressStore";
 import { useUiStore } from "@/game/stores/uiStore";
+import { ACCOUNT_CONFIGURED } from "@/game/config/account";
+import { hasLeaderboard } from "@/game/config/leaderboard";
+import { useAccountStore } from "@/game/stores/accountStore";
 import { formatTime } from "@/game/systems/scoring";
 import { LockIcon, RocketIcon } from "../icons";
 import { MISSION_UNLOCKS } from "@/game/data/unlocks";
 import { missionUnlocked } from "@/game/systems/unlocks";
 import { PlanetIcon } from "../PlanetIcon";
+import { LeaderboardList } from "../leaderboard/LeaderboardList";
 import { GameButton, Panel, StarRow } from "../primitives";
+import { Segmented } from "../settings/fields";
 import { startGame } from "../TitleMenu";
 
 const MAX_STARS = MISSION_ORDER.length * 3;
@@ -23,9 +28,50 @@ function formatBest(mission: MissionDefinition, progress: MissionProgress | unde
   return mission.rating.kind === "time" ? formatTime(progress.best) : String(Math.round(progress.best));
 }
 
+/** Description, best result and star goals. */
+function MissionInfo({
+  mission,
+  best,
+  stars,
+  goal,
+}: {
+  mission: MissionDefinition;
+  best: string | null;
+  stars: number;
+  goal: (stars: 2 | 3) => string;
+}) {
+  const t = useT();
+  const locale = useLocale();
+  return (
+    <>
+      <p className="text-sm leading-relaxed text-white/90">{localize(mission.description, locale)}</p>
+      <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-4 py-3">
+        <div>
+          <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{t("missions.best")}</p>
+          <p className="font-display text-xl font-bold tabular-nums">{best ?? t("missions.noBest")}</p>
+        </div>
+        <StarRow count={stars} label={t("a11y.stars", { count: stars })} />
+      </div>
+      <div className="text-sm">
+        <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-star">{t("missions.goals")}</p>
+        <ul className="mt-1 flex flex-col gap-0.5 text-white/85">
+          <li>{goal(3)}</li>
+          <li>{goal(2)}</li>
+          <li>{t("missions.goalFinish")}</li>
+        </ul>
+      </div>
+    </>
+  );
+}
+
+type DetailView = "details" | "board";
+
 function MissionDetail({ mission, locked }: { mission: MissionDefinition; locked: number }) {
   const t = useT();
   const locale = useLocale();
+  const [tab, setTab] = useState<DetailView>("details");
+  const boards = ACCOUNT_CONFIGURED && hasLeaderboard(mission.id);
+  const view: DetailView = boards ? tab : "details";
   const progress = useProgressStore((state) => state.missions[mission.id]);
   const close = useUiStore((state) => state.closeMissions);
   const best = formatBest(mission, progress);
@@ -48,22 +94,18 @@ function MissionDetail({ mission, locked }: { mission: MissionDefinition; locked
           <h3 className="font-display text-2xl font-bold short:text-xl">{localize(mission.name, locale)}</h3>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-white/90">{localize(mission.description, locale)}</p>
-      <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-4 py-3">
-        <div>
-          <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{t("missions.best")}</p>
-          <p className="font-display text-xl font-bold tabular-nums">{best ?? t("missions.noBest")}</p>
-        </div>
-        <StarRow count={progress?.bestStars ?? 0} label={t("a11y.stars", { count: progress?.bestStars ?? 0 })} />
-      </div>
-      <div className="text-sm">
-        <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-star">{t("missions.goals")}</p>
-        <ul className="mt-1 flex flex-col gap-0.5 text-white/85">
-          <li>{goal(3)}</li>
-          <li>{goal(2)}</li>
-          <li>{t("missions.goalFinish")}</li>
-        </ul>
-      </div>
+      {boards && (
+        <Segmented<DetailView>
+          value={view}
+          onChange={setTab}
+          label={t("leaderboard.title")}
+          options={[
+            { value: "details", label: t("leaderboard.tabDetails") },
+            { value: "board", label: t("leaderboard.tabBoard") },
+          ]}
+        />
+      )}
+      {view === "board" ? <LeaderboardList mission={mission.id} /> : <MissionInfo mission={mission} best={best} stars={progress?.bestStars ?? 0} goal={goal} />}
       {locked > 0 ? (
         <p className="flex items-center justify-center gap-2 rounded-2xl border border-star/40 bg-star/10 px-4 py-3 font-display text-sm font-bold text-star">
           <LockIcon /> {t("missions.unlockAt", { stars: locked })}
@@ -98,7 +140,8 @@ export function MissionSelect() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.code === "Escape") {
+      // The account panel (sign in from the leaderboard) sits on top and closes first.
+      if (event.code === "Escape" && !useAccountStore.getState().panelOpen) {
         event.stopPropagation();
         close();
       }

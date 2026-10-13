@@ -14,6 +14,7 @@ import { useUiStore } from "@/game/stores/uiStore";
 import { BODIES } from "@/game/data/planets";
 import { SHIPS_BY_ID } from "@/game/data/ships";
 import type { UnlockItem } from "@/game/systems/unlocks";
+import { LeaderboardResult } from "./leaderboard/LeaderboardResult";
 import { PlanetIcon } from "./PlanetIcon";
 import { formatTime, nextStarGoal } from "@/game/systems/scoring";
 import { HomeIcon, RestartIcon, RocketIcon } from "./icons";
@@ -150,6 +151,7 @@ export function ResultScreen() {
               {t("result.newBest")}
             </motion.span>
           )}
+          {timed && <LeaderboardResult delay={COUNT_UP_SECONDS} />}
           {result.unlocked.length > 0 && (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}

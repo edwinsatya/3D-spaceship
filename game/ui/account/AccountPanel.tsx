@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useT } from "@/game/i18n/useT";
 import { useAccountStore } from "@/game/stores/accountStore";
 import { sendMagicLink, signInWithGoogle, signOut, syncNow } from "@/game/systems/account/service";
+import { CallSignCard } from "../leaderboard/CallSignCard";
 import { GameButton, Panel } from "../primitives";
 
 function SignedOut() {
@@ -74,6 +75,7 @@ function SignedIn() {
         </p>
       </div>
       <p className="text-sm leading-relaxed text-white/80">{t("account.syncInfo")}</p>
+      <CallSignCard />
       <div className="flex gap-3">
         <GameButton variant="secondary" onClick={() => void syncNow()} disabled={sync === "syncing"} className="flex-1">
           {t("account.syncNow")}
