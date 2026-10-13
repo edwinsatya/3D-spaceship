@@ -14,7 +14,7 @@ export type BadgeId =
   | "mission-master"
   | "perfect-pilot";
 
-export type BadgeIcon = { kind: "body"; id: BodyId } | { kind: "symbol"; id: "rocket" | "star" | "photo" | "cargo" | "trophy" };
+export type BadgeIcon = { kind: "body"; id: BodyId } | { kind: "symbol"; id: "rocket" | "star" | "photo" | "cargo" | "trophy" | "flag" };
 
 export interface BadgeDefinition {
   id: BadgeId;
@@ -65,7 +65,7 @@ export const BADGES: readonly BadgeDefinition[] = [
     id: "sightseer",
     name: { en: "Sightseer", id: "Penjelajah Situs" },
     description: { en: "Visit every landing-site landmark on the Moon and Mars.", id: "Kunjungi semua situs pendaratan di Bulan dan Mars." },
-    icon: { kind: "body", id: "earth" },
+    icon: { kind: "symbol", id: "flag" },
   },
   {
     id: "explorer",

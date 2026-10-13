@@ -1,10 +1,10 @@
 "use client";
 
 import type { BadgeIcon as BadgeIconData } from "@/game/data/badges";
-import { CargoIcon, PhotoIcon, RocketIcon, StarIcon, TrophyIcon } from "../icons";
+import { CargoIcon, FlagIcon, PhotoIcon, RocketIcon, StarIcon, TrophyIcon } from "../icons";
 import { PlanetIcon } from "../PlanetIcon";
 
-const SYMBOLS = { rocket: RocketIcon, star: StarIcon, photo: PhotoIcon, cargo: CargoIcon, trophy: TrophyIcon } as const;
+const SYMBOLS = { rocket: RocketIcon, star: StarIcon, photo: PhotoIcon, cargo: CargoIcon, trophy: TrophyIcon, flag: FlagIcon } as const;
 
 /** A badge's emblem: a planet, or a symbol on a gold medal. */
 export function BadgeIcon({ icon, size, earned }: { icon: BadgeIconData; size: number; earned: boolean }) {

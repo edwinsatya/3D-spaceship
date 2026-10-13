@@ -140,6 +140,13 @@ export const TrophyIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const FlagIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 21V4" />
+    <path d="M6 4h11l-2.5 4L17 12H6" />
+  </Icon>
+);
+
 export const HangarIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M3 20V9l9-5 9 5v11" />
