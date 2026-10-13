@@ -159,6 +159,16 @@ export const en = {
     sound: "Sound",
     volume: { master: "Master volume", music: "Music", effects: "Effects", engine: "Engine" },
     engineHint: "Every ship has its own engine sound — pick one in the Hangar to hear it.",
+    qualityLabel: "Graphics quality",
+    quality: { auto: "Auto", low: "Low", medium: "Medium", high: "High" },
+    qualityHint: {
+      auto: "Adjusts by itself to keep the game smooth on this device.",
+      low: "Fastest: no glow effects, fewer stars and dust, lower resolution.",
+      medium: "Balanced: glow effects with fewer particles.",
+      high: "Best looking: full glow, detail and resolution.",
+    },
+    showFps: "Show FPS counter",
+    showFpsHint: "Frames per second and the quality in use, at the bottom of the screen.",
   },
   account: {
     title: "Account",

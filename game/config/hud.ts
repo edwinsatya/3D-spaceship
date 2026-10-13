@@ -16,6 +16,8 @@ export const HUD = {
   loadingSettle: 350,
   /** "GO!" stays on screen this long (ms). */
   goVisible: 800,
+  /** FPS counter refresh (ms). */
+  fpsInterval: 500,
   /** "Badge earned!" card duration (ms). */
   badgeDuration: 3200,
   /** "Planet discovered!" banner duration (ms). */

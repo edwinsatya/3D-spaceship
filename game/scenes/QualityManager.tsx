@@ -6,19 +6,28 @@ import { useEffect } from "react";
 import { PERFORMANCE, QUALITY } from "@/game/config/quality";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useQualityStore } from "@/game/stores/qualityStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 
 /**
- * Automatic quality: PerformanceMonitor steps the tier (bloom, particles,
- * planet detail) down/up with FPS, and the tier caps R3F's performance
- * factor, which AdaptiveDpr turns into a lower render resolution.
+ * Display quality. "Auto": PerformanceMonitor steps the tier (bloom,
+ * particles, planet and terrain detail) down/up with FPS, and the tier caps
+ * R3F's performance factor, which AdaptiveDpr turns into a lower render
+ * resolution. A fixed preset from Settings pins the tier and resolution.
  */
 export function QualityManager() {
   const tier = useQualityStore((state) => state.tier);
   const stepDown = useQualityStore((state) => state.stepDown);
   const stepUp = useQualityStore((state) => state.stepUp);
   const lock = useQualityStore((state) => state.lock);
+  const setTier = useQualityStore((state) => state.setTier);
+  const preference = useSettingsStore((state) => state.display.quality);
   const device = useGameStore((state) => state.device);
   const setThree = useThree((state) => state.set);
+  const auto = preference === "auto";
+
+  useEffect(() => {
+    if (!auto) setTier(preference);
+  }, [auto, preference, setTier]);
 
   useEffect(() => {
     const factor = QUALITY[tier].dprFactor;
@@ -27,6 +36,7 @@ export function QualityManager() {
 
   const bounds = device === "touch" ? PERFORMANCE.touchBounds : PERFORMANCE.desktopBounds;
 
+  if (!auto) return null;
   return (
     <>
       <PerformanceMonitor

@@ -10,6 +10,8 @@ import { Gallery } from "./gallery/Gallery";
 import { BadgesScreen } from "./badges/BadgesScreen";
 import { AccountPanel } from "./account/AccountPanel";
 import { SettingsScreen } from "./settings/SettingsScreen";
+import { FpsCounter } from "./hud/FpsCounter";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { useAccountStore } from "@/game/stores/accountStore";
 import { BadgeToasts } from "./badges/BadgeToasts";
 import { PhotoModeOverlay } from "./photo/PhotoModeOverlay";
@@ -31,6 +33,7 @@ export function GameUI() {
   const badgesOpen = useUiStore((state) => state.badges);
   const accountOpen = useAccountStore((state) => state.panelOpen);
   const settingsOpen = useUiStore((state) => state.settings);
+  const showFps = useSettingsStore((state) => state.display.showFps);
   const loading = phase === "boot" || phase === "loading";
 
   return (
@@ -56,6 +59,7 @@ export function GameUI() {
         {settingsOpen && <SettingsScreen key="settings" />}
       </AnimatePresence>
       <BadgeToasts />
+      {showFps && <FpsCounter />}
       <OrientationGuard />
     </div>
   );

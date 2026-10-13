@@ -161,6 +161,16 @@ export const id: Dictionary = {
     sound: "Suara",
     volume: { master: "Volume utama", music: "Musik", effects: "Efek", engine: "Mesin" },
     engineHint: "Setiap pesawat punya suara mesin sendiri — pilih di Hangar untuk mendengarnya.",
+    qualityLabel: "Kualitas grafis",
+    quality: { auto: "Otomatis", low: "Rendah", medium: "Sedang", high: "Tinggi" },
+    qualityHint: {
+      auto: "Menyesuaikan sendiri supaya game tetap lancar di perangkat ini.",
+      low: "Paling ringan: tanpa efek cahaya, lebih sedikit bintang dan debu, resolusi lebih rendah.",
+      medium: "Seimbang: efek cahaya dengan partikel lebih sedikit.",
+      high: "Paling bagus: efek cahaya, detail, dan resolusi penuh.",
+    },
+    showFps: "Tampilkan penghitung FPS",
+    showFpsHint: "Frame per detik dan kualitas yang dipakai, di bawah layar.",
   },
   account: {
     title: "Akun",

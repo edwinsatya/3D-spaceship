@@ -25,9 +25,11 @@ export function useBoot() {
     const game = useGameStore.getState();
     const device = detectInputDevice();
     game.setDevice(device);
+    // A fixed preset from Settings applies from the first bake on; "auto" starts by device.
+    const preference = useSettingsStore.getState().display.quality;
     useQualityStore
       .getState()
-      .setTier(device === "touch" ? PERFORMANCE.touchStartTier : PERFORMANCE.desktopStartTier);
+      .setTier(preference !== "auto" ? preference : device === "touch" ? PERFORMANCE.touchStartTier : PERFORMANCE.desktopStartTier);
 
     if (!supportsWebGL2()) {
       game.setWebGL("unsupported");

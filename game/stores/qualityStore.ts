@@ -9,12 +9,15 @@ interface QualityStore {
   stepDown: () => void;
   stepUp: () => void;
   lock: () => void;
+  unlock: () => void;
 }
 
 export const useQualityStore = create<QualityStore>()((set, get) => ({
   tier: "high",
   locked: false,
   setTier: (tier) => set({ tier }),
+  /** Back to automatic: unlock and let the monitor adjust again. */
+  unlock: () => set({ locked: false }),
   stepDown: () => {
     const { tier, locked } = get();
     const index = QUALITY_TIERS.indexOf(tier);

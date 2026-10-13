@@ -4,10 +4,11 @@ import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { LOCALES, type Locale } from "@/game/i18n/types";
 import { useT } from "@/game/i18n/useT";
-import { useSettingsStore, type VolumeChannel } from "@/game/stores/settingsStore";
+import { useQualityStore } from "@/game/stores/qualityStore";
+import { useSettingsStore, type QualityPreference, type VolumeChannel } from "@/game/stores/settingsStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { GameButton, Panel } from "../primitives";
-import { SettingRow, Slider, Toggle } from "./fields";
+import { Segmented, SettingRow, Slider, Toggle } from "./fields";
 
 export type SettingsTab = "audio" | "display" | "controls" | "accessibility" | "language";
 const TABS: readonly SettingsTab[] = ["audio", "display", "controls", "accessibility", "language"];
@@ -65,9 +66,37 @@ function AudioSection() {
   );
 }
 
+const QUALITY_OPTIONS: readonly QualityPreference[] = ["auto", "low", "medium", "high"];
+
+function DisplaySection() {
+  const t = useT();
+  const display = useSettingsStore((state) => state.display);
+  const setDisplay = useSettingsStore((state) => state.setDisplay);
+  const unlockAuto = useQualityStore((state) => state.unlock);
+  return (
+    <div>
+      <SettingRow label={t("settings.qualityLabel")} hint={t(`settings.qualityHint.${display.quality}`)}>
+        <Segmented
+          label={t("settings.qualityLabel")}
+          value={display.quality}
+          options={QUALITY_OPTIONS.map((value) => ({ value, label: t(`settings.quality.${value}`) }))}
+          onChange={(quality) => {
+            if (quality === "auto") unlockAuto();
+            setDisplay({ quality });
+          }}
+        />
+      </SettingRow>
+      <SettingRow label={t("settings.showFps")} hint={t("settings.showFpsHint")}>
+        <Toggle checked={display.showFps} onChange={(showFps) => setDisplay({ showFps })} label={t("settings.showFps")} />
+      </SettingRow>
+    </div>
+  );
+}
+
 /** Sections are added by the features they configure. */
 const SECTIONS: Partial<Record<SettingsTab, () => ReactNode>> = {
   audio: AudioSection,
+  display: DisplaySection,
   language: LanguageSection,
 };
 
