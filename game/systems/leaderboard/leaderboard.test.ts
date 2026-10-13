@@ -2,7 +2,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hasLeaderboard, LEADERBOARD } from "@/game/config/leaderboard";
-import { CALL_SIGN_ADJECTIVES, CALL_SIGN_NOUNS, callSignName, isCallSign, randomCallSign, type CallSign } from "@/game/data/callSigns";
+import { BLOCKED_ANYWHERE, BLOCKED_WORDS } from "@/game/data/blockedWords";
+import {
+  CALL_SIGN_ADJECTIVES,
+  CALL_SIGN_NOUNS,
+  callSignName,
+  isCallSign,
+  leaderboardName,
+  randomCallSign,
+  type CallSign,
+} from "@/game/data/callSigns";
 import { MISSION_ORDER, MISSIONS, type MissionId } from "@/game/data/missions";
 import { SHIPS } from "@/game/data/ships";
 import { LOCALES } from "@/game/i18n/types";
@@ -10,17 +19,26 @@ import { useAccountStore } from "@/game/stores/accountStore";
 import { useLeaderboardStore } from "@/game/stores/leaderboardStore";
 import { flyWaypoints, missionWaypoints } from "@/game/systems/autopilot";
 import { getMissionLayout } from "@/game/systems/missionLayout";
+import { cleanNickname, nicknameProblem } from "./nickname";
 import { LeaderboardError, parseBoard, parseOutcome, type LeaderboardRemote } from "./remote";
 import {
   beginLeaderboardRun,
-  ensureCallSign,
+  ensureProfile,
   finishLeaderboardRun,
   loadBoard,
-  rerollCallSign,
+  pickRandomName,
+  saveNickname,
   setLeaderboardSource,
 } from "./service";
 
-const SQL = readFileSync(join(process.cwd(), "supabase/migrations/20261013020000_leaderboard.sql"), "utf8");
+const migration = (name: string) => readFileSync(join(process.cwd(), "supabase/migrations", name), "utf8");
+const SQL = migration("20261013020000_leaderboard.sql");
+const NICKNAME_SQL = migration("20261013030000_leaderboard_nicknames.sql");
+/** The quoted words of the array a SQL function returns. */
+const sqlWords = (fn: string) => {
+  const body = NICKNAME_SQL.match(new RegExp(`function public\\.${fn}\\(\\)[\\s\\S]*?array\\[([\\s\\S]*?)\\]`))?.[1] ?? "";
+  return [...body.matchAll(/'([^']+)'/g)].map(([, word]) => word);
+};
 const timed = MISSION_ORDER.filter((id) => MISSIONS[id].rating.kind === "time");
 
 describe("leaderboard rules", () => {
@@ -69,6 +87,8 @@ describe("call signs", () => {
     const sign: CallSign = { adjective: 0, noun: 0, tag: 42 };
     expect(callSignName(sign, "en")).toBe("Swift Comet 42");
     expect(callSignName(sign, "id")).toBe("Komet Gesit 42");
+    expect(leaderboardName({ callSign: sign, nickname: null }, "en")).toBe("Swift Comet 42");
+    expect(leaderboardName({ callSign: sign, nickname: "Budi" }, "id")).toBe("Budi");
   });
 
   it("rolls valid call signs, and a re-roll always changes the words", () => {
@@ -83,16 +103,55 @@ describe("call signs", () => {
   });
 });
 
+/** The same names were run through leaderboard_nickname_problem on Postgres. */
+const NAME_SAMPLES: [string, string | null][] = [
+  ["Budi", null], ["Rocket Kid 2026", null], ["Si_Komet-7", null], ["Pantai Indah", null], ["Cockpit Ace", null],
+  ["Masuk Angin", null], ["Grape Juice", null], ["Bob", null], ["Fukuoka Fan", null], ["Ashton", null], ["Golf Club", null],
+  ["Ab", "length"], ["ThisNameIsWayTooLong", "length"],
+  ["Budi!!", "characters"], [" Budi", "characters"], ["Budi  Kid", "characters"], ["Bu😀di", "characters"],
+  ["0812345678", "contact"], ["Call 08123", "contact"], ["www.kid", "contact"],
+  ["Fuck", "blocked"], ["FUUUCK you", "blocked"], ["Anjing123", "blocked"], ["4nj1ng", "blocked"], ["Si Babi", "blocked"],
+  ["Asu", "blocked"], ["kontol", "blocked"], ["Tai Kucing", "blocked"], ["Ngentot", "blocked"], ["B4ngs4t", "blocked"],
+  ["F4ck", "blocked"], ["Fvck Off", "blocked"], ["Kntl", "blocked"],
+];
+
+describe("typed names", () => {
+  it.each(NAME_SAMPLES)("%j → %s", (name, expected) => {
+    expect(nicknameProblem(name)).toBe(expected);
+  });
+
+  it("tidies spaces like the server", () => {
+    expect(cleanNickname("  Budi   Kid  ")).toBe("Budi Kid");
+    expect(cleanNickname("   ")).toBe("");
+  });
+
+  it("uses the same word lists and limits as the server", () => {
+    expect(sqlWords("leaderboard_blocked_anywhere")).toEqual(BLOCKED_ANYWHERE);
+    expect(sqlWords("leaderboard_blocked_words")).toEqual(BLOCKED_WORDS);
+    const { min, max, maxDigits } = LEADERBOARD.nickname;
+    expect(NICKNAME_SQL).toContain(`char_length(p_nickname) < ${min} or char_length(p_nickname) > ${max}`);
+    expect(NICKNAME_SQL).toContain(`'[^0-9]', '', 'g')) > ${maxDigits}`);
+    expect(NICKNAME_SQL).toContain("translate(v_lower, '0134578', 'oieastb')");
+  });
+
+  it("knows the server's refusals", () => {
+    expect(new LeaderboardError("nickname_blocked").nicknameProblem).toBe("blocked");
+    expect(new LeaderboardError("nickname_whatever").nicknameProblem).toBeNull();
+    expect(new LeaderboardError("implausible_time").nicknameProblem).toBeNull();
+  });
+});
+
 describe("server responses", () => {
   it("parses boards and drops malformed rows", () => {
     const board = parseBoard([
-      { rank: "2", adjective: 1, noun: 2, tag: 30, time_ms: 21000, is_me: true, players: "3" },
+      { rank: "2", adjective: 1, noun: 2, tag: 30, nickname: "Budi", time_ms: 21000, is_me: true, players: "3" },
       { rank: 1, adjective: 0, noun: 0, tag: 10, time_ms: 19000, is_me: false, players: 3 },
       { rank: 3, adjective: 99, noun: 0, tag: 10, time_ms: 25000, is_me: false, players: 3 },
     ]);
     expect(board.players).toBe(3);
     expect(board.rows.map((row) => row.rank)).toEqual([1, 2]);
-    expect(board.rows[1]).toEqual({ rank: 2, callSign: { adjective: 1, noun: 2, tag: 30 }, timeMs: 21000, isMe: true });
+    expect(board.rows[1]).toEqual({ rank: 2, callSign: { adjective: 1, noun: 2, tag: 30 }, nickname: "Budi", timeMs: 21000, isMe: true });
+    expect(board.rows[0].nickname).toBeNull();
     expect(parseBoard(null)).toEqual({ rows: [], players: 0 });
   });
 
@@ -113,6 +172,7 @@ function fakeRemote() {
     failStart: false,
     submitError: null as LeaderboardError | Error | null,
     callSign: null as CallSign | null,
+    nickname: null as string | null,
     failSave: false,
     submitDelay: null as Promise<void> | null,
   };
@@ -132,13 +192,22 @@ function fakeRemote() {
       calls.push(`top:${mission}`);
       return { rows: [], players: 0 };
     },
-    async loadCallSign() {
-      return backend.callSign;
+    async loadProfile() {
+      return backend.callSign ? { callSign: backend.callSign, nickname: backend.nickname } : null;
     },
-    async saveCallSign(sign) {
-      calls.push("saveCallSign");
+    async saveRandomName(sign) {
+      calls.push("saveRandomName");
       if (backend.failSave) throw new Error("offline");
       backend.callSign = sign;
+      backend.nickname = null;
+    },
+    async setNickname(nickname) {
+      calls.push(`setNickname:${nickname}`);
+      if (backend.failSave) throw new Error("offline");
+      // Stands in for a word the client list doesn't know yet.
+      if (nickname === "Sneaky Word") throw new LeaderboardError("nickname_blocked");
+      backend.nickname = nickname;
+      return nickname;
     },
   };
   return { backend, remote };
@@ -153,7 +222,7 @@ describe("leaderboard client flow", () => {
     fake = fakeRemote();
     setLeaderboardSource(() => Promise.resolve(fake.remote));
     useAccountStore.setState({ status: "signedIn" });
-    useLeaderboardStore.setState({ submission: null, boards: {}, callSign: null, callSignStatus: "idle" });
+    useLeaderboardStore.setState({ submission: null, boards: {}, callSign: null, nickname: null, callSignStatus: "idle" });
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
@@ -236,17 +305,45 @@ describe("leaderboard client flow", () => {
   });
 
   it("gives a first-time player a call sign and keeps the old one if a re-roll fails", async () => {
-    await ensureCallSign();
+    await ensureProfile();
     const first = useLeaderboardStore.getState().callSign;
     expect(isCallSign(first)).toBe(true);
     expect(fake.backend.callSign).toEqual(first);
     fake.backend.failSave = true;
-    await rerollCallSign();
+    await pickRandomName();
     expect(useLeaderboardStore.getState().callSign).toEqual(first);
     expect(useLeaderboardStore.getState().callSignStatus).toBe("error");
     fake.backend.failSave = false;
-    await rerollCallSign();
+    await pickRandomName();
     expect(useLeaderboardStore.getState().callSign).not.toEqual(first);
     expect(fake.backend.callSign).toEqual(useLeaderboardStore.getState().callSign);
+  });
+
+  it("saves a typed name, refuses bad ones before asking the server, and can go back to a call sign", async () => {
+    await ensureProfile();
+    expect(await saveNickname("  Space   Budi ")).toBeNull();
+    expect(useLeaderboardStore.getState().nickname).toBe("Space Budi");
+    expect(fake.backend.calls).toContain("setNickname:Space Budi");
+    expect(useLeaderboardStore.getState().boards).toEqual({});
+
+    const before = fake.backend.calls.length;
+    expect(await saveNickname("Anjing123")).toBe("blocked");
+    expect(await saveNickname("Ab")).toBe("length");
+    expect(fake.backend.calls).toHaveLength(before);
+
+    expect(await saveNickname("Sneaky Word")).toBe("blocked");
+    expect(useLeaderboardStore.getState().nickname).toBe("Space Budi");
+
+    fake.backend.failSave = true;
+    expect(await saveNickname("Rocket Rina")).toBe("error");
+    expect(useLeaderboardStore.getState().nickname).toBe("Space Budi");
+    fake.backend.failSave = false;
+
+    expect(await saveNickname("   ")).toBeNull();
+    expect(useLeaderboardStore.getState().nickname).toBeNull();
+    expect(await saveNickname("Rocket Rina")).toBeNull();
+    await pickRandomName();
+    expect(useLeaderboardStore.getState().nickname).toBeNull();
+    expect(fake.backend.nickname).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import type { MissionId } from "@/game/data/missions";
 import { useAccountStore } from "@/game/stores/accountStore";
 import { useLeaderboardStore } from "@/game/stores/leaderboardStore";
 import { getSupabase } from "@/game/systems/account/supabase";
+import { cleanNickname, nicknameProblem, type NicknameProblem } from "./nickname";
 import { LeaderboardError, supabaseLeaderboard, type LeaderboardRemote } from "./remote";
 
 type RemoteSource = () => Promise<LeaderboardRemote> | null;
@@ -86,8 +87,8 @@ export async function loadBoard(mission: MissionId, force = false): Promise<void
   }
 }
 
-/** Loads the player's call sign, giving them a random one the first time. */
-export async function ensureCallSign(): Promise<void> {
+/** Loads the player's leaderboard name, giving them a random call sign the first time. */
+export async function ensureProfile(): Promise<void> {
   const store = useLeaderboardStore.getState();
   if (!signedIn() || store.callSign || store.callSignStatus === "loading" || store.callSignStatus === "saving") return;
   const remote = source();
@@ -95,33 +96,60 @@ export async function ensureCallSign(): Promise<void> {
   store.setCallSignStatus("loading");
   try {
     const backend = await remote;
-    let sign = await backend.loadCallSign();
-    if (!sign) {
-      sign = randomCallSign();
-      await backend.saveCallSign(sign);
+    let profile = await backend.loadProfile();
+    if (!profile) {
+      profile = { callSign: randomCallSign(), nickname: null };
+      await backend.saveRandomName(profile.callSign);
     }
-    useLeaderboardStore.getState().setCallSign(sign);
+    useLeaderboardStore.getState().setProfile(profile.callSign, profile.nickname);
   } catch (error) {
-    console.warn("[leaderboard] call sign not loaded", error);
+    console.warn("[leaderboard] name not loaded", error);
     useLeaderboardStore.getState().setCallSignStatus("error");
   }
 }
 
-/** A new random call sign (shown at once, put back if saving fails). */
-export async function rerollCallSign(): Promise<void> {
+/** A new random call sign instead of the current name (shown at once, put back if saving fails). */
+export async function pickRandomName(): Promise<void> {
   const store = useLeaderboardStore.getState();
-  const previous = store.callSign;
+  const { callSign: previous, nickname } = store;
   const remote = signedIn() ? source() : null;
   if (!previous || !remote || store.callSignStatus === "saving") return;
   const next = randomCallSign(previous);
-  store.setCallSign(next, "saving");
+  store.setProfile(next, null, "saving");
   try {
-    await (await remote).saveCallSign(next);
-    useLeaderboardStore.getState().setCallSign(next);
+    await (await remote).saveRandomName(next);
+    useLeaderboardStore.getState().setProfile(next, null);
     // The player's name on every board changed.
     useLeaderboardStore.getState().invalidateBoards();
   } catch (error) {
-    console.warn("[leaderboard] call sign not saved", error);
-    useLeaderboardStore.getState().setCallSign(previous, "error");
+    console.warn("[leaderboard] name not saved", error);
+    useLeaderboardStore.getState().setProfile(previous, nickname, "error");
+  }
+}
+
+/**
+ * Saves a typed name (empty = back to the call sign). Returns why the name
+ * isn't allowed, "error" when it couldn't be saved, or null when it was.
+ */
+export async function saveNickname(input: string): Promise<NicknameProblem | "error" | null> {
+  const store = useLeaderboardStore.getState();
+  const remote = signedIn() ? source() : null;
+  if (!store.callSign || !remote || store.callSignStatus === "saving") return "error";
+  const name = cleanNickname(input) || null;
+  const problem = name ? nicknameProblem(name) : null;
+  if (problem) return problem;
+  const previous = store.nickname;
+  store.setProfile(store.callSign, name, "saving");
+  try {
+    const stored = await (await remote).setNickname(name);
+    const { callSign } = useLeaderboardStore.getState();
+    useLeaderboardStore.getState().setProfile(callSign, stored);
+    useLeaderboardStore.getState().invalidateBoards();
+    return null;
+  } catch (error) {
+    console.warn("[leaderboard] name not saved", error);
+    const { callSign } = useLeaderboardStore.getState();
+    useLeaderboardStore.getState().setProfile(callSign, previous);
+    return error instanceof LeaderboardError && error.nicknameProblem ? error.nicknameProblem : "error";
   }
 }

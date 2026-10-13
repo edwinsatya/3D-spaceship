@@ -93,8 +93,8 @@ development.
 
 ### Leaderboards (optional)
 
-Run `supabase/migrations/20261013020000_leaderboard.sql` to turn on best-time leaderboards for the five timed
-missions (photo scores are worked out on the device, so they have no board). In **Missions**, a timed mission has a
+Run `supabase/migrations/20261013020000_leaderboard.sql` and then `20261013030000_leaderboard_nicknames.sql` to
+turn on best-time leaderboards for the five timed missions (photo scores are worked out on the device, so they have no board). In **Missions**, a timed mission has a
 *Leaderboard* tab; guests can look, and signed-in players post their times.
 
 - **Server-side checks.** The game asks for a run ticket when a mission starts and hands it back with the time at
@@ -103,9 +103,14 @@ missions (photo scores are worked out on the device, so they have no board). In 
   its own clock says has passed since the ticket, a ticket that is reused, someone else's or over an hour old, and
   more than 40 tickets in 5 minutes. This stops times typed into the console; like any browser game, it can't fully
   stop a modified client.
-- **Privacy.** Players appear as a call sign made from word lists ("Swift Comet 42"), stored as three numbers and
-  shown in each player's language. There is no free text and no email or real name on the board. Players can roll a
-  new call sign on the leaderboard or in the Account panel.
+- **Names.** Players can type their own name, or keep a random call sign made from word lists ("Swift Comet 42",
+  shown in each player's language). The game checks a typed name as it is typed, and the server checks it again
+  (`leaderboard_nickname_problem`, also a table constraint): 3–16 characters, only letters, numbers, spaces and
+  `_ . -`, at most 4 digits and no web addresses (no phone numbers), and no rude words in English or Indonesian,
+  including look-alike digits ("4nj1ng") and stretched letters. The word lists are in `game/data/blockedWords.ts`
+  and the migration; add new words to both. No filter catches everything: to hide a name, set
+  `leaderboard_profiles.nickname` to null in the dashboard and the player's call sign shows again. Emails and
+  account names never appear on the board.
 - **Access.** Scores and tickets have no API policies; they are only reached through the functions above, and
   `leaderboard_top` returns ranks without user ids.
 
@@ -212,7 +217,8 @@ Key principles:
 7. **Account** (person icon on the title screen): sign in with Google or an email link; the sync status appears and
    progress follows you to another device.
    - **Leaderboard:** Missions → a timed mission → *Leaderboard*. As a guest you see the board and a sign-in prompt;
-     signed in, finish the mission and the result screen shows your rank. *New name* rolls a new call sign.
+     signed in, finish the mission and the result screen shows your rank. Type a name and press *Save*, or use
+     *Random name*; a rude name or a phone number is refused with a message.
 8. **Credits** (bottom right of the title screen).
 9. **Lifecycle.** Switching tabs pauses the game. Install the PWA, go offline, reload: the game still starts.
 
@@ -237,7 +243,8 @@ Key principles:
 - **Phase 3 and 4 logic:** photo scoring and filter matrices, unlocks and badges, guest/account progress merge and
   sync (with a fake remote), the settings store (sanitising, migration from old saves, key rebinding), gamepad
   input, accessibility, and per-ship engine sounds (seamless loops).
-- **Leaderboards:** the minimum times and call sign ranges match the SQL migration, the minimums stay below the
+- **Leaderboards:** the minimum times, call sign ranges, name rules and blocked words match the SQL migrations
+  (sample names give the same verdict as on Postgres), the minimums stay below the
   autopilot's best runs, server responses are parsed safely, and the ticket → submit flow (guests, refusals,
   offline, restarts) runs against a fake backend.
 - **i18n:** the English and Indonesian dictionaries have exactly the same keys.

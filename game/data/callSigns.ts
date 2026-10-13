@@ -46,6 +46,11 @@ export function callSignName(sign: CallSign, locale: Locale): string {
   return locale === "id" ? `${noun} ${adjective} ${sign.tag}` : `${adjective} ${noun} ${sign.tag}`;
 }
 
+/** What the board shows for a player: their typed name, else their call sign. */
+export function leaderboardName(entry: { callSign: CallSign; nickname: string | null }, locale: Locale): string {
+  return entry.nickname ?? callSignName(entry.callSign, locale);
+}
+
 /** A random call sign, different from `previous` when one is given. */
 export function randomCallSign(previous?: CallSign, random: () => number = Math.random): CallSign {
   const pick = (count: number) => Math.min(count - 1, Math.floor(random() * count));

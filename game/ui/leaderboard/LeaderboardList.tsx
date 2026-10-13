@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { callSignName } from "@/game/data/callSigns";
+import { leaderboardName } from "@/game/data/callSigns";
 import type { MissionId } from "@/game/data/missions";
 import { useLocale, useT } from "@/game/i18n/useT";
 import { useAccountStore } from "@/game/stores/accountStore";
@@ -9,7 +9,7 @@ import { useLeaderboardStore } from "@/game/stores/leaderboardStore";
 import { loadBoard } from "@/game/systems/leaderboard/service";
 import { formatTime } from "@/game/systems/scoring";
 import { GameButton } from "../primitives";
-import { CallSignCard } from "./CallSignCard";
+import { LeaderboardNameCard } from "./LeaderboardNameCard";
 
 const MEDALS = ["text-star", "text-slate-200", "text-amber-500"] as const;
 
@@ -33,7 +33,7 @@ export function LeaderboardList({ mission }: { mission: MissionId }) {
       {board && board.rows.length > 0 ? (
         <>
           {/* Scrolls by itself so the Start button below stays in view. */}
-          <ol className="flex max-h-[min(16rem,34vh)] flex-col gap-1 overflow-y-auto pr-1" aria-label={t("leaderboard.title")}>
+          <ol className="flex max-h-[min(13rem,29vh)] flex-col gap-1 overflow-y-auto pr-1" aria-label={t("leaderboard.title")}>
             {board.rows.map((row, index) => {
               const gap = index > 0 && row.rank > board.rows[index - 1].rank + 1;
               return (
@@ -55,7 +55,7 @@ export function LeaderboardList({ mission }: { mission: MissionId }) {
                       #{row.rank}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-semibold">
-                      {callSignName(row.callSign, locale)}
+                      {leaderboardName(row, locale)}
                       {row.isMe && <span className="ml-2 text-xs font-bold uppercase text-hud">{t("leaderboard.you")}</span>}
                     </span>
                     <span className="font-display font-bold tabular-nums">{formatTime(row.timeMs)}</span>
@@ -80,7 +80,7 @@ export function LeaderboardList({ mission }: { mission: MissionId }) {
         </div>
       )}
       {signedIn ? (
-        <CallSignCard compact />
+        <LeaderboardNameCard compact />
       ) : (
         account === "signedOut" && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-star/40 bg-star/10 px-4 py-3 text-sm short:py-2">

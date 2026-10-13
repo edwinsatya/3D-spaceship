@@ -22,10 +22,17 @@ export const LEADERBOARD = {
   top: 10,
   /** A board shown again after this long is fetched again (ms). */
   refreshAfter: 60_000,
-  rpc: { start: "leaderboard_start_run", submit: "leaderboard_submit_run", top: "leaderboard_top" },
+  rpc: {
+    start: "leaderboard_start_run",
+    submit: "leaderboard_submit_run",
+    top: "leaderboard_top",
+    setNickname: "leaderboard_set_nickname",
+  },
   profileTable: "leaderboard_profiles",
   /** Call sign word-list sizes and number range (the table's check constraints). */
   callSign: { adjectives: 16, nouns: 16, tagMin: 10, tagMax: 99 },
+  /** A typed name (leaderboard_nickname_problem): length in characters, digits allowed in total. */
+  nickname: { min: 3, max: 16, maxDigits: 4 },
 } as const;
 
 export function hasLeaderboard(mission: MissionId): boolean {

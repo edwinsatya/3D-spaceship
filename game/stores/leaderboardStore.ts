@@ -27,13 +27,15 @@ interface LeaderboardStore {
   submission: { runId: number; state: SubmissionState } | null;
   boards: Partial<Record<MissionId, BoardState>>;
   callSign: CallSign | null;
+  /** The name the player typed (shown instead of the call sign). */
+  nickname: string | null;
   callSignStatus: "idle" | "loading" | "saving" | "error";
   startSubmission: (runId: number, state: SubmissionState | null) => void;
   /** Ignored when the run has moved on. */
   updateSubmission: (runId: number, state: SubmissionState) => void;
   setBoard: (mission: MissionId, board: BoardState) => void;
   invalidateBoards: () => void;
-  setCallSign: (callSign: CallSign | null, status?: LeaderboardStore["callSignStatus"]) => void;
+  setProfile: (callSign: CallSign | null, nickname: string | null, status?: LeaderboardStore["callSignStatus"]) => void;
   setCallSignStatus: (status: LeaderboardStore["callSignStatus"]) => void;
   /** Signed in or out: everything personal is fetched again. */
   reset: () => void;
@@ -43,6 +45,7 @@ export const useLeaderboardStore = create<LeaderboardStore>()((set, get) => ({
   submission: null,
   boards: {},
   callSign: null,
+  nickname: null,
   callSignStatus: "idle",
   startSubmission: (runId, state) => set({ submission: state ? { runId, state } : null }),
   updateSubmission: (runId, state) => {
@@ -53,7 +56,7 @@ export const useLeaderboardStore = create<LeaderboardStore>()((set, get) => ({
     set((current) => ({
       boards: Object.fromEntries(Object.entries(current.boards).map(([id, board]) => [id, { ...board, loadedAt: 0 }])),
     })),
-  setCallSign: (callSign, status = "idle") => set({ callSign, callSignStatus: status }),
+  setProfile: (callSign, nickname, status = "idle") => set({ callSign, nickname, callSignStatus: status }),
   setCallSignStatus: (callSignStatus) => set({ callSignStatus }),
-  reset: () => set({ boards: {}, callSign: null, callSignStatus: "idle" }),
+  reset: () => set({ boards: {}, callSign: null, nickname: null, callSignStatus: "idle" }),
 }));
