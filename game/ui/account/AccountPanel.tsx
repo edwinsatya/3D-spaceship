@@ -25,7 +25,7 @@ function SignedOut() {
         <span className="h-px flex-1 bg-white/15" />
       </div>
       {linkSentTo ? (
-        <p className="rounded-2xl bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">
+        <p className="rounded-2xl bg-success/10 px-4 py-3 text-sm text-success-soft" role="status">
           {t("account.linkSent", { email: linkSentTo })}
         </p>
       ) : (
@@ -69,7 +69,7 @@ function SignedIn() {
       <div className="rounded-2xl bg-white/5 px-4 py-3">
         <p className="text-xs font-bold uppercase tracking-widest text-hud">{t("account.signedInAs")}</p>
         <p className="mt-1 break-all font-display text-lg font-bold">{email ?? "—"}</p>
-        <p className={`mt-1 text-sm ${sync === "error" ? "text-star" : "text-emerald-200"}`} role="status">
+        <p className={`mt-1 text-sm ${sync === "error" ? "text-star" : "text-success-soft"}`} role="status">
           {status}
         </p>
       </div>

@@ -100,7 +100,7 @@ export function TitleMenu() {
         </p>
       </motion.div>
       {/* CC BY 4.0 attribution; the full credits page arrives in Phase 4. */}
-      <p className="pointer-events-auto absolute right-4 bottom-3 text-[10px] text-white/50 sm:right-8 sm:bottom-4 lg:right-12">
+      <p className="pointer-events-auto absolute right-4 bottom-3 text-[0.625rem] text-white/50 sm:right-8 sm:bottom-4 lg:right-12">
         {t("menu.textureCredit")}{" "}
         <a
           href="https://www.solarsystemscope.com/textures/"

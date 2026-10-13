@@ -44,7 +44,7 @@ function UnlockChip({ item }: { item: UnlockItem }) {
       ) : item.kind === "location" ? (
         <PlanetIcon id={item.id} size={20} />
       ) : (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-star text-[11px] text-slate-900">★</span>
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-star text-[0.6875rem] text-slate-900">★</span>
       )}
       {label}
     </li>
@@ -126,7 +126,7 @@ export function ResultScreen() {
           <StarRow count={result.stars} size="text-6xl short:text-4xl" animate label={t("a11y.stars", { count: result.stars })} />
           <div className="flex w-full justify-center gap-8">
             <div>
-              <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">
+              <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.25em] text-hud">
                 {timed ? t("result.time") : t("result.score")}
               </p>
               <p className="font-display text-3xl font-black">
@@ -134,7 +134,7 @@ export function ResultScreen() {
               </p>
             </div>
             <div>
-              <p className="font-display text-[11px] font-bold uppercase tracking-[0.25em] text-hud">{t("result.best")}</p>
+              <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.25em] text-hud">{t("result.best")}</p>
               <p className="font-display text-3xl font-black text-white/85 tabular-nums">
                 {timed ? formatTime(result.best) : formatScore(result.best)}
               </p>
@@ -173,7 +173,7 @@ export function ResultScreen() {
                 : t("result.nextStarScore", { score: next.value, stars: next.stars })}
           </p>
           <div className="w-full rounded-2xl bg-white/5 px-4 py-3 text-left short:hidden">
-            <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-star">
+            <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-star">
               {t("result.didYouKnow")}
             </p>
             <p className="mt-1 text-sm text-white/85">{fact[locale]}</p>

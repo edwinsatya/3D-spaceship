@@ -4,6 +4,7 @@ import { EXPLORATION } from "@/game/config/exploration";
 import { HANGAR } from "@/game/config/hangar";
 import { SHIP_FORWARD, SHIP_RIGHT, SHIP_UP, type ShipState } from "./flight";
 import { clamp01, damp, dampFactor, easeInOutCubic } from "./math";
+import { accessibility } from "./accessibility";
 import { runtime, type CameraRuntime } from "./runtime";
 
 const _offset = new Vector3();
@@ -163,8 +164,12 @@ export function applyIntroBlend(camera: CameraRuntime, dt: number): void {
 export function updateFov(camera: CameraRuntime, ship: ShipState, dt: number): void {
   const speed01 = clamp01(ship.speed / runtime.flight.maxSpeed);
   const warpPhase = runtime.warp.phase;
-  const target =
-    warpPhase === "charge" || warpPhase === "tunnel"
+  // Reduce motion: keep the field of view steady (no boost / warp kick).
+  const target = accessibility.reducedMotion
+    ? runtime.orbit.active
+      ? EXPLORATION.orbit.camera.fov
+      : CAMERA.fov
+    : warpPhase === "charge" || warpPhase === "tunnel"
       ? EXPLORATION.warp.chargeFov
       : runtime.orbit.active
         ? EXPLORATION.orbit.camera.fov
@@ -175,6 +180,8 @@ export function updateFov(camera: CameraRuntime, ship: ShipState, dt: number): v
 }
 
 export function addTrauma(camera: CameraRuntime, amount: number): void {
+  // Reduce motion: no screen shake at all.
+  if (accessibility.reducedMotion) return;
   camera.trauma = Math.min(1, camera.trauma + amount);
 }
 

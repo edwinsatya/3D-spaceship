@@ -6,7 +6,6 @@ import { Suspense, useEffect, useMemo, type ReactNode } from "react";
 import {
   AdditiveBlending,
   CanvasTexture,
-  Color,
   DoubleSide,
   MeshStandardMaterial,
   ShaderMaterial,
@@ -16,6 +15,7 @@ import { ASSET_PATHS, SURFACE_PROP_ASSETS } from "@/game/config/assets";
 import { VISUALS } from "@/game/config/visuals";
 import type { PointOfInterestKind } from "@/game/data/surfaces";
 import { useProgressStore } from "@/game/stores/progressStore";
+import { accessibility } from "@/game/systems/accessibility";
 import { runtime } from "@/game/systems/runtime";
 
 /**
@@ -248,7 +248,6 @@ void main() {
 }
 `;
 
-const BEACON_COLOR = new Color("#9dffb0");
 
 /** Light pillar marking a point of interest; dims once visited. */
 function Beacon({ id }: { id: string }) {
@@ -259,7 +258,8 @@ function Beacon({ id }: { id: string }) {
       new ShaderMaterial({
         vertexShader: BEACON_VERTEX,
         fragmentShader: BEACON_FRAGMENT,
-        uniforms: { uColor: { value: BEACON_COLOR }, uOpacity: { value: 1 }, uTime: { value: 0 } },
+        // Shared colour object: follows the colour-blind palette without rebuilding the material.
+        uniforms: { uColor: { value: accessibility.colors.success }, uOpacity: { value: 1 }, uTime: { value: 0 } },
         blending: AdditiveBlending,
         transparent: true,
         depthWrite: false,

@@ -2,7 +2,9 @@
 
 import { motion } from "motion/react";
 import { useRef } from "react";
+import { PALETTES } from "@/game/config/palette";
 import { MISSIONS } from "@/game/data/missions";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { PHOTO_TARGETS } from "@/game/data/photoTargets";
 import { BODIES } from "@/game/data/planets";
 import { SURFACES } from "@/game/data/surfaces";
@@ -24,7 +26,7 @@ function RingPips({ passed, total }: { passed: number; total: number }) {
           key={index}
           className={`h-1.5 w-3 rounded-full transition-colors duration-300 sm:w-4 ${
             index < passed
-              ? "bg-emerald-300 shadow-[0_0_6px_rgba(110,255,170,0.8)]"
+              ? "bg-success shadow-[0_0_6px_var(--color-success)]"
               : index === passed
                 ? "animate-pulse bg-star"
                 : "bg-white/20"
@@ -47,6 +49,7 @@ export function TopBar() {
   const location = useGameStore((state) => state.location);
   const surface = useGameStore((state) => state.surface);
   const locale = useLocale();
+  const success = PALETTES[useSettingsStore((state) => state.accessibility.colorVision)].success;
   const objective = MISSIONS[missionId].objective;
   const timed = MISSIONS[missionId].rating.kind === "time";
   const missionText =
@@ -105,7 +108,7 @@ export function TopBar() {
             <div className="flex flex-col gap-1">
               <motion.span
                 key={done}
-                initial={{ scale: 1.25, color: "#9dffb0" }}
+                initial={{ scale: 1.25, color: success }}
                 animate={{ scale: 1, color: "#ffffff" }}
                 className="font-display text-xs font-bold tracking-widest sm:text-sm"
               >
@@ -129,7 +132,7 @@ export function TopBar() {
         ) : (
           <span
             ref={freeObjective}
-            className="block max-w-[44vw] truncate font-display text-xs font-bold tracking-widest sm:text-sm short:text-[11px]"
+            className="block max-w-[44vw] truncate font-display text-xs font-bold tracking-widest sm:text-sm short:text-[0.6875rem]"
           >
             {objectiveText(false)}
           </span>

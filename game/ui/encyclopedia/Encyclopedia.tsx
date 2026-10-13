@@ -43,7 +43,7 @@ function EntryDetail({ id, unlocked }: { id: BodyId; unlocked: boolean }) {
             {localize(body.facts.funFact, locale)}
           </p>
           {body.landing.landable ? (
-            <p className="text-sm font-bold text-emerald-300">{t("info.landable")}</p>
+            <p className="text-sm font-bold text-success">{t("info.landable")}</p>
           ) : (
             <div className="text-sm">
               <p className="font-bold text-star">{t("info.notLandable")}</p>
@@ -114,7 +114,7 @@ export function Encyclopedia() {
                   type="button"
                   onClick={() => selectEntry(id)}
                   aria-pressed={active}
-                  className={`flex flex-col items-center gap-1 rounded-2xl border p-2 text-[10px] transition-colors ${
+                  className={`flex flex-col items-center gap-1 rounded-2xl border p-2 text-[0.625rem] transition-colors ${
                     active ? "border-hud/80 bg-cyan-400/15" : "border-white/10 hover:border-cyan-200/40"
                   }`}
                 >

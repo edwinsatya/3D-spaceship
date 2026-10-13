@@ -33,7 +33,7 @@ export function SpeedGauge({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={`hud-panel rounded-2xl ${compact ? "px-3 py-1.5" : "px-4 py-2.5"}`}>
-      <p className="font-display text-[10px] font-bold uppercase tracking-[0.25em] text-hud">{t("hud.speed")}</p>
+      <p className="font-display text-[0.625rem] font-bold uppercase tracking-[0.25em] text-hud">{t("hud.speed")}</p>
       <p className="flex items-baseline gap-1.5">
         <span
           ref={value}
@@ -96,7 +96,7 @@ export function BoostGauge() {
       ref={root}
       className="group hud-panel rounded-2xl px-4 py-2.5 data-[active=true]:border-boost/80 data-[active=true]:shadow-[0_0_20px_rgba(255,179,71,0.45)]"
     >
-      <p className="flex items-center gap-1 font-display text-[10px] font-bold uppercase tracking-[0.25em] text-boost">
+      <p className="flex items-center gap-1 font-display text-[0.625rem] font-bold uppercase tracking-[0.25em] text-boost">
         <BoltIcon /> {t("hud.boost")}
       </p>
       <div className="mt-1.5 h-2.5 w-40 overflow-hidden rounded-full bg-white/10 group-data-[low=true]:animate-pulse">

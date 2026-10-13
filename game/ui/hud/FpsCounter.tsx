@@ -29,7 +29,7 @@ export function FpsCounter() {
 
   return (
     <div
-      className="pointer-events-none absolute bottom-1 left-1/2 z-[70] -translate-x-1/2 rounded-md bg-slate-950/70 px-2 py-0.5 font-mono text-[11px] text-emerald-200"
+      className="pointer-events-none absolute bottom-1 left-1/2 z-[70] -translate-x-1/2 rounded-md bg-slate-950/70 px-2 py-0.5 font-mono text-[0.6875rem] text-success-soft"
       aria-hidden="true"
     >
       <span ref={fps}>--</span> FPS · {auto ? `${t("settings.quality.auto")} · ` : ""}

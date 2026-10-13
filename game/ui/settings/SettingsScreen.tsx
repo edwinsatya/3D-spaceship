@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
+import { PALETTES } from "@/game/config/palette";
 import { LOCALES, type Locale } from "@/game/i18n/types";
 import { useT } from "@/game/i18n/useT";
 import { useQualityStore } from "@/game/stores/qualityStore";
@@ -94,11 +95,52 @@ function DisplaySection() {
   );
 }
 
+function AccessibilitySection() {
+  const t = useT();
+  const accessibility = useSettingsStore((state) => state.accessibility);
+  const setAccessibility = useSettingsStore((state) => state.setAccessibility);
+  const palette = PALETTES[accessibility.colorVision];
+  return (
+    <div>
+      <SettingRow label={t("settings.motion")} hint={t(`settings.motionHint.${accessibility.motion}`)}>
+        <Segmented
+          label={t("settings.motion")}
+          value={accessibility.motion}
+          options={(["system", "reduced", "full"] as const).map((value) => ({ value, label: t(`settings.motionOptions.${value}`) }))}
+          onChange={(motion) => setAccessibility({ motion })}
+        />
+      </SettingRow>
+      <SettingRow label={t("settings.colorVision")} hint={t("settings.colorVisionHint")}>
+        <span className="flex gap-1" aria-hidden="true">
+          {[palette.success, palette.danger, palette.target.ring].map((color) => (
+            <span key={color} className="h-4 w-4 rounded-full border border-white/30" style={{ background: color }} />
+          ))}
+        </span>
+        <Segmented
+          label={t("settings.colorVision")}
+          value={accessibility.colorVision}
+          options={(["standard", "colorblind"] as const).map((value) => ({ value, label: t(`settings.colorVisionOptions.${value}`) }))}
+          onChange={(colorVision) => setAccessibility({ colorVision })}
+        />
+      </SettingRow>
+      <SettingRow label={t("settings.textSize")} hint={t("settings.textSizeHint")}>
+        <Segmented
+          label={t("settings.textSize")}
+          value={accessibility.textSize}
+          options={(["normal", "large", "xlarge"] as const).map((value) => ({ value, label: t(`settings.textSizeOptions.${value}`) }))}
+          onChange={(textSize) => setAccessibility({ textSize })}
+        />
+      </SettingRow>
+    </div>
+  );
+}
+
 /** Sections are added by the features they configure. */
 const SECTIONS: Partial<Record<SettingsTab, () => ReactNode>> = {
   audio: AudioSection,
   display: DisplaySection,
   controls: ControlsSection,
+  accessibility: AccessibilitySection,
   language: LanguageSection,
 };
 

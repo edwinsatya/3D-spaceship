@@ -30,7 +30,7 @@ const STAT_MAX = 5;
 function StatBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-20 shrink-0 text-[11px] uppercase tracking-wider text-cyan-100/75">{label}</span>
+      <span className="w-20 shrink-0 text-[0.6875rem] uppercase tracking-wider text-cyan-100/75">{label}</span>
       <div className="flex gap-1" role="meter" aria-label={label} aria-valuemin={1} aria-valuemax={STAT_MAX} aria-valuenow={value}>
         {Array.from({ length: STAT_MAX }, (_, index) => (
           <span
@@ -46,7 +46,7 @@ function StatBar({ label, value }: { label: string; value: number }) {
 /** Lock badge: how many stars an item needs. */
 function LockBadge({ stars, compact = false }: { stars: number; compact?: boolean }) {
   return (
-    <span className={`flex items-center gap-0.5 font-bold text-star ${compact ? "text-[9px]" : "text-[10px] uppercase tracking-widest"}`}>
+    <span className={`flex items-center gap-0.5 font-bold text-star ${compact ? "text-[0.5625rem]" : "text-[0.625rem] uppercase tracking-widest"}`}>
       <LockIcon /> {stars}★
     </span>
   );
@@ -83,7 +83,7 @@ function ShipCard({
     >
       <div className="flex items-center justify-between">
         <span className="font-display text-base font-bold tracking-wider">{localize(ship.name, locale)}</span>
-        {selected && <span className="text-[10px] font-bold uppercase tracking-widest text-hud">{t("hangar.selected")}</span>}
+        {selected && <span className="text-[0.625rem] font-bold uppercase tracking-widest text-hud">{t("hangar.selected")}</span>}
         {locked > 0 && <LockBadge stars={locked} />}
       </div>
       {locked > 0 && <p className="mt-0.5 text-xs font-semibold text-star/90">{t("hangar.unlockAt", { stars: locked })}</p>}
@@ -114,7 +114,7 @@ function Swatches({
   const t = useT();
   return (
     <fieldset>
-      <legend className="mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-hud">{label}</legend>
+      <legend className="mb-1.5 font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {colors.map((color, index) => {
           const active = color.toLowerCase() === value.toLowerCase();
@@ -136,8 +136,8 @@ function Swatches({
             >
               {locked > 0 && (
                 <span className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-slate-950/70 leading-none text-star">
-                  <LockIcon className="text-[10px]" />
-                  <span className="text-[8px] font-bold">{locked}</span>
+                  <LockIcon className="text-[0.625rem]" />
+                  <span className="text-[0.5rem] font-bold">{locked}</span>
                 </span>
               )}
             </button>
@@ -167,7 +167,7 @@ function DecalPicker({
   const t = useT();
   return (
     <fieldset>
-      <legend className="mb-1.5 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-hud">
+      <legend className="mb-1.5 font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">
         {t("hangar.decal")}
       </legend>
       <div className="grid grid-cols-4 gap-2">
@@ -182,7 +182,7 @@ function DecalPicker({
               disabled={locked > 0}
               title={locked > 0 ? t("hangar.unlockAt", { stars: locked }) : undefined}
               aria-pressed={active}
-              className={`pointer-events-auto flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[10px] uppercase tracking-wider ${
+              className={`pointer-events-auto flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[0.625rem] uppercase tracking-wider ${
                 active
                   ? "border-hud/80 bg-cyan-400/15 text-white"
                   : locked > 0

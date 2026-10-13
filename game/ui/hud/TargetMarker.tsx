@@ -2,15 +2,11 @@
 
 import { useRef } from "react";
 import { useLocale, useT } from "@/game/i18n/useT";
-import { runtime, type TargetKind } from "@/game/systems/runtime";
+import { accessibility } from "@/game/systems/accessibility";
+import { runtime } from "@/game/systems/runtime";
 import { setText, useHudFrame } from "../useHudFrame";
 import { distanceToKm, formatNumber } from "./format";
 
-const KIND_COLORS: Record<TargetKind, string> = {
-  ring: "#ffd84d",
-  body: "#7df9ff",
-  poi: "#9dffb0",
-};
 
 /**
  * Points at the current objective: a bracket around it when on screen,
@@ -23,7 +19,7 @@ export function TargetMarker() {
   const bracket = useRef<HTMLDivElement>(null);
   const arrow = useRef<HTMLDivElement>(null);
   const label = useRef<HTMLSpanElement>(null);
-  const last = useRef({ visible: false, onScreen: true, kind: "" as string, km: -1 });
+  const last = useRef({ visible: false, onScreen: true, color: "", km: -1 });
 
   useHudFrame(() => {
     const target = runtime.target;
@@ -45,9 +41,10 @@ export function TargetMarker() {
       if (arrow.current) arrow.current.style.display = target.onScreen ? "none" : "block";
     }
     if (!target.onScreen && arrow.current) arrow.current.style.transform = `rotate(${-target.angle}rad)`;
-    if (target.kind !== last.current.kind) {
-      last.current.kind = target.kind;
-      element.style.color = KIND_COLORS[target.kind];
+    const color = accessibility.palette.target[target.kind];
+    if (color !== last.current.color) {
+      last.current.color = color;
+      element.style.color = color;
     }
     const km = distanceToKm(target.distance);
     if (km !== last.current.km) {

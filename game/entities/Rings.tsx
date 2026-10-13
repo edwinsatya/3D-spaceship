@@ -17,13 +17,13 @@ import { MISSION } from "@/game/config/mission";
 import type { RingSpec } from "@/game/systems/course";
 import { orientationFromForwardUp } from "@/game/systems/flight";
 import { clamp01, easeOutCubic } from "@/game/systems/math";
+import { accessibility } from "@/game/systems/accessibility";
 import { runtime } from "@/game/systems/runtime";
 
 const COLORS = {
   next: new Color("#ffd84d").multiplyScalar(3.2),
   preview: new Color("#5fe6ff").multiplyScalar(1.8),
   idle: new Color("#3aa7b8").multiplyScalar(0.9),
-  passed: new Color("#9dffb0").multiplyScalar(3),
 };
 
 const PORTAL_FRAGMENT = /* glsl */ `
@@ -102,7 +102,7 @@ export function Rings({ rings }: { rings: RingSpec[] }) {
         const t = passedAt < 0 ? 1 : clamp01((runtime.clock - passedAt) / MISSION.ringPassFadeDuration);
         group.visible = t < 1;
         group.scale.setScalar(1 + easeOutCubic(t) * MISSION.ringPassScaleBoost);
-        material.color.copy(COLORS.passed);
+        material.color.copy(accessibility.colors.success).multiplyScalar(3);
         material.opacity = 1 - t;
         continue;
       }

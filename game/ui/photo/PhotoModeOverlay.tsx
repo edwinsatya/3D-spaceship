@@ -147,7 +147,7 @@ function ShotFeedback() {
           {/* eslint-disable-next-line @next/next/no-img-element -- local object URL */}
           <img src={url} alt="" className="h-14 w-24 rounded-lg object-cover" />
           <div className="flex flex-col gap-1">
-            <p className={`text-sm font-bold ${shot.missed ? "text-star" : "text-emerald-300"}`}>
+            <p className={`text-sm font-bold ${shot.missed ? "text-star" : "text-success"}`}>
               {shot.missed ? t("photo.missed", { name: targetName }) : t("photo.saved")}
             </p>
             <button type="button" onClick={() => openGallery()} className="flex items-center gap-1 self-start text-xs text-cyan-100 underline-offset-2 hover:underline">
@@ -208,7 +208,7 @@ export function PhotoModeOverlay() {
               <h2 className="font-display text-sm font-black uppercase tracking-[0.25em] text-hud">{t("photo.title")}</h2>
               {target && <p className="text-xs leading-snug text-white/90 short:hidden">{localize(target.brief, locale)}</p>}
               {target && <FramingMeter />}
-              <p className="text-[11px] text-white/60 short:hidden">
+              <p className="text-[0.6875rem] text-white/60 short:hidden">
                 {touch ? t("photo.dragHintTouch") : `${t("photo.dragHint")} · ${t("photo.keysHint")}`}
               </p>
             </div>

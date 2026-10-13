@@ -35,6 +35,7 @@ import { WarpTunnel } from "./WarpTunnel";
 import { EarthInSky, MarsSky, SurfaceFog, SurfaceLight, SurfaceScene, TerrainPrebuilder } from "./surface/SurfaceScene";
 import { SURFACES } from "@/game/data/surfaces";
 import { useQualitySettings } from "./useQualitySettings";
+import { useReducedMotion } from "@/game/ui/useSettingsEffects";
 
 /** Everything positioned in universe coordinates; shifted by the floating origin. */
 function WorldRoot({ children }: { children: React.ReactNode }) {
@@ -97,6 +98,7 @@ export function SpaceScene() {
   const location = useGameStore((state) => state.location);
   const surface = useGameStore((state) => state.surface);
   const { speedLines } = useQualitySettings();
+  const reducedMotion = useReducedMotion();
   const sky = surface ? SURFACES[surface].sky : null;
   const spaceSky = sky?.type !== "atmosphere";
   const missionId = useGameStore((state) => state.missionId);
@@ -128,7 +130,7 @@ export function SpaceScene() {
       </WorldRoot>
       <Ship />
       <SpaceDust />
-      {speedLines && <SpeedLines />}
+      {speedLines && !reducedMotion && <SpeedLines />}
       <WarpTunnel />
       <TerrainPrebuilder />
       <GameLoop />

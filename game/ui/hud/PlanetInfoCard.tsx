@@ -45,7 +45,7 @@ export function PlanetInfoCard() {
             <div className="flex items-center gap-3">
               <PlanetIcon id={data.id} size={44} />
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-hud">
+                <p className="text-[0.625rem] font-bold uppercase tracking-[0.25em] text-hud">
                   {t("info.orbiting")}
                 </p>
                 <h3 className="font-display text-lg font-bold">{localize(data.name, locale)}</h3>
@@ -63,7 +63,7 @@ export function PlanetInfoCard() {
               {localize(data.facts.funFact, locale)}
             </p>
             {data.landing.landable ? (
-              <p className="text-xs font-bold text-emerald-300">{t("info.landable")}</p>
+              <p className="text-xs font-bold text-success">{t("info.landable")}</p>
             ) : (
               <div className="text-xs">
                 <button

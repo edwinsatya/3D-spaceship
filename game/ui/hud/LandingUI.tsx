@@ -103,7 +103,7 @@ export function LandingBanner() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -12, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="hud-panel flex items-center gap-4 rounded-3xl border-emerald-300/60 px-6 py-4 shadow-[0_0_40px_rgba(110,255,170,0.2)] short:max-w-[36vw] short:gap-3 short:px-4 short:py-2"
+          className="hud-panel flex items-center gap-4 rounded-3xl border-success/60 px-6 py-4 shadow-[0_0_40px_color-mix(in_srgb,var(--color-success)_20%,transparent)] short:max-w-[36vw] short:gap-3 short:px-4 short:py-2"
           role="status"
         >
           <div className="shrink-0 short:*:size-10">
@@ -212,11 +212,11 @@ export function PointOfInterestCard() {
             aria-live="polite"
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-300">
+              <p className="text-[0.625rem] font-bold uppercase tracking-[0.25em] text-success">
                 {t("landing.pointOfInterest")}
               </p>
               {visit.first && (
-                <span className="rounded-full bg-star px-2 py-0.5 font-display text-[10px] font-black text-slate-900">
+                <span className="rounded-full bg-star px-2 py-0.5 font-display text-[0.625rem] font-black text-slate-900">
                   {t("landing.newSite")}
                 </span>
               )}

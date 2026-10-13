@@ -42,7 +42,7 @@ function MissionDetail({ mission, locked }: { mission: MissionDefinition; locked
       <div className="flex items-center gap-4">
         <PlanetIcon id={ROUTES[mission.route].icon} size={64} />
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-hud">
+          <p className="text-[0.6875rem] font-bold uppercase tracking-[0.25em] text-hud">
             {t(`missions.objective.${mission.objective.type}`)} · {localize(ROUTES[mission.route].name, locale)}
           </p>
           <h3 className="font-display text-2xl font-bold short:text-xl">{localize(mission.name, locale)}</h3>
@@ -51,13 +51,13 @@ function MissionDetail({ mission, locked }: { mission: MissionDefinition; locked
       <p className="text-sm leading-relaxed text-white/90">{localize(mission.description, locale)}</p>
       <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-4 py-3">
         <div>
-          <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-hud">{t("missions.best")}</p>
+          <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{t("missions.best")}</p>
           <p className="font-display text-xl font-bold tabular-nums">{best ?? t("missions.noBest")}</p>
         </div>
         <StarRow count={progress?.bestStars ?? 0} label={t("a11y.stars", { count: progress?.bestStars ?? 0 })} />
       </div>
       <div className="text-sm">
-        <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-star">{t("missions.goals")}</p>
+        <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-star">{t("missions.goals")}</p>
         <ul className="mt-1 flex flex-col gap-0.5 text-white/85">
           <li>{goal(3)}</li>
           <li>{goal(2)}</li>
@@ -136,7 +136,7 @@ export function MissionSelect() {
               if (missions.length === 0) return null;
               return (
                 <section key={routeId} className="flex flex-col gap-1.5">
-                  <h3 className="flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-100/70">
+                  <h3 className="flex items-center gap-2 font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-cyan-100/70">
                     <PlanetIcon id={ROUTES[routeId].icon} size={18} />
                     {localize(ROUTES[routeId].name, locale)}
                   </h3>

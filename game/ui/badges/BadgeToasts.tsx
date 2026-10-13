@@ -42,7 +42,7 @@ export function BadgeToasts() {
           >
             <BadgeIcon icon={badge.icon} size={40} earned />
             <div>
-              <p className="font-display text-[10px] font-bold uppercase tracking-[0.3em] text-star">{t("badges.toast")}</p>
+              <p className="font-display text-[0.625rem] font-bold uppercase tracking-[0.3em] text-star">{t("badges.toast")}</p>
               <p className="font-display text-base font-black tracking-wide">{localize(badge.name, locale)}</p>
             </div>
           </motion.div>

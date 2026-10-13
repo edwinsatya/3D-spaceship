@@ -47,7 +47,7 @@ function KeyBindings() {
   return (
     <div className="mt-2">
       <div className="mb-1 flex items-center justify-between gap-3">
-        <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-hud">{t("settings.keys")}</p>
+        <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{t("settings.keys")}</p>
         <button type="button" onClick={resetBindings} className="text-xs text-cyan-100 underline-offset-2 hover:underline">
           {t("settings.resetKeys")}
         </button>
@@ -104,7 +104,7 @@ function GamepadStatus() {
   }, []);
   return (
     <div className="mt-4">
-      <p className="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-hud">{t("settings.gamepad")}</p>
+      <p className="font-display text-[0.6875rem] font-bold uppercase tracking-[0.2em] text-hud">{t("settings.gamepad")}</p>
       <p className="mb-2 text-xs text-white/70">{name ? t("settings.gamepadConnected", { name }) : t("settings.gamepadHint")}</p>
       <ControlsReference device="gamepad" />
     </div>

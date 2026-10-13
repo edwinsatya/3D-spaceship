@@ -88,7 +88,7 @@ export function HintBanner({ placement }: { placement: "bottom" | "abovePrompts"
 }
 
 const TOAST_STYLES: Record<ToastKind, string> = {
-  ring: "text-emerald-200",
+  ring: "text-success-soft",
   energy: "text-star",
   collision: "text-danger",
 };
@@ -173,7 +173,7 @@ export function CollisionFlash() {
   return (
     <div
       ref={element}
-      className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(255,60,80,0.85)_100%)] opacity-0"
+      className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,color-mix(in_srgb,var(--color-danger)_85%,transparent)_100%)] opacity-0"
     />
   );
 }

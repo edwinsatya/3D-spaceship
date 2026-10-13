@@ -3,13 +3,19 @@
 /* Phones in landscape: very little height to work with. */
 @custom-variant short (@media (max-height: 520px));
 
-@theme inline {
+/* Colours are real CSS variables (not inlined) so accessibility settings can swap them at runtime. */
+@theme {
   --color-space: #02030a;
   --color-hud: #7df9ff;
   --color-hud-dim: #3aa7b8;
   --color-boost: #ffb347;
   --color-danger: #ff5a6e;
+  --color-success: #9dffb0;
+  --color-success-soft: #c8ffd4;
   --color-star: #ffd84d;
+}
+
+@theme inline {
   --font-sans: var(--font-exo), system-ui, sans-serif;
   --font-display: var(--font-orbitron), var(--font-exo), system-ui, sans-serif;
 }

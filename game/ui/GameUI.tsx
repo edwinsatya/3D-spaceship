@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { useReducedMotion } from "./useSettingsEffects";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { Encyclopedia } from "./encyclopedia/Encyclopedia";
@@ -34,33 +35,36 @@ export function GameUI() {
   const accountOpen = useAccountStore((state) => state.panelOpen);
   const settingsOpen = useUiStore((state) => state.settings);
   const showFps = useSettingsStore((state) => state.display.showFps);
+  const reducedMotion = useReducedMotion();
   const loading = phase === "boot" || phase === "loading";
 
   return (
-    <div className="pointer-events-none absolute inset-0 text-white">
-      <AnimatePresence>
-        {loading && (
-          <motion.div key="loading" className="absolute inset-0 z-40" exit={{ opacity: 0, transition: { duration: 0.6 } }}>
-            <LoadingScreen />
-          </motion.div>
-        )}
-        {phase === "menu" && <TitleMenu key="menu" />}
-        {phase === "hangar" && <HangarScreen key="hangar" />}
-        {(phase === "playing" || phase === "paused" || phase === "map") && <Hud key={`hud-${runId}`} />}
-        {phase === "paused" && <PauseMenu key="pause" />}
-        {phase === "map" && <SolarSystemMap key="map" />}
-        {phase === "photo" && <PhotoModeOverlay key="photo" />}
-        {phase === "result" && <ResultScreen key={`result-${runId}`} />}
-        {encyclopediaOpen && <Encyclopedia key="encyclopedia" />}
-        {missionsOpen && <MissionSelect key="missions" />}
-        {galleryOpen && <Gallery key="gallery" />}
-        {badgesOpen && <BadgesScreen key="badges" />}
-        {accountOpen && <AccountPanel key="account" />}
-        {settingsOpen && <SettingsScreen key="settings" />}
-      </AnimatePresence>
-      <BadgeToasts />
-      {showFps && <FpsCounter />}
-      <OrientationGuard />
-    </div>
+    <MotionConfig reducedMotion={reducedMotion ? "always" : "never"}>
+      <div className="pointer-events-none absolute inset-0 text-white">
+        <AnimatePresence>
+          {loading && (
+            <motion.div key="loading" className="absolute inset-0 z-40" exit={{ opacity: 0, transition: { duration: 0.6 } }}>
+              <LoadingScreen />
+            </motion.div>
+          )}
+          {phase === "menu" && <TitleMenu key="menu" />}
+          {phase === "hangar" && <HangarScreen key="hangar" />}
+          {(phase === "playing" || phase === "paused" || phase === "map") && <Hud key={`hud-${runId}`} />}
+          {phase === "paused" && <PauseMenu key="pause" />}
+          {phase === "map" && <SolarSystemMap key="map" />}
+          {phase === "photo" && <PhotoModeOverlay key="photo" />}
+          {phase === "result" && <ResultScreen key={`result-${runId}`} />}
+          {encyclopediaOpen && <Encyclopedia key="encyclopedia" />}
+          {missionsOpen && <MissionSelect key="missions" />}
+          {galleryOpen && <Gallery key="gallery" />}
+          {badgesOpen && <BadgesScreen key="badges" />}
+          {accountOpen && <AccountPanel key="account" />}
+          {settingsOpen && <SettingsScreen key="settings" />}
+        </AnimatePresence>
+        <BadgeToasts />
+        {showFps && <FpsCounter />}
+        <OrientationGuard />
+      </div>
+    </MotionConfig>
   );
 }

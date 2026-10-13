@@ -64,7 +64,7 @@ export function BadgesScreen() {
                 <div className="min-w-0">
                   <p className={`font-display text-sm font-bold ${has ? "text-white" : "text-white/60"}`}>{localize(badge.name, locale)}</p>
                   <p className="text-xs leading-snug text-white/70">{localize(badge.description, locale)}</p>
-                  <p className={`mt-0.5 text-[10px] font-bold uppercase tracking-widest ${has ? "text-star" : "text-white/35"}`}>
+                  <p className={`mt-0.5 text-[0.625rem] font-bold uppercase tracking-widest ${has ? "text-star" : "text-white/35"}`}>
                     {has ? t("badges.earned") : t("badges.locked")}
                   </p>
                 </div>

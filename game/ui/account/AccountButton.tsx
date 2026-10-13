@@ -15,7 +15,7 @@ export function AccountButton() {
       <IconButton label={t("account.button")} onClick={open}>
         <UserIcon />
       </IconButton>
-      {signedIn && <span className="pointer-events-none absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />}
+      {signedIn && <span className="pointer-events-none absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-slate-950" />}
     </div>
   );
 }
