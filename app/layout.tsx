@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   title,
   description: translate(DEFAULT_LOCALE, "meta.description"),
   applicationName: title,
+  // iOS "Add to Home Screen": full screen, dark status bar.
+  appleWebApp: { capable: true, title, statusBarStyle: "black-translucent" },
   keywords: [
     "space game",
     "3D game",

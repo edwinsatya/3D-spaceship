@@ -60,6 +60,12 @@ export default function GameApp() {
   useBadgeAwards();
   useSettingsEffects();
   useEffect(() => {
+    // Offline play after the first visit (production only: dev rebuilds files under the same URLs).
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((error) => console.warn("[pwa] service worker failed", error));
+    }
+  }, []);
+  useEffect(() => {
     void startAccount();
   }, []);
 
