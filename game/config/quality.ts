@@ -15,6 +15,8 @@ export interface QualitySettings {
   terrainSegments: number;
   trails: boolean;
   speedLines: boolean;
+  /** Sun shadow map size (px per side); 0 turns shadows off. */
+  shadowMapSize: number;
 }
 
 export const QUALITY: Record<QualityTier, QualitySettings> = {
@@ -28,6 +30,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     terrainSegments: 280,
     trails: true,
     speedLines: true,
+    shadowMapSize: 2048,
   },
   medium: {
     dprFactor: 0.8,
@@ -39,6 +42,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     terrainSegments: 200,
     trails: true,
     speedLines: true,
+    shadowMapSize: 1024,
   },
   low: {
     dprFactor: 0.6,
@@ -50,6 +54,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     terrainSegments: 140,
     trails: false,
     speedLines: false,
+    shadowMapSize: 0,
   },
 };
 

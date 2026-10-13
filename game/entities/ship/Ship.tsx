@@ -2,9 +2,10 @@
 
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { Suspense, useCallback, useRef } from "react";
+import { Suspense, useCallback, useLayoutEffect, useRef } from "react";
 import type { Group } from "three";
 import { ASSET_PATHS, SHIP_ASSETS } from "@/game/config/assets";
+import { setShadows } from "@/game/entities/SunDirectionalLight";
 import { useGameStore } from "@/game/stores/gameStore";
 import { useSelectedShip } from "@/game/stores/useShip";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
@@ -14,6 +15,7 @@ import { CockpitFrame, ShipModel } from "./ShipModel";
 
 function GLTFShip({ url }: { url: string }) {
   const gltf = useGLTF(url, ASSET_PATHS.dracoDecoder, true);
+  useLayoutEffect(() => setShadows(gltf.scene, true, true), [gltf.scene]);
   return <primitive object={gltf.scene} scale={SHIP_ASSETS.modelScale} />;
 }
 

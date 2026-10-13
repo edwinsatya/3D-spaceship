@@ -106,6 +106,8 @@ export function Asteroids({ asteroids }: { asteroids: AsteroidSpec[] }) {
           args={[geometries[variant], material, Math.max(1, bucket.length)]}
           count={bucket.length}
           frustumCulled={false}
+          castShadow
+          receiveShadow
         />
       ))}
     </group>

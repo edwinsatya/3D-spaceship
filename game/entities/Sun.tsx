@@ -3,11 +3,13 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import { AdditiveBlending, Vector3, type Mesh, type ShaderMaterial } from "three";
+import { VISUALS } from "@/game/config/visuals";
 import { SKY, WORLD } from "@/game/config/world";
 import { BILLBOARD_VERTEX } from "@/game/scenes/shaders/common";
 import { useGameStore } from "@/game/stores/gameStore";
 import { buildEnvironment } from "@/game/systems/environment";
 import { runtime } from "@/game/systems/runtime";
+import { SunDirectionalLight } from "./SunDirectionalLight";
 
 const SUN_FRAGMENT = /* glsl */ `
 uniform float uTime;
@@ -70,14 +72,14 @@ export function Sun() {
 export function SunLight() {
   const location = useGameStore((state) => state.location);
   const environment = useMemo(() => buildEnvironment(location), [location]);
-  const position = useMemo(() => environment.sunDirection.clone().multiplyScalar(100), [environment]);
+  const direction = useMemo(() => environment.sunDirection.clone().normalize(), [environment]);
   return (
     <>
       {location !== "sun" && (
-        <directionalLight
-          position={position}
+        <SunDirectionalLight
+          direction={direction}
           intensity={WORLD.sunLightIntensity * environment.sunIntensity}
-          color="#fff3e2"
+          extent={VISUALS.shadows.extent.space}
         />
       )}
       <ambientLight intensity={WORLD.ambientIntensity} color={WORLD.ambientColor} />

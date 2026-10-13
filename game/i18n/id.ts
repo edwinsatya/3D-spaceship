@@ -179,9 +179,9 @@ export const id: Dictionary = {
     quality: { auto: "Otomatis", low: "Rendah", medium: "Sedang", high: "Tinggi" },
     qualityHint: {
       auto: "Menyesuaikan sendiri supaya game tetap lancar di perangkat ini.",
-      low: "Paling ringan: tanpa efek cahaya, lebih sedikit bintang dan debu, resolusi lebih rendah.",
-      medium: "Seimbang: efek cahaya dengan partikel lebih sedikit.",
-      high: "Paling bagus: efek cahaya, detail, dan resolusi penuh.",
+      low: "Paling ringan: tanpa efek cahaya dan bayangan, lebih sedikit bintang dan debu, resolusi lebih rendah.",
+      medium: "Seimbang: efek cahaya dan bayangan halus, partikel lebih sedikit.",
+      high: "Paling bagus: efek cahaya, bayangan tajam, detail, dan resolusi penuh.",
     },
     showFps: "Tampilkan penghitung FPS",
     showFpsHint: "Frame per detik dan kualitas yang dipakai, di bawah layar.",

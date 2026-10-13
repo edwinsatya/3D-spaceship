@@ -15,6 +15,7 @@ import {
 import { VISUALS } from "@/game/config/visuals";
 import { SURFACES, type SurfaceId } from "@/game/data/surfaces";
 import { EnergyStars } from "@/game/entities/EnergyStars";
+import { SunDirectionalLight } from "@/game/entities/SunDirectionalLight";
 import { PointOfInterestProp } from "@/game/entities/surface/SurfaceProps";
 import { OUTPUT_CHUNKS } from "@/game/scenes/shaders/common";
 import { useQualitySettings } from "@/game/scenes/useQualitySettings";
@@ -33,7 +34,7 @@ function Ground({ surface }: { surface: SurfaceId }) {
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => () => material.dispose(), [material]);
-  return <mesh geometry={geometry} material={material} />;
+  return <mesh geometry={geometry} material={material} receiveShadow />;
 }
 
 function Rocks({ surface }: { surface: SurfaceId }) {
@@ -48,6 +49,8 @@ function Rocks({ surface }: { surface: SurfaceId }) {
     );
     matrices.forEach((matrix, index) => instanced.setMatrixAt(index, matrix));
     instanced.instanceMatrix.needsUpdate = true;
+    instanced.castShadow = true;
+    instanced.receiveShadow = true;
     instanced.computeBoundingSphere();
     return instanced;
   }, [terrain, rock]);
@@ -103,10 +106,10 @@ export function SurfaceFog({ surface }: { surface: SurfaceId }) {
 /** Surface lighting: the site's own sun and ambient sky light. */
 export function SurfaceLight({ surface }: { surface: SurfaceId }) {
   const definition = SURFACES[surface];
-  const position = useMemo(() => new Vector3(...definition.sunDirection).normalize().multiplyScalar(100), [definition]);
+  const direction = useMemo(() => new Vector3(...definition.sunDirection).normalize(), [definition]);
   return (
     <>
-      <directionalLight position={position} intensity={definition.sunIntensity} color="#fff3e2" />
+      <SunDirectionalLight direction={direction} intensity={definition.sunIntensity} extent={VISUALS.shadows.extent.surface} />
       <ambientLight intensity={definition.ambient.intensity} color={definition.ambient.color} />
       {definition.sky.type === "atmosphere" && (
         <hemisphereLight args={[definition.sky.zenith, definition.palette.low, 0.35]} />

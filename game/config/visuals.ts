@@ -30,6 +30,23 @@ export const VISUALS = {
     /** A jump larger than this (u) between frames is a teleport: reset the trail. */
     teleportDistance: 60,
   },
+  /**
+   * Sun shadows (medium and high tiers). The shadow camera is a box around the
+   * ship, pushed ahead along the view; only things inside it cast shadows.
+   */
+  shadows: {
+    /** Half the box width (u): in space it holds the whole station while you dock. */
+    extent: { space: 80, surface: 90 },
+    /** How far ahead of the ship the box is centred, as a share of `extent`. */
+    lead: 0.45,
+    /** Distance (u) from the box centre to the light; the box is twice as deep. */
+    lightDistance: 300,
+    bias: -0.0004,
+    /** Pushes lookups out along the normal, in shadow-map texels: stops acne on the flat-shaded models. */
+    normalBiasTexels: 1.2,
+    /** PCF blur radius (texels); wider shows the per-pixel noise of three's sampling. */
+    radius: 1,
+  },
   surface: {
     /** Landing-site ground mesh: side length (u); segments come from the quality tier. */
     size: 3400,

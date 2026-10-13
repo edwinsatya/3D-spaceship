@@ -12,6 +12,7 @@ import { useAssetStore } from "@/game/stores/assetStore";
 import { useGameStore } from "@/game/stores/gameStore";
 import { usePhotoStore } from "@/game/stores/photoStore";
 import { useProgressStore } from "@/game/stores/progressStore";
+import { useSettingsStore } from "@/game/stores/settingsStore";
 import { useUiStore } from "@/game/stores/uiStore";
 import { useBadgeAwards } from "@/game/ui/useBadgeAwards";
 import { useSettingsEffects } from "@/game/ui/useSettingsEffects";
@@ -43,6 +44,7 @@ function exposeDebugHandle() {
       useQualityStore,
       usePhotoStore,
       useProgressStore,
+      useSettingsStore,
       useUiStore,
       photoSubject: () => photoSubject(runtime.layout)?.clone() ?? null,
     },
@@ -85,6 +87,8 @@ export default function GameApp() {
           gl={{ antialias: false, alpha: false, stencil: false, powerPreference: "high-performance" }}
           camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far, position: [0, 0, 0] }}
           performance={{ min: PERFORMANCE.minPerformance, max: 1 }}
+          // Always on; the sun light only casts on tiers with a shadow map size.
+          shadows="percentage"
           frameloop={paused ? "demand" : "always"}
         >
           <SpaceScene />

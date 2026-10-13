@@ -10,10 +10,12 @@ import {
   MeshStandardMaterial,
   ShaderMaterial,
   SRGBColorSpace,
+  type Group,
 } from "three";
 import { ASSET_PATHS, SURFACE_PROP_ASSETS } from "@/game/config/assets";
 import { VISUALS } from "@/game/config/visuals";
 import type { PointOfInterestKind } from "@/game/data/surfaces";
+import { setShadows, useShadows } from "@/game/entities/SunDirectionalLight";
 import { useProgressStore } from "@/game/stores/progressStore";
 import { accessibility } from "@/game/systems/accessibility";
 import { runtime } from "@/game/systems/runtime";
@@ -284,7 +286,11 @@ function Beacon({ id }: { id: string }) {
 
 function GLTFProp({ url, scale }: { url: string; scale: number }) {
   const gltf = useGLTF(url, ASSET_PATHS.dracoDecoder, true);
-  const scene = useMemo(() => gltf.scene.clone(), [gltf.scene]);
+  const scene = useMemo(() => {
+    const clone = gltf.scene.clone();
+    setShadows(clone, true, true);
+    return clone;
+  }, [gltf.scene]);
   return <primitive object={scene} scale={scale} />;
 }
 
@@ -302,9 +308,11 @@ function WithModel({ slot, children }: { slot: keyof typeof SURFACE_PROP_ASSETS;
 export function PointOfInterestProp({ id, kind, accent }: { id: string; kind: PointOfInterestKind; accent: string }) {
   const scale = VISUALS.surface.propScale;
   const beaconOffset: [number, number, number] = kind === "crater" || kind === "delta" ? [0, 0, 0] : [-7, 0, -5];
+  // The model casts and receives sun shadows; the see-through beacon doesn't.
+  const model = useShadows<Group>();
   return (
     <group>
-      <group scale={scale}>
+      <group ref={model} scale={scale}>
         {kind === "lander" && (
           <WithModel slot="lander">
             <ApolloLander />

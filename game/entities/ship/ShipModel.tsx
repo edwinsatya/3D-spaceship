@@ -14,6 +14,7 @@ import {
 import { VISUALS } from "@/game/config/visuals";
 import { TRAIL } from "@/game/config/world";
 import type { ShipCustomization, ShipDesign } from "@/game/data/ships";
+import { useShadows } from "@/game/entities/SunDirectionalLight";
 import { clamp01, damp } from "@/game/systems/math";
 import { runtime } from "@/game/systems/runtime";
 import { createDecalGeometry, createShipGeometries, disposeShipGeometries } from "./shipGeometry";
@@ -97,6 +98,8 @@ export function ShipModel({ design, paint, cockpit = false }: ShipModelProps) {
   const flameLength = useRef(0.4);
   const nozzles = design.engines.nozzles;
   const [navX, navY, navZ] = design.navLight;
+  // The hull casts and receives sun shadows; glows and flames don't.
+  const hull = useShadows<Group>();
 
   useEffect(() => () => disposeShipGeometries(geometries), [geometries]);
   useEffect(() => () => decal?.dispose(), [decal]);
@@ -127,7 +130,7 @@ export function ShipModel({ design, paint, cockpit = false }: ShipModelProps) {
 
   return (
     <group>
-      <group visible={!cockpit}>
+      <group ref={hull} visible={!cockpit}>
         <mesh geometry={geometries.fuselage} material={materials.body} />
         <mesh geometry={geometries.canopy} material={materials.glass} />
         <mesh geometry={geometries.wingLeft} material={materials.body} />

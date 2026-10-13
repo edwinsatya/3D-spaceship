@@ -177,9 +177,9 @@ export const en = {
     quality: { auto: "Auto", low: "Low", medium: "Medium", high: "High" },
     qualityHint: {
       auto: "Adjusts by itself to keep the game smooth on this device.",
-      low: "Fastest: no glow effects, fewer stars and dust, lower resolution.",
-      medium: "Balanced: glow effects with fewer particles.",
-      high: "Best looking: full glow, detail and resolution.",
+      low: "Fastest: no glow effects or shadows, fewer stars and dust, lower resolution.",
+      medium: "Balanced: glow effects and soft shadows, fewer particles.",
+      high: "Best looking: full glow, sharp shadows, detail and resolution.",
     },
     showFps: "Show FPS counter",
     showFpsHint: "Frames per second and the quality in use, at the bottom of the screen.",

@@ -2,9 +2,10 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { CanvasTexture, Color, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, type Mesh } from "three";
+import { CanvasTexture, Color, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, type Group, type Mesh } from "three";
 import { STATION } from "@/game/data/station";
 import { runtime } from "@/game/systems/runtime";
+import { useShadows } from "./SunDirectionalLight";
 import { stationLayout } from "@/game/systems/station";
 
 /** Blue cells with thin gold borders, tiled along each solar wing. */
@@ -61,6 +62,7 @@ export function Station() {
   const layout = stationLayout();
   const materials = useStationMaterials();
   const lights = useRef<(Mesh | null)[]>([]);
+  const root = useShadows<Group>();
   const { truss, solarWings, modules, dock } = STATION;
   const halfTruss = truss.length / 2;
 
@@ -72,7 +74,7 @@ export function Station() {
   });
 
   return (
-    <group position={layout.center} quaternion={layout.quaternion} scale={STATION.scale}>
+    <group ref={root} position={layout.center} quaternion={layout.quaternion} scale={STATION.scale}>
       {/* Main truss with cross braces. */}
       <mesh material={materials.truss}>
         <boxGeometry args={[truss.length, truss.thickness, truss.thickness]} />
